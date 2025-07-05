@@ -1,0 +1,101 @@
+.troskovi-page {
+  background-image: url("../assets/slikaHome.webp");
+  background-size: cover;
+  background-position: center;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 0;
+  overflow-y: auto;
+}
+
+.troskovi-box {
+  background-color: rgba(255, 255, 255, 0.5);
+  padding: 40px;
+  width: 90%;
+  max-width: 750px;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+  font-family: 'Playfair Display', serif;
+  border-radius: 6px;
+}
+
+.troskovi-box h1 {
+  text-align: center;
+  margin-bottom: 30px;
+  font-size: 28px;
+  color: #2e2e2e;
+}
+
+.mesec-input {
+  margin-bottom: 20px;
+  padding: 12px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  width: 100%;
+  max-width: 250px;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.unos-forma {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 30px;
+}
+
+.unos-forma input {
+  padding: 12px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.unos-forma button {
+  padding: 12px;
+  font-size: 16px;
+  background-color: #b88c7d;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+}
+
+.unos-forma button:hover {
+  background-color: #f29c80;
+}
+
+.tabela-troskova {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: white;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
+}
+
+.tabela-troskova th,
+.tabela-troskova td {
+  padding: 12px 16px;
+  text-align: center;
+  border-bottom: 1px solid #ddd;
+  font-family: "Arial", sans-serif;
+  font-size: 15px;
+}
+
+.tabela-troskova th {
+  background-color: #f2f2f2;
+  font-weight: bold;
+  color: #333;
+}
+
+.tabela-troskova tfoot td {
+  font-weight: bold;
+  background-color: #f9f9f9;
+  font-size: 16px;
+}

@@ -1,0 +1,138 @@
+/* GLOBALNA POZADINA */
+body {
+  margin: 0;
+  padding: 0;
+  background-image: url('../assets/slikaHome.webp'); /* Podesi putanju ako je druga */
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  font-family: 'Playfair Display', serif;
+}
+
+/* SREDI KONTEJNER KALENDARA */
+.kalendar-admin-wrapper {
+  height: 90vh;
+  padding: 20px;
+  background-color: rgba(248, 245, 240, 0.9); /* krem ton sa providnošću */
+  border-radius: 20px;
+  margin: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* NASLOV */
+.kalendar-admin-wrapper h2 {
+  text-align: center;
+  font-family: 'Playfair Display', serif;
+  font-size: 28px;
+  margin-bottom: 20px;
+}
+
+/* DANAŠNJI DAN */
+.rbc-today {
+  background-color: #f8f5f0 !important;
+}
+
+/* NASLOVI DANA I VREMENA */
+.rbc-time-header,
+.rbc-time-content,
+.rbc-date-cell,
+.rbc-time-slot {
+  font-family: 'Playfair Display', serif;
+}
+
+/* DOGAĐAJ U KALENDARU */
+.rbc-event {
+  font-size: 14px;
+  font-family: 'Playfair Display', serif;
+}
+
+/* STILIZACIJA MODALA */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.3);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  padding: 30px;
+  border-radius: 20px;
+  font-family: 'Playfair Display', serif;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.modal-content h3 {
+  margin-bottom: 20px;
+  font-size: 22px;
+  color: #333;
+}
+
+.modal-content select,
+.modal-content textarea {
+  width: 100%;
+  padding: 10px;
+  margin: 10px 0;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  font-family: 'Playfair Display', serif;
+}
+
+.modal-content textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+.ceo-dan-checkbox {
+  display: flex;
+  align-items: center;
+  justify-content: start;
+  gap: 10px;
+  margin-top: 10px;
+  font-size: 16px;
+  color: #444;
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+.modal-buttons button {
+  padding: 10px 20px;
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 10px;
+  font-family: 'Playfair Display', serif;
+  border: none;
+  transition: background-color 0.2s ease;
+}
+
+.btn-braon {
+  background-color: #b88c7d;
+  color: white;
+}
+
+.btn-braon:hover {
+  background-color: #a87869;
+}
+
+.btn-grey {
+  background-color: #ccc;
+  color: #333;
+}
+
+.btn-grey:hover {
+  background-color: #b3b3b3;
+}

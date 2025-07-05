@@ -1,0 +1,84 @@
+.unesi-page {
+  min-height: 100vh;
+  background-image: url('../assets/slikaHome.webp'); /* Use absolute path or adjust relative path */
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: 'Playfair Display', serif;
+  padding: 20px;
+}
+
+.unesi-form {
+  background: rgba(255, 255, 255, 0.5);
+  padding: 40px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  max-width: 500px;
+  width: 100%;
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+.unesi-form h2 {
+  font-size: 32px;
+  color: #2e2e2e;
+  margin-bottom: 25px;
+}
+
+.unesi-form p {
+  font-size: 18px;
+  color: #333;
+  margin-bottom: 10px;
+  font-weight: 500;
+}
+
+.button-group {
+  display: flex;
+  justify-content: center;
+  gap: 20px; /* Increased gap for more space between buttons */
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.button-group button {
+  padding: 8px 16px; /* Reduced padding for smaller buttons */
+  font-size: 15px;
+  border: 2px solid #b88c7d;
+  background-color: transparent;
+  color: #333;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: 0.3s ease;
+  min-width: 100px; /* Reduced min-width for smaller buttons */
+  text-align: center;
+}
+
+.button-group button:hover {
+  background-color: #e9d6cc;
+}
+
+.button-group button.active {
+  background-color: #b88c7d;
+  color: white;
+  font-weight: bold;
+}
+
+.unesi-form button.submit-button {
+  width: 100%;
+  padding: 12px;
+  font-size: 16px;
+  background-color: #b88c7d;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-top: 30px;
+  transition: background-color 0.3s ease;
+}
+
+.unesi-form button.submit-button:hover {
+  background-color: #a87769;
+}

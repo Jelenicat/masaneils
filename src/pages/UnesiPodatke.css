@@ -1,0 +1,53 @@
+.unesi-page {
+  min-height: 100vh;
+  background-image: url('../assets/slikaHome.webp'); /* prilagodi ako treba */
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: 'Playfair Display', serif;
+}
+
+.unesi-form {
+  background: rgba(255, 255, 255, 0.5);
+  padding: 40px;
+  border-radius: 0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  max-width: 400px;
+  width: 90%;
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+.unesi-form h2 {
+  font-size: 32px;
+  color: #2e2e2e;
+  margin-bottom: 20px;
+}
+
+.unesi-form input {
+  width: 100%;
+  padding: 12px;
+  font-size: 16px;
+  margin-bottom: 20px;
+  border: 2px solid #ccc;
+  border-radius: 8px;
+  box-sizing: border-box;
+}
+
+.unesi-form button {
+  width: 100%;
+  padding: 12px;
+  font-size: 16px;
+  background-color: #b88c7d;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.unesi-form button:hover {
+  background-color: #f7b79d;
+}

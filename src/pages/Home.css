@@ -1,0 +1,58 @@
+.login-page  
+{min-height: 100vh;
+  background-image: url('../assets/slikaHome.webp'); /* prilagodi putanju ako je druga */
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: 'Playfair Display', serif;
+} 
+
+
+.login-form {
+  background: rgba(255, 255, 255, 0.5); /* 0.7 = 70% neprozirnosti */
+  padding: 40px;
+  border-radius: 0; /* OŠTRE ivice */
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  max-width: 400px;
+  width: 90%;
+  backdrop-filter: blur(5px); /* Efekat stakla */
+  -webkit-backdrop-filter: blur(5px); /* Safari podrška */
+}
+
+
+.login-form h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: 32px;
+  color: #2e2e2e;
+  margin-bottom: 20px;
+}
+
+
+.login-form input {
+  width: 100%;
+  padding: 12px;
+  font-size: 16px;
+  margin-bottom: 20px;
+  border: 2px solid #ccc;
+  border-radius: 8px;
+  box-sizing: border-box;
+}
+
+.login-form button {
+  width: 100%;
+  padding: 12px;
+  font-size: 16px;
+  background-color: #b88c7d;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+
+.login-form button:hover {
+  background-color: #f7b79d;
+}

@@ -1,0 +1,50 @@
+.all-profiles-page {
+  background-image: url("../assets/slikaHome.webp");
+  background-size: cover;
+  background-position: center;
+  min-height: 100vh;
+  padding: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.all-profiles-box {
+  background-color: rgba(255, 255, 255, 0.85);
+  padding: 30px;
+  max-width: 900px;
+  width: 100%;
+  border-radius: 0; /* oštre ivice */
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+  font-family: 'Playfair Display', serif;
+  color: #2e2e2e;
+}
+
+.all-profiles-box h1 {
+  text-align: center;
+  font-family: 'Great Vibes', cursive;
+  font-size: 36px;
+  margin-bottom: 30px;
+  color: #3a2e2e;
+}
+
+.profiles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 20px;
+}
+
+.profile-card {
+  background-color: #f4eade;
+  padding: 20px;
+  text-align: center;
+  font-weight: bold;
+  color: #3a2e2e;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease;
+}
+
+.profile-card:hover {
+  transform: scale(1.03);
+  background-color: #e3d2c0;
+}

@@ -1,0 +1,94 @@
+.unesi-page {
+  background-image: url('../assets/slikaHome.webp'); 
+  background-size: cover;
+  background-position: center;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 30px;
+  font-family: 'Georgia', serif;
+}
+
+.unesi-form {
+  background: rgba(255, 255, 255, 0.75);
+  padding: 30px 40px;
+  border-radius: 16px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  width: 95%;
+  max-width: 1200px;
+  overflow-x: auto;
+}
+
+h2 {
+  margin-bottom: 20px;
+  color: #3b3b3b;
+}
+
+.tabela {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.red {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+}
+
+.kolona-header {
+  font-weight: bold;
+  font-size: 16px;
+  color: #5b4a43;
+  background-color: #f3e9e3;
+  border-radius: 8px;
+  padding: 8px;
+  text-align: center;
+}
+
+.termin {
+  padding: 10px;
+  border-radius: 8px;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  text-align: center;
+  min-height: 38px;
+  font-weight: 500;
+}
+
+.termin.klikabilan {
+  background-color: #f8eae5;
+  cursor: pointer;
+  border: 1px solid #b88c7d;
+}
+
+.termin.klikabilan:hover {
+  background-color: #f1d3c6;
+}
+
+.termin.selektovan {
+  background-color: #b88c7d;
+  color: white;
+}
+
+.termin.disabled {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.sacuvaj-dugme {
+  margin-top: 25px;
+  padding: 12px 30px;
+  font-size: 16px;
+  background-color: #b88c7d;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.sacuvaj-dugme:hover {
+  background-color: #d7a794;
+}

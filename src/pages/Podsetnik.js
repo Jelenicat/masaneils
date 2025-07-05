@@ -17,11 +17,17 @@ const Podsetnik = () => {
 
   useEffect(() => {
     const korisnik = localStorage.getItem("korisnickoIme");
+
     if (korisnik === "masa") {
       Notification.requestPermission().then((permission) => {
         if (permission === "granted") {
-          console.log("VAPID Key:", process.env.REACT_APP_VAPID_KEY);
-          getToken(messaging, { vapidKey: process.env.REACT_APP_VAPID_KEY })
+          const vapidKey =
+            process.env.REACT_APP_VAPID_KEY ||
+            "gBBQDJdrolMbk2ln9gwrNwznoWLP7kSyssTL8qZ9d7o"; // fallback
+
+          console.log("VAPID Key:", vapidKey);
+
+          getToken(messaging, { vapidKey })
             .then((token) => {
               if (token) {
                 console.log("✅ FCM token:", token);
@@ -38,7 +44,9 @@ const Podsetnik = () => {
 
       onMessage(messaging, (payload) => {
         console.log("📩 Notifikacija dok je tab otvoren:", payload);
-        new Notification(payload.notification.title, { body: payload.notification.body });
+        new Notification(payload.notification.title, {
+          body: payload.notification.body,
+        });
       });
     }
   }, []);
@@ -46,7 +54,7 @@ const Podsetnik = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const docRef = await addDoc(collection(db, "podsetnici"), {
+      await addDoc(collection(db, "podsetnici"), {
         naslov,
         opis,
         vreme,
@@ -55,16 +63,20 @@ const Podsetnik = () => {
       });
 
       const token = localStorage.getItem("fcmToken");
+
       if (token) {
-        await fetch("/posalji-notifikaciju", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            token,
-            title: naslov,
-            body: opis,
-          }),
-        });
+        await fetch(
+          "https://notifikacija-api.vercel.app/api/posalji-notifikaciju", // promeni na svoj backend URL
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              token,
+              title: naslov,
+              body: opis,
+            }),
+          }
+        );
       }
 
       alert("✅ Podsetnik je dodat!");

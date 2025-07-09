@@ -18,6 +18,9 @@ import "./MojKalendarAdmin.css";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import VerticalScheduleView from "../components/VerticalScheduleView";
+import { startOfWeek, endOfWeek, isWithinInterval } from "date-fns";
+import { addDays } from "date-fns";
+
 
 const localizer = momentLocalizer(moment);
 
@@ -47,6 +50,34 @@ const MojKalendarAdmin = () => {
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [korisnice, setKorisnice] = useState([]);
   const [currentDate, setCurrentDate] = useState(new Date());
+const [selectedWeekStart, setSelectedWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
+
+const handleAddEvent = (date) => {
+  const start = new Date(date);
+  start.setHours(9, 0, 0, 0);
+  const end = new Date(start);
+  end.setHours(10, 0, 0, 0);
+  setNewEventData({
+    start,
+    end,
+    tip: "",
+    note: "",
+    clientUsername: "",
+  });
+  setShowModal(true);
+};
+
+const handleEditEvent = (event) => {
+  setNewEventData(event);
+  setShowModal(true);
+};
+
+const weeklyEvents = events.filter((event) =>
+  isWithinInterval(new Date(event.start), {
+    start: selectedWeekStart,
+    end: endOfWeek(selectedWeekStart, { weekStartsOn: 1 }),
+  })
+);
 
   const fetchEvents = useCallback(async () => {
     try {
@@ -253,6 +284,23 @@ const MojKalendarAdmin = () => {
           }}
         />
       )}
+      <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
+  <button onClick={() => setSelectedWeekStart(prev => addDays(prev, -7))}>⟵ Prethodna nedelja</button>
+  <button onClick={() => setSelectedWeekStart(prev => addDays(prev, 7))}>Sledeća nedelja ⟶</button>
+</div>
+
+      <h3 style={{ marginTop: "30px", fontSize: "18px", color: "#c89b8c" }}>
+  Prikaz nedelje: {selectedWeekStart.toLocaleDateString()} –{" "}
+  {endOfWeek(selectedWeekStart, { weekStartsOn: 1 }).toLocaleDateString()}
+</h3>
+
+<VerticalScheduleView
+  events={weeklyEvents}
+  selectedWeekStart={selectedWeekStart}
+  onAddEvent={handleAddEvent}
+  onEditEvent={handleEditEvent}
+/>
+
 
       {showModal && !prikaziVertical && (
         <div className="modal-overlay">

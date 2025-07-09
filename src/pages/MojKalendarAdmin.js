@@ -18,9 +18,7 @@ import "./MojKalendarAdmin.css";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import VerticalScheduleView from "../components/VerticalScheduleView";
-import { startOfWeek, endOfWeek, isWithinInterval } from "date-fns";
-import { addDays } from "date-fns";
-
+import { startOfWeek, endOfWeek, isWithinInterval, addDays } from "date-fns";
 
 const localizer = momentLocalizer(moment);
 
@@ -50,34 +48,7 @@ const MojKalendarAdmin = () => {
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [korisnice, setKorisnice] = useState([]);
   const [currentDate, setCurrentDate] = useState(new Date());
-const [selectedWeekStart, setSelectedWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
-
-const handleAddEvent = (date) => {
-  const start = new Date(date);
-  start.setHours(9, 0, 0, 0);
-  const end = new Date(start);
-  end.setHours(10, 0, 0, 0);
-  setNewEventData({
-    start,
-    end,
-    tip: "",
-    note: "",
-    clientUsername: "",
-  });
-  setShowModal(true);
-};
-
-const handleEditEvent = (event) => {
-  setNewEventData(event);
-  setShowModal(true);
-};
-
-const weeklyEvents = events.filter((event) =>
-  isWithinInterval(new Date(event.start), {
-    start: selectedWeekStart,
-    end: endOfWeek(selectedWeekStart, { weekStartsOn: 1 }),
-  })
-);
+  const [selectedWeekStart, setSelectedWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
 
   const fetchEvents = useCallback(async () => {
     try {
@@ -244,7 +215,13 @@ const weeklyEvents = events.filter((event) =>
         <p>Učitavanje...</p>
       ) : prikaziVertical ? (
         <VerticalScheduleView
-          events={events}
+          events={events.filter((event) =>
+            isWithinInterval(new Date(event.start), {
+              start: selectedWeekStart,
+              end: endOfWeek(selectedWeekStart, { weekStartsOn: 1 }),
+            })
+          )}
+          selectedWeekStart={selectedWeekStart}
           onSelectSlot={handleSelectSlot}
           onSelectEvent={handleSelectEvent}
           showModal={showModal}
@@ -269,7 +246,10 @@ const weeklyEvents = events.filter((event) =>
           defaultView={Views.DAY}
           views={[Views.WEEK, Views.DAY]}
           date={currentDate}
-          onNavigate={(newDate) => setCurrentDate(newDate)}
+          onNavigate={(newDate) => {
+            setCurrentDate(newDate);
+            setSelectedWeekStart(startOfWeek(newDate, { weekStartsOn: 1 }));
+          }}
           style={{ height: "calc(100vh - 100px)", margin: "10px" }}
           onSelectEvent={handleSelectEvent}
           onSelectSlot={handleSelectSlot}
@@ -285,24 +265,20 @@ const weeklyEvents = events.filter((event) =>
         />
       )}
       <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
-  <button onClick={() => setSelectedWeekStart(prev => addDays(prev, -7))}>⟵ Prethodna nedelja</button>
-  <button onClick={() => setSelectedWeekStart(prev => addDays(prev, 7))}>Sledeća nedelja ⟶</button>
-</div>
+        <button onClick={() => setSelectedWeekStart((prev) => addDays(prev, -7))}>
+          ⟵ Prethodna nedelja
+        </button>
+        <button onClick={() => setSelectedWeekStart((prev) => addDays(prev, 7))}>
+          Sledeća nedelja ⟶
+        </button>
+      </div>
 
       <h3 style={{ marginTop: "30px", fontSize: "18px", color: "#c89b8c" }}>
-  Prikaz nedelje: {selectedWeekStart.toLocaleDateString()} –{" "}
-  {endOfWeek(selectedWeekStart, { weekStartsOn: 1 }).toLocaleDateString()}
-</h3>
+        Prikaz nedelje: {selectedWeekStart.toLocaleDateString()} –{" "}
+        {endOfWeek(selectedWeekStart, { weekStartsOn: 1 }).toLocaleDateString()}
+      </h3>
 
-<VerticalScheduleView
-  events={weeklyEvents}
-  selectedWeekStart={selectedWeekStart}
-  onAddEvent={handleAddEvent}
-  onEditEvent={handleEditEvent}
-/>
-
-
-      {showModal && !prikaziVertical && (
+      {showModal && (
         <div className="modal-overlay">
           <div className="modal-content">
             <h3 className="text-xl font-bold mb-6 text-gray-800">

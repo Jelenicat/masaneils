@@ -1,0 +1,73 @@
+.lista-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-image: url("../assets/slikaHome.webp");
+  background-size: cover;
+  background-position: center;
+  padding: 2rem;
+  font-family: 'Playfair Display', serif;
+}
+
+.lista-form {
+  background-color: rgba(255, 255, 255, 0.9);
+  padding: 2rem;
+  border-radius: 16px;
+  max-width: 600px;
+  width: 100%;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(4px);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.lista-form h2 {
+  text-align: center;
+  color: #b88e6a;
+}
+
+.prazno-info {
+  text-align: center;
+  color: #888;
+  font-style: italic;
+}
+
+.lista-ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.lista-item {
+  background-color: #fff;
+  padding: 1rem;
+  border-radius: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid #ddd;
+}
+
+.lista-item .tekst {
+  font-size: 1rem;
+  color: #333;
+}
+
+.lista-item button {
+  background-color: #b88c7d;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.lista-item button:hover {
+  background-color: #f7b79d;
+}

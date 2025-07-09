@@ -1,0 +1,41 @@
+.vertical-schedule {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 20px;
+}
+
+.day-block {
+  background: #fff4f8;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+}
+
+.day-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #c89b8c;
+  margin-bottom: 12px;
+}
+
+.hour-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hour-slot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+}
+
+.hour-label {
+  color: #555;
+  font-size: 16px;
+}

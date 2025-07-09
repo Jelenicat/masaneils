@@ -32,7 +32,7 @@ const Kalendar = () => {
     const sada = new Date();
     const dan = sada.getDay();
     const sati = sada.getHours();
-    return (dan === 6 && sati >= 12) || (dan === 0 && sati < 18);
+    return (dan === 6 && sati >= 12) || (dan === 0 && sati < 15);
   };
 
   const daLiJeDozvoljenTermin = (datum, vreme) => {
@@ -49,11 +49,7 @@ const Kalendar = () => {
     if (smena === "popodne") {
       const max = new Date();
       max.setMonth(max.getMonth() + 2);
-      return (
-        date >= danas &&
-        date <= max &&
-        parseInt(vreme.split(":")[0]) >= 17
-      );
+      return date >= danas && date <= max;
     }
 
     return false;
@@ -69,22 +65,37 @@ const Kalendar = () => {
   };
 
   const sacuvaj = async () => {
-    try {
-      const promises = izabrani.map((termin) =>
-        setDoc(doc(db, "izboriTermina", `${korisnickoIme}_${termin.datum}_${termin.vreme}`), {
-          korisnickoIme,
-          ...termin,
-          status: "slobodna",
-          timestamp: new Date(),
-        })
-      );
-      await Promise.all(promises);
-      alert("Uspešno sačuvano!");
-    } catch (err) {
-      console.error("Greška pri čuvanju:", err);
-      alert("Došlo je do greške.");
-    }
-  };
+  try {
+    const snapshot = await getDocs(collection(db, "admin_kalendar"));
+    const adminTermini = snapshot.docs.map(doc => {
+      const data = doc.data();
+      const start = data.start.toDate ? data.start.toDate() : new Date(data.start);
+      const datum = start.toISOString().split("T")[0];
+      const vreme = start.toTimeString().slice(0, 5);
+      return { id: doc.id, datum, vreme };
+    });
+
+    const promises = izabrani.map((termin) => {
+      const match = adminTermini.find(t => t.datum === termin.datum && t.vreme === termin.vreme);
+      const eventId = match?.id || null;
+
+      return setDoc(doc(db, "izboriTermina", `${korisnickoIme}_${termin.datum}_${termin.vreme}`), {
+        korisnickoIme,
+        ...termin,
+        status: "slobodna",
+        timestamp: new Date(),
+        eventId, // ❗ važno da se upiše
+      });
+    });
+
+    await Promise.all(promises);
+    alert("Uspešno sačuvano!");
+  } catch (err) {
+    console.error("Greška pri čuvanju:", err);
+    alert("Došlo je do greške.");
+  }
+};
+
 
   useEffect(() => {
     const fetchPodaci = async () => {
@@ -108,17 +119,14 @@ const Kalendar = () => {
 
         snapshot.forEach((doc) => {
           const data = doc.data();
-          if (
-            data.tip === "slobodan" &&
-            data.clientUsername == null &&
-            data.start
-          ) {
+          if (data.start) {
             const d = new Date(data.start.toDate ? data.start.toDate() : data.start);
             const datum = d.toISOString().split("T")[0];
             const vreme = d.toTimeString().slice(0, 5);
+            const tip = data.tip || "slobodan";
 
             if (!raspored[datum]) raspored[datum] = [];
-            raspored[datum].push(vreme);
+            raspored[datum].push({ vreme, tip });
           }
         });
 
@@ -141,6 +149,18 @@ const Kalendar = () => {
     );
   }
 
+  if (smena === "jutro" && !jeUdozvoljenomVremenuZaJutro()) {
+    return (
+      <div className="unesi-page">
+        <div className="unesi-form">
+          <h2>Izbor termina je dozvoljen od subote u 12h do nedelje u 15h.</h2>
+        </div>
+      </div>
+    );
+  }
+
+  const maxRedova = Math.max(...Object.values(termini).map(arr => arr.length));
+
   return (
     <div className="unesi-page">
       <div className="unesi-form">
@@ -151,19 +171,22 @@ const Kalendar = () => {
               <div key={i} className="kolona-header">{dan}</div>
             ))}
           </div>
-          {[0, 1, 2, 3, 4].map((redniBroj) => (
+          {Array.from({ length: maxRedova }, (_, redniBroj) => (
             <div className="red" key={redniBroj}>
               {daniUNedelji.map((_, i) => {
                 const datum = getDatumZaDan(i);
                 const sviZaDan = termini[datum] || [];
-                const vreme = sviZaDan[redniBroj];
+                const slot = sviZaDan[redniBroj];
+                const vreme = slot?.vreme;
+                const tip = slot?.tip;
                 const selektovan = izabrani.find(t => t.datum === datum && t.vreme === vreme);
                 const dozvoljen = vreme && daLiJeDozvoljenTermin(datum, vreme);
+
                 return (
                   <div
                     key={i}
-                    className={`termin ${dozvoljen ? "klikabilan" : "disabled"} ${selektovan ? "selektovan" : ""}`}
-                    onClick={() => dozvoljen && vreme && toggleTermin(datum, vreme)}
+                    className={`termin ${tip === "slobodan" && dozvoljen ? "klikabilan" : "disabled"} ${selektovan ? "selektovan" : ""} ${tip === "zauzet" || tip === "termin" ? "zauzeto" : ""}`}
+                    onClick={() => tip === "slobodan" && dozvoljen && vreme && toggleTermin(datum, vreme)}
                   >
                     {vreme || ""}
                   </div>

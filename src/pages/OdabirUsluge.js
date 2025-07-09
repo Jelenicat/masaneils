@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { db } from "../firebase"; // OBAVEZNO ako nisi dodala
+import { db } from "../firebase";
 import { doc, setDoc } from "firebase/firestore";
+import { requestPermission } from "../firebase";
 import "./OdabirUsluge.css";
 
 const OdabirUsluge = () => {
@@ -9,9 +10,18 @@ const OdabirUsluge = () => {
   const [materijal, setMaterijal] = useState("");
   const navigate = useNavigate();
 
+  // ✅ Automatski traži dozvolu za notifikacije kad se korisnik uloguje
+  useEffect(() => {
+    const korisnickoIme = localStorage.getItem("korisnickoIme");
+    if (korisnickoIme && korisnickoIme !== "masa") {
+      requestPermission(); // Token se tada i snima
+    }
+  }, []);
+
   const handleSubmit = async () => {
     if (!usluga) return alert("Izaberi uslugu.");
-    if (usluga === "Izlivanje" && !materijal) return alert("Izaberi da li imaš materijal.");
+    if (usluga === "Izlivanje" && !materijal)
+      return alert("Izaberi da li imaš materijal.");
 
     localStorage.setItem("usluga", usluga);
     localStorage.setItem("materijal", materijal || "");

@@ -1,7 +1,7 @@
 // utils/cors.js
 export default function applyCors(req, res) {
-  res.setHeader("Access-Control-Allow-Credentials", true);
-  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Credentials", "true"); // ✅ vrednost mora biti string "true"
+  res.setHeader("Access-Control-Allow-Origin", "https://masaneils.vercel.app"); // ✅ specifična vrednost
   res.setHeader(
     "Access-Control-Allow-Methods",
     "GET,OPTIONS,PATCH,DELETE,POST,PUT"
@@ -13,8 +13,8 @@ export default function applyCors(req, res) {
 
   if (req.method === "OPTIONS") {
     res.status(200).end();
-    return Promise.resolve();
+    return false;
   }
 
-  return Promise.resolve();
+  return true;
 }

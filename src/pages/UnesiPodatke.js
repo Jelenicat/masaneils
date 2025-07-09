@@ -35,7 +35,7 @@ const UnesiPodatke = () => {
       );
 
       alert("Uspešno sačuvano!");
-      navigate("/kalendar");
+      navigate("/korisnik");
     } catch (error) {
       console.error("Greška pri čuvanju podataka:", error);
       alert("Došlo je do greške prilikom čuvanja podataka.");

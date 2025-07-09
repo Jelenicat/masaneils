@@ -1,19 +1,46 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
-import { db } from "../firebase";
+import { db, refreshFcmToken } from "../firebase";
 import "./Home.css";
 
 const Home = () => {
   const [username, setUsername] = useState("");
   const navigate = useNavigate();
 
+  // 🔁 Ako postoji korisničko ime u localStorage – automatski loguj
+  useEffect(() => {
+    const korisnickoIme = localStorage.getItem("korisnickoIme");
+    if (korisnickoIme) {
+      refreshFcmToken(); // 🔄 Zatraži novi FCM token ako nema
+
+      if (korisnickoIme === "masa") {
+        navigate("/admin");
+      } else {
+        const docRef = doc(db, "korisnici", korisnickoIme);
+        getDoc(docRef).then((docSnap) => {
+          if (
+            docSnap.exists() &&
+            docSnap.data().brojTelefona &&
+            docSnap.data().datumRodjenja
+          ) {
+            navigate("/korisnik");
+          } else {
+            navigate("/unesi-podatke");
+          }
+        });
+      }
+    }
+  }, [navigate]);
+
+  // 👤 Ručno logovanje
   const handleLogin = async (e) => {
     e.preventDefault();
     const trimmedUsername = username.trim();
-    if (trimmedUsername === "") return;
+    if (!trimmedUsername) return;
 
     localStorage.setItem("korisnickoIme", trimmedUsername);
+    await refreshFcmToken(); // 🔄 Zatraži novi FCM token pri logovanju
 
     if (trimmedUsername === "masa") {
       navigate("/admin");
@@ -25,7 +52,7 @@ const Home = () => {
         if (docSnap.exists()) {
           const data = docSnap.data();
           if (data.brojTelefona && data.datumRodjenja) {
-            navigate("/odabir-usluge"); // ← IDI PRVO OVDE
+            navigate("/korisnik");
           } else {
             navigate("/unesi-podatke");
           }
@@ -41,7 +68,7 @@ const Home = () => {
 
   return (
     <div className="login-page">
-      <form className="login-form" onSubmit={handleLogin}>
+      <form className="home-form" onSubmit={handleLogin}>
         <h1>Dobrodošla!</h1>
         <input
           type="text"

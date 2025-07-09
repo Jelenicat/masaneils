@@ -45,3 +45,18 @@
 .admin-menu li:hover {
   background-color: #c4b49b;
 }
+.logout-button {
+  margin-top: 20px;
+  padding: 10px 20px;
+  background-color: #c43c3c;
+  color: white;
+  font-weight: bold;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.logout-button:hover {
+  background-color: #a83232;
+}

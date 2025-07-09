@@ -1,5 +1,5 @@
 import React from "react";
-import "./VerticalSchedule.css"; // dodaćemo stilove ovde
+import "./VerticalScheduleView"; // dodaćemo stilove ovde
 
 const dani = ["Ponedeljak", "Utorak", "Sreda", "Četvrtak", "Petak", "Subota"];
 const sati = Array.from({ length: 13 }, (_, i) => 9 + i); // 9h do 21h

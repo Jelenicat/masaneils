@@ -1,19 +1,19 @@
 .vertical-schedule-view {
   display: flex;
   flex-direction: column;
-  gap: 24px; /* Reduced gap for mobile */
-  padding: 12px; /* Reduced padding for mobile */
+  gap: 24px;
+  padding: 12px;
 }
 
 .dan-blok {
   background: #fff4f8;
-  border-radius: 8px; /* Slightly smaller radius */
-  padding: 12px; /* Reduced padding */
+  border-radius: 8px;
+  padding: 12px;
   box-shadow: 0 0 6px rgba(0, 0, 0, 0.05);
 }
 
 .naslov-dana {
-  font-size: 18px; /* Slightly smaller for mobile */
+  font-size: 18px;
   font-weight: bold;
   color: #c89b8c;
   margin-bottom: 8px;
@@ -22,7 +22,7 @@
 .sati {
   display: flex;
   flex-direction: column;
-  gap: 6px; /* Reduced gap */
+  gap: 6px;
 }
 
 .slot {
@@ -37,15 +37,15 @@
 
 .sat {
   color: #888;
-  font-size: 12px; /* Smaller font for mobile */
-  width: 50px; /* Reduced width */
-  min-width: 50px; /* Ensure it doesn't shrink too much */
+  font-size: 12px;
+  width: 50px;
+  min-width: 50px;
 }
 
 .sadrzaj {
   flex-grow: 1;
   text-align: left;
-  font-size: 12px; /* Smaller font for mobile */
+  font-size: 12px;
 }
 
 .event-info {
@@ -84,7 +84,7 @@
 
   .slot {
     padding: 4px 6px;
-    flex-wrap: wrap; /* Allow wrapping if content overflows */
+    flex-wrap: wrap;
   }
 
   .sat {

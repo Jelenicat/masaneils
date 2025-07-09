@@ -1,41 +1,60 @@
-.vertical-schedule {
+.vertical-schedule-view {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 32px;
   padding: 20px;
 }
 
-.day-block {
+.dan-blok {
   background: #fff4f8;
   border-radius: 12px;
   padding: 16px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.05);
 }
 
-.day-title {
+.naslov-dana {
   font-size: 20px;
-  font-weight: 600;
+  font-weight: bold;
   color: #c89b8c;
   margin-bottom: 12px;
 }
 
-.hour-list {
+.sati {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.hour-slot {
+.slot {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 12px;
+  padding: 6px 12px;
   background: #fff;
-  border: 1px solid #e0e0e0;
+  border: 1px solid #eee;
   border-radius: 8px;
 }
 
-.hour-label {
-  color: #555;
-  font-size: 16px;
+.sat {
+  color: #888;
+  font-size: 14px;
+  width: 60px;
+}
+
+.sadrzaj {
+  flex-grow: 1;
+  text-align: left;
+}
+
+.event-info {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #333;
+}
+
+.prazno {
+  font-size: 14px;
+  color: #bbb;
 }

@@ -17,9 +17,7 @@ import "react-big-calendar/lib/css/react-big-calendar.css";
 import "./MojKalendarAdmin.css";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import VerticalScheduleView from "../components/VerticalScheduleView"; // promeni path ako treba
-const [prikaziVertical, setPrikaziVertical] = useState(false);
-
+import VerticalScheduleView from "../components/VerticalScheduleView"; // prilagodi putanju ako treba
 
 const localizer = momentLocalizer(moment);
 
@@ -40,6 +38,7 @@ const INITIAL_EVENT_DATA = {
 };
 
 const MojKalendarAdmin = () => {
+  const [prikaziVertical, setPrikaziVertical] = useState(false);
   const [events, setEvents] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [newEventData, setNewEventData] = useState(INITIAL_EVENT_DATA);
@@ -47,7 +46,7 @@ const MojKalendarAdmin = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [korisnice, setKorisnice] = useState([]);
-  const [currentDate, setCurrentDate] = useState(new Date()); // Track current date
+  const [currentDate, setCurrentDate] = useState(new Date());
 
   const fetchEvents = useCallback(async () => {
     try {
@@ -189,17 +188,16 @@ const MojKalendarAdmin = () => {
     };
   };
 
-  // Set initial date to the start of the week (Monday)
   const getStartOfWeek = (date) => {
     const day = date.getDay();
-    const diff = date.getDate() - day + (day === 0 ? -6 : 1); // Adjust to Monday
+    const diff = date.getDate() - day + (day === 0 ? -6 : 1);
     return new Date(date.setDate(diff));
   };
 
-  // Update currentDate to start on Monday when component mounts
   useEffect(() => {
     setCurrentDate(getStartOfWeek(new Date()));
   }, []);
+
  return (
       <div className="kalendar-admin-wrapper">
     <div style={{ marginBottom: "20px", textAlign: "center" }}>
@@ -211,33 +209,36 @@ const MojKalendarAdmin = () => {
       </button>
     </div>
     
-      {isInitialLoading ? (
-        <p>Učitavanje...</p>
-      ) : (
-      <Calendar
-        localizer={localizer}
-        events={events}
-        startAccessor="start"
-        endAccessor="end"
-        titleAccessor="title"
-        defaultView={Views.DAY}
-        views={[Views.WEEK, Views.DAY]}
-        date={currentDate}
-        onNavigate={(newDate) => setCurrentDate(newDate)}
-        style={{ height: "calc(100vh - 100px)", margin: "10px" }}
-        onSelectEvent={handleSelectEvent}
-        onSelectSlot={handleSelectSlot}
-        selectable
-        eventPropGetter={eventStyleGetter}
-        messages={{
-          week: "Nedelja",
-          day: "Dan",
-          today: "Danas",
-          previous: "<",
-          next: ">",
-        }}
-      />
-      )}
+  {isInitialLoading ? (
+  <p>Učitavanje...</p>
+) : prikaziVertical ? (
+  <VerticalScheduleView events={events} />
+) : (
+  <Calendar
+    localizer={localizer}
+    events={events}
+    startAccessor="start"
+    endAccessor="end"
+    titleAccessor="title"
+    defaultView={Views.DAY}
+    views={[Views.WEEK, Views.DAY]}
+    date={currentDate}
+    onNavigate={(newDate) => setCurrentDate(newDate)}
+    style={{ height: "calc(100vh - 100px)", margin: "10px" }}
+    onSelectEvent={handleSelectEvent}
+    onSelectSlot={handleSelectSlot}
+    selectable
+    eventPropGetter={eventStyleGetter}
+    messages={{
+      week: "Nedelja",
+      day: "Dan",
+      today: "Danas",
+      previous: "<",
+      next: ">",
+    }}
+  />
+)}
+
       {showModal && (
         <div className="modal-overlay">
           <div className="modal-content">

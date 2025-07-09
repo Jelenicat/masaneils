@@ -17,7 +17,7 @@ import "react-big-calendar/lib/css/react-big-calendar.css";
 import "./MojKalendarAdmin.css";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import VerticalScheduleView from "../components/VerticalScheduleView"; // prilagodi putanju ako treba
+import VerticalScheduleView from "../components/VerticalScheduleView";
 
 const localizer = momentLocalizer(moment);
 
@@ -63,11 +63,11 @@ const MojKalendarAdmin = () => {
         if (typeof data.title === "string") {
           title = data.title;
         } else if (data.tip === "slobodan") {
-          title = "🟢 Slobodan termin";
+          title = "slobodan";
         } else if (data.tip === "zauzet") {
-          title = "🔴 Zauzet";
+          title = "zauzet";
         } else if (data.tip === "termin") {
-          title = `💅 Zakazan – ${data.clientUsername || "Nepoznat korisnik"}`;
+          title = `💅 ${data.clientUsername || "Nepoznat korisnik"}`;
         }
 
         loadedEvents.push({
@@ -134,11 +134,11 @@ const MojKalendarAdmin = () => {
         ...newEventData,
         title:
           newEventData.tip === "slobodan"
-            ? "🟢 Slobodan termin"
+            ? "slobodan"
             : newEventData.tip === "zauzet"
-            ? "🔴 Zauzet"
+            ? "zauzet"
             : newEventData.tip === "termin"
-            ? `💅 Zakazan – ${newEventData.clientUsername || "Nepoznat korisnik"}`
+            ? `💅 ${newEventData.clientUsername || "Nepoznat korisnik"}`
             : newEventData.note || "Untitled Event",
       };
 
@@ -198,48 +198,63 @@ const MojKalendarAdmin = () => {
     setCurrentDate(getStartOfWeek(new Date()));
   }, []);
 
- return (
-      <div className="kalendar-admin-wrapper">
-    <div style={{ marginBottom: "20px", textAlign: "center" }}>
-      <button
-        onClick={() => setPrikaziVertical((prev) => !prev)}
-        className="bg-pink-500 text-white px-4 py-2 rounded hover:bg-pink-600 transition"
-      >
-        {prikaziVertical ? "Vrati na kalendar" : "Prikaži dan po dan"}
-      </button>
-    </div>
-    
-  {isInitialLoading ? (
-  <p>Učitavanje...</p>
-) : prikaziVertical ? (
-  <VerticalScheduleView events={events} />
-) : (
-  <Calendar
-    localizer={localizer}
-    events={events}
-    startAccessor="start"
-    endAccessor="end"
-    titleAccessor="title"
-    defaultView={Views.DAY}
-    views={[Views.WEEK, Views.DAY]}
-    date={currentDate}
-    onNavigate={(newDate) => setCurrentDate(newDate)}
-    style={{ height: "calc(100vh - 100px)", margin: "10px" }}
-    onSelectEvent={handleSelectEvent}
-    onSelectSlot={handleSelectSlot}
-    selectable
-    eventPropGetter={eventStyleGetter}
-    messages={{
-      week: "Nedelja",
-      day: "Dan",
-      today: "Danas",
-      previous: "<",
-      next: ">",
-    }}
-  />
-)}
+  return (
+    <div className="kalendar-admin-wrapper">
+      <div style={{ marginBottom: "20px", textAlign: "center" }}>
+        <button
+          onClick={() => setPrikaziVertical((prev) => !prev)}
+          className="bg-pink-500 text-white px-6 py-3 rounded hover:bg-pink-600 transition"
+        >
+          {prikaziVertical ? "Vrati na kalendar" : "Prikaži dan po dan"}
+        </button>
+      </div>
 
-      {showModal && (
+      {isInitialLoading ? (
+        <p>Učitavanje...</p>
+      ) : prikaziVertical ? (
+        <VerticalScheduleView
+          events={events}
+          onSelectSlot={handleSelectSlot}
+          onSelectEvent={handleSelectEvent}
+          showModal={showModal}
+          setShowModal={setShowModal}
+          newEventData={newEventData}
+          setNewEventData={setNewEventData}
+          isEditing={isEditing}
+          setIsEditing={setIsEditing}
+          korisnice={korisnice}
+          handleSaveEvent={handleSaveEvent}
+          handleDeleteEvent={handleDeleteEvent}
+          handleSendSuggestion={handleSendSuggestion}
+          isLoading={isLoading}
+        />
+      ) : (
+        <Calendar
+          localizer={localizer}
+          events={events}
+          startAccessor="start"
+          endAccessor="end"
+          titleAccessor="title"
+          defaultView={Views.DAY}
+          views={[Views.WEEK, Views.DAY]}
+          date={currentDate}
+          onNavigate={(newDate) => setCurrentDate(newDate)}
+          style={{ height: "calc(100vh - 100px)", margin: "10px" }}
+          onSelectEvent={handleSelectEvent}
+          onSelectSlot={handleSelectSlot}
+          selectable
+          eventPropGetter={eventStyleGetter}
+          messages={{
+            week: "Nedelja",
+            day: "Dan",
+            today: "Danas",
+            previous: "<",
+            next: ">",
+          }}
+        />
+      )}
+
+      {showModal && !prikaziVertical && (
         <div className="modal-overlay">
           <div className="modal-content">
             <h3 className="text-xl font-bold mb-6 text-gray-800">

@@ -3,6 +3,7 @@
   flex-direction: column;
   gap: 24px;
   padding: 12px;
+  overflow-y: auto; /* Ensure scrollable on small screens */
 }
 
 .dan-blok {
@@ -33,6 +34,12 @@
   background: #fff;
   border: 1px solid #eee;
   border-radius: 6px;
+  cursor: pointer; /* Indicate clickability */
+  transition: background-color 0.2s;
+}
+
+.slot:hover {
+  background-color: #f8f8f8; /* Subtle hover effect */
 }
 
 .sat {

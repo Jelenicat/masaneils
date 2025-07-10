@@ -114,7 +114,8 @@ const fetchIzboriTermina = async () => {
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "admin_kalendar"), async () => {
-  await fetchEvents();
+  await fetchIzboriTermina(); 
+      await fetchEvents();
  // 👈 ovo dodaj
 });
 

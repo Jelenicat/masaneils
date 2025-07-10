@@ -65,37 +65,36 @@ const Kalendar = () => {
   };
 
   const sacuvaj = async () => {
-  try {
-    const snapshot = await getDocs(collection(db, "admin_kalendar"));
-    const adminTermini = snapshot.docs.map(doc => {
-      const data = doc.data();
-      const start = data.start.toDate ? data.start.toDate() : new Date(data.start);
-      const datum = start.toISOString().split("T")[0];
-      const vreme = start.toTimeString().slice(0, 5);
-      return { id: doc.id, datum, vreme };
-    });
-
-    const promises = izabrani.map((termin) => {
-      const match = adminTermini.find(t => t.datum === termin.datum && t.vreme === termin.vreme);
-      const eventId = match?.id || null;
-
-      return setDoc(doc(db, "izboriTermina", `${korisnickoIme}_${termin.datum}_${termin.vreme}`), {
-        korisnickoIme,
-        ...termin,
-        status: "izabrala",
-        timestamp: new Date(),
-        eventId, // ❗ važno da se upiše
+    try {
+      const snapshot = await getDocs(collection(db, "admin_kalendar"));
+      const adminTermini = snapshot.docs.map(doc => {
+        const data = doc.data();
+        const start = data.start.toDate ? data.start.toDate() : new Date(data.start);
+        const datum = start.toISOString().split("T")[0];
+        const vreme = start.toTimeString().slice(0, 5);
+        return { id: doc.id, datum, vreme };
       });
-    });
 
-    await Promise.all(promises);
-    alert("Uspešno sačuvano!");
-  } catch (err) {
-    console.error("Greška pri čuvanju:", err);
-    alert("Došlo je do greške.");
-  }
-};
+      const promises = izabrani.map((termin) => {
+        const match = adminTermini.find(t => t.datum === termin.datum && t.vreme === termin.vreme);
+        const eventId = match?.id || null;
 
+        return setDoc(doc(db, "izboriTermina", `${korisnickoIme}_${termin.datum}_${termin.vreme}`), {
+          korisnickoIme,
+          ...termin,
+          status: "izabrala",
+          timestamp: new Date(),
+          eventId, // Ensure eventId is included
+        });
+      });
+
+      await Promise.all(promises);
+      alert("Uspešno sačuvano!");
+    } catch (err) {
+      console.error("Greška pri čuvanju:", err);
+      alert("Došlo je do greške.");
+    }
+  };
 
   useEffect(() => {
     const fetchPodaci = async () => {
@@ -126,7 +125,7 @@ const Kalendar = () => {
             const tip = data.tip || "slobodan";
 
             if (!raspored[datum]) raspored[datum] = [];
-            raspored[datum].push({ vreme, tip });
+            raspored[datum].push({ vreme, tip, id: doc.id }); // Include id for matching
           }
         });
 

@@ -205,10 +205,11 @@ const handleSendSuggestion = async () => {
     return;
   }
 
-  if (!izboriPoTerminu[selectedEvent.id] || izboriPoTerminu[selectedEvent.id].length === 0) {
-    toast.error("Nijedna korisnica nije izabrala ovaj termin.");
-    return;
-  }
+if (!izboriPoTerminu[newEventData.id] || izboriPoTerminu[newEventData.id].length === 0) {
+  toast.error("Nijedna korisnica nije izabrala ovaj termin.");
+  return;
+}
+
 
   try {
    const promises = izboriPoTerminu[newEventData.id].map((korisnica) => {
@@ -221,6 +222,8 @@ const handleSendSuggestion = async () => {
         note: newEventData.note || "",
         status: "poslat",
         timestamp: new Date(),
+        id: newEventData.id,
+
       });
     });
 

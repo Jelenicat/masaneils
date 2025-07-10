@@ -135,7 +135,7 @@ const fetchIzboriTermina = async () => {
       }
     };
     fetchKorisnice();
-
+fetchIzboriTermina(); 
 
 
   }, []);

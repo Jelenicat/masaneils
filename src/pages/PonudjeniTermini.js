@@ -3,10 +3,11 @@ import React, { useEffect, useState } from "react";
 import {
   collection,
   doc,
-  getDoc,
-  deleteDoc,
   getDocs,
-  addDoc,
+  deleteDoc,
+  updateDoc,
+  query,
+  where,
 } from "firebase/firestore";
 import { db } from "../firebase";
 
@@ -19,13 +20,16 @@ const PonudjeniTermini = () => {
     const fetchTermini = async () => {
       if (!korisnickoIme) return;
 
-      const docRef = doc(db, "ponudjeniTermini", korisnickoIme);
-      const docSnap = await getDoc(docRef);
-
-      if (docSnap.exists()) {
-        setPonudjeni(docSnap.data().termini || []);
-      }
-
+      const q = query(
+        collection(db, "predlozeniTermini"),
+        where("korisnica", "==", korisnickoIme)
+      );
+      const snapshot = await getDocs(q);
+      const lista = snapshot.docs.map((doc) => ({
+        id: doc.data().id,
+        ...doc.data(),
+      }));
+      setPonudjeni(lista);
       setLoading(false);
     };
 
@@ -34,7 +38,9 @@ const PonudjeniTermini = () => {
 
   const potvrdiTermin = async (termin) => {
     try {
-      await addDoc(collection(db, "admin_kalendar"), {
+      const eventRef = doc(db, "admin_kalendar", termin.id);
+
+      await updateDoc(eventRef, {
         start: new Date(termin.start),
         end: new Date(termin.end),
         note: termin.note || "",
@@ -52,7 +58,13 @@ const PonudjeniTermini = () => {
         }
       }
 
-      await deleteDoc(doc(db, "ponudjeniTermini", korisnickoIme));
+      const predloziSnap = await getDocs(collection(db, "predlozeniTermini"));
+      for (const docSnap of predloziSnap.docs) {
+        const data = docSnap.data();
+        if (data.korisnica === korisnickoIme) {
+          await deleteDoc(docSnap.ref);
+        }
+      }
 
       await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
         method: "POST",

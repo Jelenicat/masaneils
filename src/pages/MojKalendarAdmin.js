@@ -42,6 +42,7 @@ const INITIAL_EVENT_DATA = {
 };
 
 const MojKalendarAdmin = () => {
+  const korisnickoIme = localStorage.getItem("korisnickoIme");
   const [prikaziVertical, setPrikaziVertical] = useState(false);
   const [events, setEvents] = useState([]);
   const [showModal, setShowModal] = useState(false);

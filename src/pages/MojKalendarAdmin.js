@@ -10,7 +10,11 @@ import {
   doc,
   updateDoc,
   onSnapshot,
+  query,
+  where,
+  setDoc, // ← dodaj ovo
 } from "firebase/firestore";
+
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import "react-big-calendar/lib/css/react-big-calendar.css";
@@ -50,6 +54,7 @@ const MojKalendarAdmin = () => {
   const [izboriPoTerminu, setIzboriPoTerminu] = useState({});
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedWeekStart, setSelectedWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
+const [selectedEvent, setSelectedEvent] = useState(null);
 
   const fetchEvents = useCallback(async () => {
     try {
@@ -115,27 +120,22 @@ const MojKalendarAdmin = () => {
       }
     };
     fetchKorisnice();
-    const fetchIzboriTermina = async () => {
-  try {
-    const snapshot = await getDocs(collection(db, "izboriTermina"));
-    const mapa = {};
+// Ako je funkcija lokalna (unutar istog fajla)
+const fetchIzboriTermina = async () => {
+  const snapshot = await getDocs(collection(db, "izboriTermina"));
+  const sviIzbori = snapshot.docs.map((doc) => doc.data());
 
-    snapshot.forEach((doc) => {
-      const data = doc.data();
-      const { eventId, korisnickoIme } = data;
+  const poTerminu = {};
+  sviIzbori.forEach((izbor) => {
+    if (!poTerminu[izbor.idTermina]) {
+      poTerminu[izbor.idTermina] = [];
+    }
+    poTerminu[izbor.idTermina].push(izbor.korisnickoIme);
+  });
 
-      if (!eventId || !korisnickoIme) return;
-
-      if (!mapa[eventId]) mapa[eventId] = [];
-      mapa[eventId].push(korisnickoIme);
-    });
-
-    setIzboriPoTerminu(mapa);
-  } catch (err) {
-    console.error("Greška pri učitavanju izbora termina:", err.message);
-    toast.error("Greška pri učitavanju izbora termina.");
-  }
+  setIzboriPoTerminu(poTerminu);
 };
+
 
   }, []);
 

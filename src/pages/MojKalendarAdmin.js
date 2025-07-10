@@ -13,6 +13,7 @@ import {
   query,
   where,
   setDoc,
+    serverTimestamp,
 } from "firebase/firestore";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -22,7 +23,6 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import VerticalScheduleView from "../components/VerticalScheduleView";
 import { startOfWeek, endOfWeek, isWithinInterval, addDays } from "date-fns";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { format } from "date-fns";
 
 const localizer = momentLocalizer(moment);

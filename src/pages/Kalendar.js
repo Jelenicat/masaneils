@@ -82,7 +82,7 @@ const Kalendar = () => {
       return setDoc(doc(db, "izboriTermina", `${korisnickoIme}_${termin.datum}_${termin.vreme}`), {
         korisnickoIme,
         ...termin,
-        status: "slobodna",
+        status: "izabrala",
         timestamp: new Date(),
         eventId, // ❗ važno da se upiše
       });

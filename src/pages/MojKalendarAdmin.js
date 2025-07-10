@@ -47,6 +47,7 @@ const MojKalendarAdmin = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [korisnice, setKorisnice] = useState([]);
+  const [izboriPoTerminu, setIzboriPoTerminu] = useState({});
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedWeekStart, setSelectedWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
 
@@ -65,7 +66,10 @@ const MojKalendarAdmin = () => {
         if (typeof data.title === "string") {
           title = data.title;
         } else if (data.tip === "slobodan") {
-          title = "slobodan";
+  const izabrale = izboriPoTerminu[doc.id] || [];
+  title = izabrale.length > 0 ? `slobodan (${izabrale.join(", ")})` : "slobodan";
+}
+
         } else if (data.tip === "zauzet") {
           title = "zauzet";
         } else if (data.tip === "termin") {
@@ -91,7 +95,11 @@ const MojKalendarAdmin = () => {
   }, []);
 
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, "admin_kalendar"), fetchEvents);
+    const unsubscribe = onSnapshot(collection(db, "admin_kalendar"), async () => {
+  await fetchEvents();
+  await fetchIzboriTermina(); // 👈 ovo dodaj
+});
+
     return () => unsubscribe();
   }, [fetchEvents]);
 
@@ -109,6 +117,28 @@ const MojKalendarAdmin = () => {
       }
     };
     fetchKorisnice();
+    const fetchIzboriTermina = async () => {
+  try {
+    const snapshot = await getDocs(collection(db, "izboriTermina"));
+    const mapa = {};
+
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      const { eventId, korisnickoIme } = data;
+
+      if (!eventId || !korisnickoIme) return;
+
+      if (!mapa[eventId]) mapa[eventId] = [];
+      mapa[eventId].push(korisnickoIme);
+    });
+
+    setIzboriPoTerminu(mapa);
+  } catch (err) {
+    console.error("Greška pri učitavanju izbora termina:", err.message);
+    toast.error("Greška pri učitavanju izbora termina.");
+  }
+};
+
   }, []);
 
   const handleSelectSlot = ({ start, end }) => {

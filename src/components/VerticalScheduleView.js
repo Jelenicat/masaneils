@@ -28,6 +28,8 @@ const VerticalScheduleView = ({
   handleDeleteEvent,
   handleSendSuggestion,
   isLoading,
+  izboriPoTerminu,
+  potvrdiTerminZaKorisnicu,
 }) => {
   const groupedEvents = useMemo(() => {
     const groups = {};
@@ -104,6 +106,24 @@ const VerticalScheduleView = ({
                             >
                               {event.title}
                             </span>
+                            {event.tip === "slobodan" && izboriPoTerminu?.[event.id] && (
+                              <div className="potvrdi-dugmad">
+                                {izboriPoTerminu[event.id].map((korisnica) => (
+                                  <div key={korisnica} className="korisnica-red">
+                                    ✅ {korisnica}
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        potvrdiTerminZaKorisnicu(event.id, korisnica);
+                                      }}
+                                      className="potvrdi-dugme"
+                                    >
+                                      Potvrdi
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         </div>
                       )}

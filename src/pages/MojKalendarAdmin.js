@@ -96,6 +96,21 @@ const [selectedEvent, setSelectedEvent] = useState(null);
       setIsInitialLoading(false);
     }
   }, []);
+  // Ako je funkcija lokalna (unutar istog fajla)
+const fetchIzboriTermina = async () => {
+  const snapshot = await getDocs(collection(db, "izboriTermina"));
+  const sviIzbori = snapshot.docs.map((doc) => doc.data());
+
+  const poTerminu = {};
+  sviIzbori.forEach((izbor) => {
+    if (!poTerminu[izbor.idTermina]) {
+      poTerminu[izbor.idTermina] = [];
+    }
+    poTerminu[izbor.idTermina].push(izbor.korisnickoIme);
+  });
+
+  setIzboriPoTerminu(poTerminu);
+};
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "admin_kalendar"), async () => {
@@ -120,21 +135,7 @@ const [selectedEvent, setSelectedEvent] = useState(null);
       }
     };
     fetchKorisnice();
-// Ako je funkcija lokalna (unutar istog fajla)
-const fetchIzboriTermina = async () => {
-  const snapshot = await getDocs(collection(db, "izboriTermina"));
-  const sviIzbori = snapshot.docs.map((doc) => doc.data());
 
-  const poTerminu = {};
-  sviIzbori.forEach((izbor) => {
-    if (!poTerminu[izbor.idTermina]) {
-      poTerminu[izbor.idTermina] = [];
-    }
-    poTerminu[izbor.idTermina].push(izbor.korisnickoIme);
-  });
-
-  setIzboriPoTerminu(poTerminu);
-};
 
 
   }, []);

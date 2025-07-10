@@ -22,6 +22,8 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import VerticalScheduleView from "../components/VerticalScheduleView";
 import { startOfWeek, endOfWeek, isWithinInterval, addDays } from "date-fns";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { format } from "date-fns";
 
 const localizer = momentLocalizer(moment);
 
@@ -208,39 +210,45 @@ const MojKalendarAdmin = () => {
       toast.error("Greška pri brisanju termina: " + error.message);
     }
   };
+const handleSendSuggestion = async () => {
+  try {
+    const { start, end, clientUsername, id } = newEventData;
 
-  const handleSendSuggestion = async () => {
-    if (!newEventData || !newEventData.start || !newEventData.end || !newEventData.tip) {
-      toast.error("Nedostaju podaci o terminu.");
+    if (!start || !end || !clientUsername || !id) {
+      toast.error("Morate izabrati termin i korisnicu.");
       return;
     }
 
-    if (!izboriPoTerminu[newEventData.id] || izboriPoTerminu[newEventData.id].length === 0) {
-      toast.error("Nijedna korisnica nije izabrala ovaj termin.");
-      return;
-    }
+    // 1. Dodavanje u kolekciju predloženih termina
+    await addDoc(collection(db, "predloziTermina"), {
+      eventId: id,
+      clientUsername,
+      start,
+      end,
+      status: "pending",
+      timestamp: serverTimestamp(),
+    });
 
-    try {
-      const promises = izboriPoTerminu[newEventData.id].map((korisnica) => {
-        const docRef = doc(db, "predlozeniTermini", `${newEventData.id}_${korisnica}_${newEventData.start.toISOString()}`);
-        return setDoc(docRef, {
-          id: newEventData.id,
-          korisnica,
-          predlogStart: newEventData.start,
-          predlogEnd: newEventData.end,
-          note: newEventData.note || "",
-          status: "poslat",
-          timestamp: new Date(),
-        });
-      });
+    // 2. Slanje notifikacije korisnici
+   await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    korisnickoIme: clientUsername,
+    title: "Novi predlog termina 💅",
+    body: `Predlog za ${format(start, "dd.MM.yyyy HH:mm")} – klikni da izabereš.`,
+    click_action: "/ponudjeni-termini",
+  }),
+});
 
-      await Promise.all(promises);
-      toast.success("Predlog poslat korisnicama.");
-    } catch (err) {
-      console.error("Greška pri slanju predloga:", err);
-      toast.error("Došlo je do greške.");
-    }
-  };
+    toast.success("Predlog poslat korisnici 🎉");
+    setShowModal(false);
+  } catch (err) {
+    console.error("Greška:", err);
+    toast.error("Greška prilikom slanja predloga");
+  }
+};
+
 
   const potvrdiTerminZaKorisnicu = async (eventId, korisnickoIme) => {
     try {

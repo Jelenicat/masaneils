@@ -82,6 +82,7 @@ const Kalendar = () => {
           {
             korisnickoIme,
             datum: termin.datum,
+
             vreme: termin.vreme,
             usluga: termin.usluga,
             status: "izabrala",

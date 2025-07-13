@@ -13,7 +13,8 @@ import {
   getDoc,
 } from "firebase/firestore";
 import { toast } from "react-toastify";
-import { startOfWeek, endOfWeek } from "date-fns";
+import { format } from "date-fns";
+import { startOfWeek } from "date-fns";
 
 import VerticalScheduleView from "../components/VerticalScheduleView";
 import PonudiTermineModal from "../components/PonudiTermineModal";
@@ -34,26 +35,6 @@ const INITIAL_EVENT_DATA = {
   clientUsername: "",
 };
 
-// Formatiranje datuma za input polja tipa datetime-local (bez sekundi)
-const formatForInput = (date) => {
-  if (!date) return "";
-  return date.toISOString().slice(0, 16);
-};
-
-// Formatiranje datuma za prikaz korisniku u Europe/Belgrade vremenskoj zoni
-const formatForDisplay = (date) => {
-  if (!date) return "";
-  return new Intl.DateTimeFormat("sr-RS", {
-    timeZone: "Europe/Belgrade",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).format(date);
-};
-
 const MojKalendarAdmin = () => {
   const [events, setEvents] = useState([]);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
@@ -67,14 +48,14 @@ const MojKalendarAdmin = () => {
   const [showSuggestionModal, setShowSuggestionModal] = useState(false);
   const [slobodniTermini, setSlobodniTermini] = useState([]);
 
-  // Traženje dozvola za push notifikacije
+  // Request push notification permissions on mount
   useEffect(() => {
     requestPermission().catch((err) => {
       toast.error("Greška prilikom postavljanja notifikacija: " + err.message);
     });
   }, []);
 
-  // Učitavanje događaja i korisnika koji su izabrali termine
+  // Fetch events and korisnici koji su izabrali termine
   const fetchEvents = useCallback(async () => {
     try {
       const now = new Date();
@@ -93,30 +74,27 @@ const MojKalendarAdmin = () => {
       const loadedEvents = snapshot.docs
         .map((doc) => {
           const data = doc.data();
-
-          // Koristimo obične Date objekte
           const start = data.start?.toDate?.() || new Date(data.start);
           const end = data.end?.toDate?.() || new Date(data.end);
-
-          if (start < now) return null; // Preskoči događaje u prošlosti
+          if (start < now) return null; // Skip past events
 
           const izabrale = izbori
             .filter((izbor) => izbor.eventId === doc.id)
             .map(
-              (izbor) =>
-                `${izbor.korisnickoIme} (${usluge[izbor.korisnickoIme] || "N/A"})`
+              (izbor) => `${izbor.korisnickoIme} (${usluge[izbor.korisnickoIme] || "N/A"})`
             );
 
           let title = data.title || "Untitled Event";
           if (data.tip === "slobodan") {
-            title =
-              izabrale.length > 0
-                ? `slobodan (${izabrale.join(", ")})`
-                : "slobodan";
+            title = izabrale.length > 0 ? `slobodan (${izabrale.join(", ")})` : "slobodan";
           } else if (data.tip === "zauzet") {
             title = "zauzet";
           } else if (data.tip === "termin") {
-            const vreme = formatForDisplay(start);
+            const vreme = start.toLocaleTimeString("sr-RS", {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: false,
+            });
             title = `💅 ${data.clientUsername || "Nepoznat korisnik"} (${vreme})`;
           }
 
@@ -140,7 +118,7 @@ const MojKalendarAdmin = () => {
     }
   }, []);
 
-  // Čuvanje novog ili izmenjenog termina
+  // Save new or edited event
   const handleSaveEvent = async () => {
     if (!newEventData.tip || !newEventData.start || !newEventData.end) {
       toast.error("Molimo popunite sva obavezna polja.");
@@ -200,7 +178,9 @@ const MojKalendarAdmin = () => {
       toast.error("Korisničko ime nije definisano.");
       return;
     }
+
     try {
+      let start;
       await runTransaction(db, async (transaction) => {
         const eventRef = doc(db, "admin_kalendar", eventId);
         const eventSnapshot = await transaction.get(eventRef);
@@ -208,7 +188,8 @@ const MojKalendarAdmin = () => {
           throw new Error("Termin ne postoji.");
         }
         const eventData = eventSnapshot.data();
-        const start = eventData.start?.toDate?.() || new Date(eventData.start);
+
+        start = eventData.start?.toDate?.() || new Date(eventData.start);
 
         transaction.update(eventRef, {
           tip: "termin",
@@ -239,7 +220,6 @@ const MojKalendarAdmin = () => {
         });
       });
 
-      // Slanje notifikacije korisnici
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
           await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
@@ -248,7 +228,7 @@ const MojKalendarAdmin = () => {
             body: JSON.stringify({
               korisnickoIme,
               title: "Termin potvrđen",
-              body: `Vaš termin je potvrđen za ${formatForDisplay(start)}.`,
+              body: `Vaš termin je potvrđen za ${format(start, "dd.MM.yyyy HH:mm")}.`,
               click_action: "https://masaneils.vercel.app/ponudjeni-termini",
             }),
           });
@@ -337,17 +317,31 @@ const MojKalendarAdmin = () => {
 
             <input
               type="datetime-local"
-              value={formatForInput(newEventData.start)}
+              value={
+                newEventData.start
+                  ? format(newEventData.start, "yyyy-MM-dd'T'HH:mm")
+                  : ""
+              }
               onChange={(e) =>
-                setNewEventData({ ...newEventData, start: new Date(e.target.value) })
+                setNewEventData({
+                  ...newEventData,
+                  start: new Date(e.target.value),
+                })
               }
             />
 
             <input
               type="datetime-local"
-              value={formatForInput(newEventData.end)}
+              value={
+                newEventData.end
+                  ? format(newEventData.end, "yyyy-MM-dd'T'HH:mm")
+                  : ""
+              }
               onChange={(e) =>
-                setNewEventData({ ...newEventData, end: new Date(e.target.value) })
+                setNewEventData({
+                  ...newEventData,
+                  end: new Date(e.target.value),
+                })
               }
             />
 
@@ -363,7 +357,9 @@ const MojKalendarAdmin = () => {
                 type="text"
                 placeholder="Korisničko ime"
                 value={newEventData.clientUsername || ""}
-                onChange={(e) => setNewEventData({ ...newEventData, clientUsername: e.target.value })}
+                onChange={(e) =>
+                  setNewEventData({ ...newEventData, clientUsername: e.target.value })
+                }
               />
             )}
 

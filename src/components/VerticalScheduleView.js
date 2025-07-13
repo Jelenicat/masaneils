@@ -5,13 +5,12 @@ import "./VerticalScheduleView.css";
 import { format, isSameDay, startOfWeek, addDays, differenceInMinutes } from "date-fns";
 import DatePicker from "react-datepicker";
 
-
 const dani = ["Nedelja", "Ponedeljak", "Utorak", "Sreda", "Četvrtak", "Petak", "Subota"];
 const sati = Array.from({ length: 13 }, (_, i) => 9 + i); // 9h–21h
 
 const getDayName = (date) => {
   const dan = new Date(date).getDay();
-  return ["Nedelja", "Ponedeljak", "Utorak", "Sreda", "Četvrtak", "Petak", "Subota"][dan];
+  return dani[dan];
 };
 
 const VerticalScheduleView = ({
@@ -39,13 +38,20 @@ const VerticalScheduleView = ({
 
   const groupedEvents = useMemo(() => {
     const groups = {};
+    const startOfSelectedWeek = startOfWeek(selectedWeekStart, { weekStartsOn: 1 });
+    const endOfSelectedWeek = addDays(startOfSelectedWeek, 6);
+
     (events || []).forEach((event) => {
-      const day = getDayName(event.start);
-      if (!groups[day]) groups[day] = [];
-      groups[day].push(event);
+      const eventDate = new Date(event.start);
+      if (eventDate >= startOfSelectedWeek && eventDate <= endOfSelectedWeek) {
+        const day = getDayName(eventDate);
+        if (!groups[day]) groups[day] = [];
+        groups[day].push(event);
+      }
     });
+
     return groups;
-  }, [events]);
+  }, [events, selectedWeekStart]);
 
   const handleSlotClick = (dan, sat) => {
     const startOfSelectedWeek = startOfWeek(selectedWeekStart, { weekStartsOn: 1 });
@@ -101,7 +107,6 @@ const VerticalScheduleView = ({
                             setNewEventData(event);
                             setIsEditing(true);
                             setShowModal(true);
-                            console.log("Event clicked:", event, "ShowModal set to:", true);
                           }}
                         >
                           <span className="sat">{`${startTime}–${endTime}`}</span>
@@ -168,6 +173,7 @@ const VerticalScheduleView = ({
           </div>
         );
       })}
+
       {showModal && (
         <div key={Date.now()} className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>

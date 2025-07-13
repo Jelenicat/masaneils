@@ -1,11 +1,24 @@
+// src/pages/MojKalendarAdmin.js
 import React, { useState, useCallback, useEffect } from "react";
 import { db } from "../firebase";
-import { collection, getDocs, doc, updateDoc, addDoc, runTransaction, query, where } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  doc,
+  updateDoc,
+  addDoc,
+  runTransaction,
+  query,
+  where,
+  getDoc,
+} from "firebase/firestore";
 import { toast } from "react-toastify";
 import { utcToZonedTime, format } from "date-fns-tz";
+import { startOfWeek, endOfWeek } from "date-fns";
+
 import VerticalScheduleView from "../components/VerticalScheduleView";
 import PonudiTermineModal from "../components/PonudiTermineModal";
-import { requestPermission } from "../firebase"; // Added for FCM integration
+import { requestPermission } from "../firebase"; // FCM integration
 
 const EVENT_TYPES = {
   slobodan: { color: "#90ee90" },
@@ -25,7 +38,9 @@ const INITIAL_EVENT_DATA = {
 const MojKalendarAdmin = () => {
   const [events, setEvents] = useState([]);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
-  const [selectedWeekStart, setSelectedWeekStart] = useState(new Date());
+  const [selectedWeekStart, setSelectedWeekStart] = useState(
+    startOfWeek(new Date(), { weekStartsOn: 1 })
+  );
   const [showModal, setShowModal] = useState(false);
   const [newEventData, setNewEventData] = useState(INITIAL_EVENT_DATA);
   const [isEditing, setIsEditing] = useState(false);
@@ -33,18 +48,22 @@ const MojKalendarAdmin = () => {
   const [showSuggestionModal, setShowSuggestionModal] = useState(false);
   const [slobodniTermini, setSlobodniTermini] = useState([]);
 
+  // Request push notification permissions on mount
   useEffect(() => {
     requestPermission().catch((err) => {
       toast.error("Greška prilikom postavljanja notifikacija: " + err.message);
     });
   }, []);
 
+  // Fetch events and korisnici koji su izabrali termine
   const fetchEvents = useCallback(async () => {
     try {
       const now = utcToZonedTime(new Date(), "Europe/Belgrade");
+
       const snapshot = await getDocs(collection(db, "admin_kalendar"));
       const izboriSnapshot = await getDocs(collection(db, "izboriTermina"));
       const izbori = izboriSnapshot.docs.map((doc) => doc.data());
+
       const uslugeSnapshot = await getDocs(collection(db, "izbor_usluge"));
       const usluge = uslugeSnapshot.docs.reduce((acc, doc) => {
         const data = doc.data();
@@ -55,12 +74,21 @@ const MojKalendarAdmin = () => {
       const loadedEvents = snapshot.docs
         .map((doc) => {
           const data = doc.data();
-          const start = utcToZonedTime(data.start?.toDate?.() || new Date(data.start), "Europe/Belgrade");
-          const end = utcToZonedTime(data.end?.toDate?.() || new Date(data.end), "Europe/Belgrade");
+          const start = utcToZonedTime(
+            data.start?.toDate?.() || new Date(data.start),
+            "Europe/Belgrade"
+          );
+          const end = utcToZonedTime(
+            data.end?.toDate?.() || new Date(data.end),
+            "Europe/Belgrade"
+          );
           if (start < now) return null; // Skip past events
+
           const izabrale = izbori
             .filter((izbor) => izbor.eventId === doc.id)
-            .map((izbor) => `${izbor.korisnickoIme} (${usluge[izbor.korisnickoIme] || "N/A"})`);
+            .map(
+              (izbor) => `${izbor.korisnickoIme} (${usluge[izbor.korisnickoIme] || "N/A"})`
+            );
 
           let title = data.title || "Untitled Event";
           if (data.tip === "slobodan") {
@@ -96,11 +124,13 @@ const MojKalendarAdmin = () => {
     }
   }, []);
 
+  // Save new or edited event
   const handleSaveEvent = async () => {
     if (!newEventData.tip || !newEventData.start || !newEventData.end) {
       toast.error("Molimo popunite sva obavezna polja.");
       return;
     }
+
     const now = utcToZonedTime(new Date(), "Europe/Belgrade");
     if (newEventData.start < now) {
       toast.error("Početak termina ne može biti u prošlosti.");
@@ -136,6 +166,7 @@ const MojKalendarAdmin = () => {
         });
         toast.success("Termin uspešno dodat!");
       }
+
       setShowModal(false);
       setNewEventData(INITIAL_EVENT_DATA);
       await fetchEvents();
@@ -147,6 +178,7 @@ const MojKalendarAdmin = () => {
     }
   };
 
+  // Potvrdi termin za korisnicu uz transakciju i brisanje ostalih izbora
   const potvrdiTerminZaKorisnicu = async (eventId, korisnickoIme) => {
     if (!korisnickoIme) {
       toast.error("Korisničko ime nije definisano.");
@@ -160,7 +192,10 @@ const MojKalendarAdmin = () => {
           throw new Error("Termin ne postoji.");
         }
         const eventData = eventSnapshot.data();
-        const start = utcToZonedTime(eventData.start?.toDate?.() || new Date(eventData.start), "Europe/Belgrade");
+        const start = utcToZonedTime(
+          eventData.start?.toDate?.() || new Date(eventData.start),
+          "Europe/Belgrade"
+        );
 
         transaction.update(eventRef, {
           tip: "termin",
@@ -191,6 +226,7 @@ const MojKalendarAdmin = () => {
         });
       });
 
+      // Slanje notifikacije korisnici
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
           await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
@@ -223,6 +259,7 @@ const MojKalendarAdmin = () => {
     }
   };
 
+  // Slanje predloga termina korisnici
   const handleSendSuggestion = async () => {
     const { clientUsername } = newEventData;
     if (!clientUsername) {
@@ -243,8 +280,14 @@ const MojKalendarAdmin = () => {
             const eventData = eventSnapshot.data();
             return {
               id: izbor.eventId,
-              start: utcToZonedTime(eventData.start?.toDate?.() || new Date(eventData.start), "Europe/Belgrade"),
-              end: utcToZonedTime(eventData.end?.toDate?.() || new Date(eventData.end), "Europe/Belgrade"),
+              start: utcToZonedTime(
+                eventData.start?.toDate?.() || new Date(eventData.start),
+                "Europe/Belgrade"
+              ),
+              end: utcToZonedTime(
+                eventData.end?.toDate?.() || new Date(eventData.end),
+                "Europe/Belgrade"
+              ),
               note: eventData.note || "",
             };
           }
@@ -263,14 +306,20 @@ const MojKalendarAdmin = () => {
 
   return (
     <div className="moj-kalendar-admin">
-      <VerticalScheduleView selectedWeekStart={selectedWeekStart} onSelectSlot={(slot) => {
-        setNewEventData({ ...INITIAL_EVENT_DATA, ...slot, tip: "slobodan" });
-        setShowModal(true);
-      }} />
+      <VerticalScheduleView
+        selectedWeekStart={selectedWeekStart}
+        onSelectSlot={(slot) => {
+          setNewEventData({ ...INITIAL_EVENT_DATA, ...slot, tip: "slobodan" });
+          setShowModal(true);
+          setIsEditing(false);
+        }}
+      />
+
       {showModal && (
-        <div className="modal-overlay">
+        <div className="modal-overlay show">
           <div className="modal-content">
             <h3>{isEditing ? "Izmeni termin" : "Dodaj novi termin"}</h3>
+
             <select
               value={newEventData.tip}
               onChange={(e) => setNewEventData({ ...newEventData, tip: e.target.value })}
@@ -280,22 +329,44 @@ const MojKalendarAdmin = () => {
               <option value="zauzet">Zauzet</option>
               <option value="termin">Termin</option>
             </select>
+
             <input
               type="datetime-local"
-              value={newEventData.start ? format(newEventData.start, "yyyy-MM-dd'T'HH:mm", { timeZone: "Europe/Belgrade" }) : ""}
-              onChange={(e) => setNewEventData({ ...newEventData, start: utcToZonedTime(new Date(e.target.value), "Europe/Belgrade") })}
+              value={
+                newEventData.start
+                  ? format(newEventData.start, "yyyy-MM-dd'T'HH:mm", { timeZone: "Europe/Belgrade" })
+                  : ""
+              }
+              onChange={(e) =>
+                setNewEventData({
+                  ...newEventData,
+                  start: utcToZonedTime(new Date(e.target.value), "Europe/Belgrade"),
+                })
+              }
             />
+
             <input
               type="datetime-local"
-              value={newEventData.end ? format(newEventData.end, "yyyy-MM-dd'T'HH:mm", { timeZone: "Europe/Belgrade" }) : ""}
-              onChange={(e) => setNewEventData({ ...newEventData, end: utcToZonedTime(new Date(e.target.value), "Europe/Belgrade") })}
+              value={
+                newEventData.end
+                  ? format(newEventData.end, "yyyy-MM-dd'T'HH:mm", { timeZone: "Europe/Belgrade" })
+                  : ""
+              }
+              onChange={(e) =>
+                setNewEventData({
+                  ...newEventData,
+                  end: utcToZonedTime(new Date(e.target.value), "Europe/Belgrade"),
+                })
+              }
             />
+
             <input
               type="text"
               placeholder="Napomena"
               value={newEventData.note || ""}
               onChange={(e) => setNewEventData({ ...newEventData, note: e.target.value })}
             />
+
             {newEventData.tip === "termin" && (
               <input
                 type="text"
@@ -304,24 +375,30 @@ const MojKalendarAdmin = () => {
                 onChange={(e) => setNewEventData({ ...newEventData, clientUsername: e.target.value })}
               />
             )}
+
             <button onClick={handleSaveEvent} disabled={isLoading}>
               {isLoading ? "Čekaj..." : isEditing ? "Sačuvaj izmene" : "Dodaj termin"}
             </button>
+
             {newEventData.tip === "slobodan" && (
               <button onClick={handleSendSuggestion} disabled={isLoading}>
                 Pošalji predlog
               </button>
             )}
-            <button onClick={() => {
-              setShowModal(false);
-              setNewEventData(INITIAL_EVENT_DATA);
-              setIsEditing(false);
-            }}>
+
+            <button
+              onClick={() => {
+                setShowModal(false);
+                setNewEventData(INITIAL_EVENT_DATA);
+                setIsEditing(false);
+              }}
+            >
               Zatvori
             </button>
           </div>
         </div>
       )}
+
       {showSuggestionModal && (
         <PonudiTermineModal
           korisnickoIme={newEventData.clientUsername}

@@ -3,7 +3,8 @@ import { db } from "../firebase";
 import { collection, getDocs, doc, updateDoc, addDoc, runTransaction, query, where } from "firebase/firestore";
 import { toast } from "react-toastify";
 import { utcToZonedTime, format } from "date-fns-tz";
-import VerticalScheduleView from "./VerticalScheduleView";
+import VerticalScheduleView from "../components/VerticalScheduleView";
+
 import PonudiTermineModal from "./PonudiTermineModal";
 import { requestPermission } from "../firebase"; // Added for FCM integration
 

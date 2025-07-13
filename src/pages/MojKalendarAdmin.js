@@ -1,4 +1,4 @@
-// src/MojKalendarAdmin.js
+// src/pages/MojKalendarAdmin.js
 import React, { useState, useEffect, useCallback } from "react";
 import { Calendar, Views, momentLocalizer } from "react-big-calendar";
 import moment from "moment";
@@ -23,6 +23,8 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import VerticalScheduleView from "../components/VerticalScheduleView";
 import { startOfWeek, endOfWeek, isWithinInterval, addDays } from "date-fns";
+import DatePicker from "react-datepicker"; // Added import for DatePicker
+import "react-datepicker/dist/react-datepicker.css"; // Added CSS for DatePicker
 
 const localizer = momentLocalizer(moment);
 
@@ -53,6 +55,7 @@ const MojKalendarAdmin = () => {
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [korisnice, setKorisnice] = useState([]);
   const [izboriPoTerminu, setIzboriPoTerminu] = useState({});
+  const [selectedWeekStart, setSelectedWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
 
   const fetchEvents = useCallback(async () => {
     try {
@@ -363,7 +366,6 @@ const MojKalendarAdmin = () => {
     };
   };
 
-  // Re-added modal for event creation/editing
   const renderModal = () => (
     <div className="modal-overlay" style={{ display: showModal ? "flex" : "none" }}>
       <div className="modal-content">
@@ -425,6 +427,7 @@ const MojKalendarAdmin = () => {
             dateFormat="Pp"
             minTime={new Date(0, 0, 0, 8, 0)}
             maxTime={new Date(0, 0, 0, 22, 0)}
+            inline
           />
         </div>
         <div className="form-group">
@@ -439,6 +442,7 @@ const MojKalendarAdmin = () => {
             dateFormat="Pp"
             minTime={new Date(0, 0, 0, 8, 0)}
             maxTime={new Date(0, 0, 0, 22, 0)}
+            inline
           />
         </div>
         <div className="duration-presets">
@@ -481,7 +485,7 @@ const MojKalendarAdmin = () => {
             <>
               <button
                 onClick={handleSendSuggestion}
-                className="bg-blue-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-600 transition"
+                className="suggest-button bg-blue-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-600 transition"
               >
                 Pošalji predlog korisnicama
               </button>
@@ -521,11 +525,11 @@ const MojKalendarAdmin = () => {
         <VerticalScheduleView
           events={events.filter((event) =>
             isWithinInterval(new Date(event.start), {
-              start: startOfWeek(new Date(), { weekStartsOn: 1 }),
-              end: endOfWeek(new Date(), { weekStartsOn: 1 }),
+              start: selectedWeekStart,
+              end: endOfWeek(selectedWeekStart, { weekStartsOn: 1 }),
             })
           )}
-          selectedWeekStart={startOfWeek(new Date(), { weekStartsOn: 1 })}
+          selectedWeekStart={selectedWeekStart}
           onSelectSlot={handleSelectSlot}
           onSelectEvent={handleSelectEvent}
           showModal={showModal}
@@ -553,7 +557,7 @@ const MojKalendarAdmin = () => {
           views={[Views.WEEK, Views.DAY]}
           date={new Date()}
           onNavigate={(newDate) => {
-            setCurrentDate(newDate);
+            setSelectedWeekStart(startOfWeek(newDate, { weekStartsOn: 1 }));
           }}
           style={{ height: "calc(100vh - 100px)", margin: "10px" }}
           onSelectEvent={handleSelectEvent}
@@ -570,17 +574,17 @@ const MojKalendarAdmin = () => {
         />
       )}
       <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
-        <button onClick={() => setSelectedWeekStart((prev) => addDays(prev, -7))}>
+        <button onClick={() => setSelectedWeekStart(addDays(selectedWeekStart, -7))}>
           ⟵ Prethodna nedelja
         </button>
-        <button onClick={() => setSelectedWeekStart((prev) => addDays(prev, 7))}>
+        <button onClick={() => setSelectedWeekStart(addDays(selectedWeekStart, 7))}>
           Sledeća nedelja ⟶
         </button>
       </div>
 
       <h3 style={{ marginTop: "30px", fontSize: "18px", color: "#c89b8c" }}>
-        Prikaz nedelje: {startOfWeek(new Date(), { weekStartsOn: 1 }).toLocaleDateString()} –{" "}
-        {endOfWeek(new Date(), { weekStartsOn: 1 }).toLocaleDateString()}
+        Prikaz nedelje: {selectedWeekStart.toLocaleDateString()} –{" "}
+        {endOfWeek(selectedWeekStart, { weekStartsOn: 1 }).toLocaleDateString()}
       </h3>
       {renderModal()}
     </div>

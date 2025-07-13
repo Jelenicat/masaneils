@@ -2,7 +2,9 @@ import React, { useState, useEffect } from "react";
 import { db } from "../firebase";
 import { doc, getDoc, runTransaction, query, collection, getDocs, where } from "firebase/firestore";
 import { toast } from "react-toastify";
-import { utcToZonedTime, format } from "date-fns-tz";
+import { format } from "date-fns";
+import { sr } from "date-fns/locale"; // import locale za srpski
+
 import { requestPermission } from "../firebase"; // Added for FCM integration
 
 const PonudjeniTermini = ({ korisnickoIme }) => {
@@ -21,9 +23,9 @@ const PonudjeniTermini = ({ korisnickoIme }) => {
         const docSnap = await getDoc(doc(db, "predlozeniTermini", korisnickoIme));
         if (docSnap.exists()) {
           const data = docSnap.data();
-          const now = utcToZonedTime(new Date(), "Europe/Belgrade");
+          const now = new Date();
           setPonudjeni(
-            data.termini.filter((t) => utcToZonedTime(t.start, "Europe/Belgrade") >= now)
+            data.termini.filter((t) => new Date(t.start) >= now)
           );
         }
       } catch (error) {
@@ -44,8 +46,8 @@ const PonudjeniTermini = ({ korisnickoIme }) => {
         }
 
         transaction.update(eventRef, {
-          start: utcToZonedTime(termin.start, "Europe/Belgrade"),
-          end: utcToZonedTime(termin.end, "Europe/Belgrade"),
+          start: new Date(termin.start),
+          end: new Date(termin.end),
           note: termin.note || "",
           tip: "termin",
           title: `💅 ${korisnickoIme}`,
@@ -78,9 +80,9 @@ const PonudjeniTermini = ({ korisnickoIme }) => {
               korisnickoIme: "masa",
               title: "Potvrđen termin",
               body: `Korisnica ${korisnickoIme} je potvrdila termin: ${format(
-                utcToZonedTime(termin.start, "Europe/Belgrade"),
+                new Date(termin.start),
                 "dd.MM.yyyy HH:mm",
-                { timeZone: "Europe/Belgrade" }
+                { locale: sr }
               )} (${termin.usluga})`,
               click_action: "https://masaneils.vercel.app/admin",
             }),
@@ -113,15 +115,9 @@ const PonudjeniTermini = ({ korisnickoIme }) => {
             className="bg-white rounded-xl shadow-md p-4 flex flex-col items-center"
           >
             <p className="font-semibold text-center">
-              {format(utcToZonedTime(termin.start, "Europe/Belgrade"), "EEEE, dd. MMMM yyyy", {
-                locale: "sr-RS",
-              })}
+              {format(new Date(termin.start), "EEEE, dd. MMMM yyyy", { locale: sr })}
               <br />
-              {format(utcToZonedTime(termin.start, "Europe/Belgrade"), "HH:mm", {
-                timeZone: "Europe/Belgrade",
-              })} – {format(utcToZonedTime(termin.end, "Europe/Belgrade"), "HH:mm", {
-                timeZone: "Europe/Belgrade",
-              })}
+              {format(new Date(termin.start), "HH:mm", { locale: sr })} – {format(new Date(termin.end), "HH:mm", { locale: sr })}
             </p>
             <p className="text-sm text-gray-600 mt-1 text-center">Usluga: {termin.usluga}</p>
             {termin.note && (

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import { db } from "../firebase";
 import { doc, setDoc, getDoc, getDocs, query, where, collection } from "firebase/firestore";
 import { toast } from "react-toastify";
-import { utcToZonedTime, format } from "date-fns-tz";
+import { format } from "date-fns";
+import { sr } from "date-fns/locale";
 
 const PonudiTermineModal = ({ korisnickoIme, slobodniTermini, onClose }) => {
   const [selektovani, setSelektovani] = useState([]);
@@ -35,6 +36,7 @@ const PonudiTermineModal = ({ korisnickoIme, slobodniTermini, onClose }) => {
   const adjustTime = (terminId, field, minutes) => {
     setAdjustedTimes((prev) => {
       const termin = slobodniTermini.find((t) => t.id === terminId);
+      if (!termin) return prev;
       const newTime = new Date(field === "start" ? termin.start : termin.end);
       newTime.setMinutes(newTime.getMinutes() + minutes);
       return {
@@ -58,13 +60,13 @@ const PonudiTermineModal = ({ korisnickoIme, slobodniTermini, onClose }) => {
     }
 
     try {
-      const now = utcToZonedTime(new Date(), "Europe/Belgrade");
+      const now = new Date();
       const odabrani = slobodniTermini
         .filter((t) => selektovani.includes(t.id))
         .map((t) => ({
           id: t.id,
-          start: adjustedTimes[t.id]?.start || t.start,
-          end: adjustedTimes[t.id]?.end || t.end,
+          start: adjustedTimes[t.id]?.start || new Date(t.start),
+          end: adjustedTimes[t.id]?.end || new Date(t.end),
           note: t.note || "",
           usluga,
         }))
@@ -75,13 +77,9 @@ const PonudiTermineModal = ({ korisnickoIme, slobodniTermini, onClose }) => {
         allEvents.docs.some((doc) => {
           const event = doc.data();
           if (event.tip === "termin" || event.tip === "zauzet") {
-            const start = utcToZonedTime(event.start?.toDate?.() || new Date(event.start), "Europe/Belgrade");
-            const end = utcToZonedTime(event.end?.toDate?.() || new Date(event.end), "Europe/Belgrade");
-            return (
-              t1.id !== doc.id &&
-              t1.start < end &&
-              t1.end > start
-            );
+            const start = new Date(event.start?.toDate?.() || event.start);
+            const end = new Date(event.end?.toDate?.() || event.end);
+            return t1.id !== doc.id && t1.start < end && t1.end > start;
           }
           return false;
         })
@@ -99,7 +97,9 @@ const PonudiTermineModal = ({ korisnickoIme, slobodniTermini, onClose }) => {
       });
 
       const notificationBody = odabrani
-        .map((t) => `${format(t.start, "dd.MM.yyyy HH:mm", { timeZone: "Europe/Belgrade" })} (${usluga})`)
+        .map((t) =>
+          `${format(t.start, "dd.MM.yyyy HH:mm", { locale: sr })} (${usluga})`
+        )
         .join(", ");
 
       for (let attempt = 0; attempt < 3; attempt++) {
@@ -147,43 +147,19 @@ const PonudiTermineModal = ({ korisnickoIme, slobodniTermini, onClose }) => {
                     onChange={() => toggleTermin(termin.id)}
                   />
                   <span>
-                    {format(adjustedTimes[termin.id]?.start || termin.start, "dd.MM.yyyy HH:mm", {
-                      timeZone: "Europe/Belgrade",
-                    })}
+                    {format(adjustedTimes[termin.id]?.start || new Date(termin.start), "dd.MM.yyyy HH:mm", { locale: sr })}
                     {" – "}
-                    {format(adjustedTimes[termin.id]?.end || termin.end, "HH:mm", {
-                      timeZone: "Europe/Belgrade",
-                    })}
+                    {format(adjustedTimes[termin.id]?.end || new Date(termin.end), "HH:mm", { locale: sr })}
                     {" ("}
                     {usluga}
                     {")"}
                   </span>
                 </label>
                 <div style={{ marginLeft: "22px", marginTop: "5px" }}>
-                  <button
-                    onClick={() => adjustTime(termin.id, "start", -30)}
-                    className="duration-button"
-                  >
-                    -30 min
-                  </button>
-                  <button
-                    onClick={() => adjustTime(termin.id, "start", 30)}
-                    className="duration-button"
-                  >
-                    +30 min
-                  </button>
-                  <button
-                    onClick={() => adjustTime(termin.id, "end", -30)}
-                    className="duration-button"
-                  >
-                    -30 min (kraj)
-                  </button>
-                  <button
-                    onClick={() => adjustTime(termin.id, "end", 30)}
-                    className="duration-button"
-                  >
-                    +30 min (kraj)
-                  </button>
+                  <button onClick={() => adjustTime(termin.id, "start", -30)} className="duration-button">-30 min</button>
+                  <button onClick={() => adjustTime(termin.id, "start", 30)} className="duration-button">+30 min</button>
+                  <button onClick={() => adjustTime(termin.id, "end", -30)} className="duration-button">-30 min (kraj)</button>
+                  <button onClick={() => adjustTime(termin.id, "end", 30)} className="duration-button">+30 min (kraj)</button>
                 </div>
                 {termin.note && (
                   <div style={{ fontSize: "12px", color: "#777", marginLeft: "22px" }}>
@@ -197,12 +173,8 @@ const PonudiTermineModal = ({ korisnickoIme, slobodniTermini, onClose }) => {
           <p>Nema dostupnih slobodnih termina.</p>
         )}
         <div className="modal-buttons">
-          <button onClick={handleSubmit} className="confirm-button">
-            Pošalji
-          </button>
-          <button onClick={onClose} className="cancel-button" style={{ marginLeft: "10px" }}>
-            Zatvori
-          </button>
+          <button onClick={handleSubmit} className="confirm-button">Pošalji</button>
+          <button onClick={onClose} className="cancel-button" style={{ marginLeft: "10px" }}>Zatvori</button>
         </div>
       </div>
     </div>

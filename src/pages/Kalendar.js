@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { db } from "../firebase";
 import { collection, getDocs, doc, setDoc, getDoc } from "firebase/firestore";
 import { toast } from "react-toastify";
-import { utcToZonedTime } from "date-fns-tz";
 import { requestPermission } from "../firebase"; // Added for FCM integration
 
 const Kalendar = ({ korisnickoIme }) => {
@@ -21,16 +20,17 @@ const Kalendar = ({ korisnickoIme }) => {
     const fetchTermini = async () => {
       try {
         const snapshot = await getDocs(collection(db, "admin_kalendar"));
-        const now = utcToZonedTime(new Date(), "Europe/Belgrade");
+        const now = new Date();
         const termini = snapshot.docs
           .map((doc) => {
             const data = doc.data();
-            const start = utcToZonedTime(data.start?.toDate?.() || new Date(data.start), "Europe/Belgrade");
+            const start = data.start?.toDate?.() || new Date(data.start);
             return {
               id: doc.id,
               datum: start.toISOString().split("T")[0],
               vreme: start.toTimeString().slice(0, 5),
               tip: data.tip,
+              start,
             };
           })
           .filter((t) => t.tip === "slobodan" && t.start >= now);
@@ -65,8 +65,11 @@ const Kalendar = ({ korisnickoIme }) => {
       const snapshot = await getDocs(collection(db, "admin_kalendar"));
       const adminTermini = snapshot.docs.reduce((acc, doc) => {
         const data = doc.data();
-        const start = utcToZonedTime(data.start?.toDate?.() || new Date(data.start), "Europe/Belgrade");
-        acc[doc.id] = { datum: start.toISOString().split("T")[0], vreme: start.toTimeString().slice(0, 5) };
+        const start = data.start?.toDate?.() || new Date(data.start);
+        acc[doc.id] = {
+          datum: start.toISOString().split("T")[0],
+          vreme: start.toTimeString().slice(0, 5),
+        };
         return acc;
       }, {});
 
@@ -87,7 +90,7 @@ const Kalendar = ({ korisnickoIme }) => {
             vreme: termin.vreme,
             usluga,
             status: "izabrala",
-            timestamp: utcToZonedTime(new Date(), "Europe/Belgrade"),
+            timestamp: new Date(),
             eventId,
           }
         );

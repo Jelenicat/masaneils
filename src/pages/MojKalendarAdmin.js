@@ -13,8 +13,7 @@ import {
   getDoc,
 } from "firebase/firestore";
 import { toast } from "react-toastify";
-import { format } from "date-fns";
-import { startOfWeek } from "date-fns";
+import { format, startOfWeek } from "date-fns";
 
 import VerticalScheduleView from "../components/VerticalScheduleView";
 import PonudiTermineModal from "../components/PonudiTermineModal";

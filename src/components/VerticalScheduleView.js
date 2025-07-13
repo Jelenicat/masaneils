@@ -3,8 +3,6 @@ import React, { useMemo, useEffect } from "react";
 import "react-datepicker/dist/react-datepicker.css";
 import "./VerticalScheduleView.css";
 import { format, isSameDay, startOfWeek, addDays, differenceInMinutes } from "date-fns";
-import DatePicker from "react-datepicker"; // ⬅️ dodaj ovo
-
 
 const dani = ["Nedelja", "Ponedeljak", "Utorak", "Sreda", "Četvrtak", "Petak", "Subota"];
 const sati = Array.from({ length: 13 }, (_, i) => 9 + i); // 9h–21h
@@ -35,24 +33,17 @@ const VerticalScheduleView = ({
 }) => {
   useEffect(() => {
     console.log("VerticalScheduleView props:", { events, showModal, newEventData, isEditing });
-  }, [showModal, newEventData, isEditing]); // Log on state change
+  }, [showModal, newEventData, isEditing]);
 
-const groupedEvents = useMemo(() => {
-  const start = startOfWeek(selectedWeekStart, { weekStartsOn: 1 });
-  const end = addDays(start, 6); // kraj selektovane nedelje (subota)
-
-  const groups = {};
-  (events || []).forEach((event) => {
-    const eventDate = new Date(event.start);
-    if (eventDate >= start && eventDate <= end) {
-      const dan = getDayName(eventDate);
-      if (!groups[dan]) groups[dan] = [];
-      groups[dan].push(event);
-    }
-  });
-  return groups;
-}, [events, selectedWeekStart]);
-
+  const groupedEvents = useMemo(() => {
+    const groups = {};
+    (events || []).forEach((event) => {
+      const day = getDayName(event.start);
+      if (!groups[day]) groups[day] = [];
+      groups[day].push(event);
+    });
+    return groups;
+  }, [events]);
 
   const handleSlotClick = (dan, sat) => {
     const startOfSelectedWeek = startOfWeek(selectedWeekStart, { weekStartsOn: 1 });
@@ -105,14 +96,10 @@ const groupedEvents = useMemo(() => {
                           style={{ gridRow: `span ${rowSpan}` }}
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (event && event.id) {
-                              setNewEventData(event);
-                              setIsEditing(true);
-                              setShowModal(true);
-                              console.log("Event clicked:", event, "ShowModal set to:", true);
-                            } else {
-                              console.log("Invalid event:", event);
-                            }
+                            setNewEventData(event);
+                            setIsEditing(true);
+                            setShowModal(true);
+                            console.log("Event clicked:", event, "ShowModal set to:", true);
                           }}
                         >
                           <span className="sat">{`${startTime}–${endTime}`}</span>

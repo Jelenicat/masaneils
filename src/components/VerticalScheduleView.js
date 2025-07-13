@@ -3,6 +3,8 @@ import React, { useMemo, useEffect } from "react";
 import "react-datepicker/dist/react-datepicker.css";
 import "./VerticalScheduleView.css";
 import { format, isSameDay, startOfWeek, addDays, differenceInMinutes } from "date-fns";
+import DatePicker from "react-datepicker";
+
 
 const dani = ["Nedelja", "Ponedeljak", "Utorak", "Sreda", "Četvrtak", "Petak", "Subota"];
 const sati = Array.from({ length: 13 }, (_, i) => 9 + i); // 9h–21h

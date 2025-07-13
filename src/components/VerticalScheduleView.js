@@ -37,15 +37,22 @@ const VerticalScheduleView = ({
     console.log("VerticalScheduleView props:", { events, showModal, newEventData, isEditing });
   }, [showModal, newEventData, isEditing]); // Log on state change
 
-  const groupedEvents = useMemo(() => {
-    const groups = {};
-    (events || []).forEach((event) => {
-      const day = getDayName(event.start);
-      if (!groups[day]) groups[day] = [];
-      groups[day].push(event);
-    });
-    return groups;
-  }, [events]);
+const groupedEvents = useMemo(() => {
+  const start = startOfWeek(selectedWeekStart, { weekStartsOn: 1 });
+  const end = addDays(start, 6); // kraj selektovane nedelje (subota)
+
+  const groups = {};
+  (events || []).forEach((event) => {
+    const eventDate = new Date(event.start);
+    if (eventDate >= start && eventDate <= end) {
+      const dan = getDayName(eventDate);
+      if (!groups[dan]) groups[dan] = [];
+      groups[dan].push(event);
+    }
+  });
+  return groups;
+}, [events, selectedWeekStart]);
+
 
   const handleSlotClick = (dan, sat) => {
     const startOfSelectedWeek = startOfWeek(selectedWeekStart, { weekStartsOn: 1 });

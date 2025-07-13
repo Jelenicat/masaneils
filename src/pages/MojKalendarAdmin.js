@@ -13,7 +13,6 @@ import {
   getDoc,
 } from "firebase/firestore";
 import { toast } from "react-toastify";
-import { utcToZonedTime, format } from "date-fns-tz";
 import { startOfWeek, endOfWeek } from "date-fns";
 
 import VerticalScheduleView from "../components/VerticalScheduleView";
@@ -35,6 +34,26 @@ const INITIAL_EVENT_DATA = {
   clientUsername: "",
 };
 
+// Formatiranje datuma za input polja tipa datetime-local (bez sekundi)
+const formatForInput = (date) => {
+  if (!date) return "";
+  return date.toISOString().slice(0, 16);
+};
+
+// Formatiranje datuma za prikaz korisniku u Europe/Belgrade vremenskoj zoni
+const formatForDisplay = (date) => {
+  if (!date) return "";
+  return new Intl.DateTimeFormat("sr-RS", {
+    timeZone: "Europe/Belgrade",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(date);
+};
+
 const MojKalendarAdmin = () => {
   const [events, setEvents] = useState([]);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
@@ -48,17 +67,17 @@ const MojKalendarAdmin = () => {
   const [showSuggestionModal, setShowSuggestionModal] = useState(false);
   const [slobodniTermini, setSlobodniTermini] = useState([]);
 
-  // Request push notification permissions on mount
+  // Traženje dozvola za push notifikacije
   useEffect(() => {
     requestPermission().catch((err) => {
       toast.error("Greška prilikom postavljanja notifikacija: " + err.message);
     });
   }, []);
 
-  // Fetch events and korisnici koji su izabrali termine
+  // Učitavanje događaja i korisnika koji su izabrali termine
   const fetchEvents = useCallback(async () => {
     try {
-      const now = utcToZonedTime(new Date(), "Europe/Belgrade");
+      const now = new Date();
 
       const snapshot = await getDocs(collection(db, "admin_kalendar"));
       const izboriSnapshot = await getDocs(collection(db, "izboriTermina"));
@@ -74,33 +93,30 @@ const MojKalendarAdmin = () => {
       const loadedEvents = snapshot.docs
         .map((doc) => {
           const data = doc.data();
-          const start = utcToZonedTime(
-            data.start?.toDate?.() || new Date(data.start),
-            "Europe/Belgrade"
-          );
-          const end = utcToZonedTime(
-            data.end?.toDate?.() || new Date(data.end),
-            "Europe/Belgrade"
-          );
-          if (start < now) return null; // Skip past events
+
+          // Koristimo obične Date objekte
+          const start = data.start?.toDate?.() || new Date(data.start);
+          const end = data.end?.toDate?.() || new Date(data.end);
+
+          if (start < now) return null; // Preskoči događaje u prošlosti
 
           const izabrale = izbori
             .filter((izbor) => izbor.eventId === doc.id)
             .map(
-              (izbor) => `${izbor.korisnickoIme} (${usluge[izbor.korisnickoIme] || "N/A"})`
+              (izbor) =>
+                `${izbor.korisnickoIme} (${usluge[izbor.korisnickoIme] || "N/A"})`
             );
 
           let title = data.title || "Untitled Event";
           if (data.tip === "slobodan") {
-            title = izabrale.length > 0 ? `slobodan (${izabrale.join(", ")})` : "slobodan";
+            title =
+              izabrale.length > 0
+                ? `slobodan (${izabrale.join(", ")})`
+                : "slobodan";
           } else if (data.tip === "zauzet") {
             title = "zauzet";
           } else if (data.tip === "termin") {
-            const vreme = start.toLocaleTimeString("sr-RS", {
-              hour: "2-digit",
-              minute: "2-digit",
-              hour12: false,
-            });
+            const vreme = formatForDisplay(start);
             title = `💅 ${data.clientUsername || "Nepoznat korisnik"} (${vreme})`;
           }
 
@@ -124,14 +140,14 @@ const MojKalendarAdmin = () => {
     }
   }, []);
 
-  // Save new or edited event
+  // Čuvanje novog ili izmenjenog termina
   const handleSaveEvent = async () => {
     if (!newEventData.tip || !newEventData.start || !newEventData.end) {
       toast.error("Molimo popunite sva obavezna polja.");
       return;
     }
 
-    const now = utcToZonedTime(new Date(), "Europe/Belgrade");
+    const now = new Date();
     if (newEventData.start < now) {
       toast.error("Početak termina ne može biti u prošlosti.");
       return;
@@ -192,10 +208,7 @@ const MojKalendarAdmin = () => {
           throw new Error("Termin ne postoji.");
         }
         const eventData = eventSnapshot.data();
-        const start = utcToZonedTime(
-          eventData.start?.toDate?.() || new Date(eventData.start),
-          "Europe/Belgrade"
-        );
+        const start = eventData.start?.toDate?.() || new Date(eventData.start);
 
         transaction.update(eventRef, {
           tip: "termin",
@@ -235,9 +248,7 @@ const MojKalendarAdmin = () => {
             body: JSON.stringify({
               korisnickoIme,
               title: "Termin potvrđen",
-              body: `Vaš termin je potvrđen za ${format(start, "dd.MM.yyyy HH:mm", {
-                timeZone: "Europe/Belgrade",
-              })}.`,
+              body: `Vaš termin je potvrđen za ${formatForDisplay(start)}.`,
               click_action: "https://masaneils.vercel.app/ponudjeni-termini",
             }),
           });
@@ -280,14 +291,8 @@ const MojKalendarAdmin = () => {
             const eventData = eventSnapshot.data();
             return {
               id: izbor.eventId,
-              start: utcToZonedTime(
-                eventData.start?.toDate?.() || new Date(eventData.start),
-                "Europe/Belgrade"
-              ),
-              end: utcToZonedTime(
-                eventData.end?.toDate?.() || new Date(eventData.end),
-                "Europe/Belgrade"
-              ),
+              start: eventData.start?.toDate?.() || new Date(eventData.start),
+              end: eventData.end?.toDate?.() || new Date(eventData.end),
               note: eventData.note || "",
             };
           }
@@ -332,31 +337,17 @@ const MojKalendarAdmin = () => {
 
             <input
               type="datetime-local"
-              value={
-                newEventData.start
-                  ? format(newEventData.start, "yyyy-MM-dd'T'HH:mm", { timeZone: "Europe/Belgrade" })
-                  : ""
-              }
+              value={formatForInput(newEventData.start)}
               onChange={(e) =>
-                setNewEventData({
-                  ...newEventData,
-                  start: utcToZonedTime(new Date(e.target.value), "Europe/Belgrade"),
-                })
+                setNewEventData({ ...newEventData, start: new Date(e.target.value) })
               }
             />
 
             <input
               type="datetime-local"
-              value={
-                newEventData.end
-                  ? format(newEventData.end, "yyyy-MM-dd'T'HH:mm", { timeZone: "Europe/Belgrade" })
-                  : ""
-              }
+              value={formatForInput(newEventData.end)}
               onChange={(e) =>
-                setNewEventData({
-                  ...newEventData,
-                  end: utcToZonedTime(new Date(e.target.value), "Europe/Belgrade"),
-                })
+                setNewEventData({ ...newEventData, end: new Date(e.target.value) })
               }
             />
 

@@ -1,11 +1,10 @@
-/* src/components/VerticalScheduleView.css */
 .vertical-schedule-view {
   display: flex;
   flex-direction: column;
   gap: 24px;
   padding: 12px;
-  overflow-y: auto; /* Ensure vertical scrolling */
-  max-height: calc(100vh - 200px); /* Dynamic height based on viewport, adjusted for header/footer */
+  overflow-y: auto;
+  max-height: calc(100vh - 200px);
   width: 100%;
 }
 
@@ -14,7 +13,7 @@
   border-radius: 8px;
   padding: 12px;
   box-shadow: 0 0 6px rgba(0, 0, 0, 0.05);
-  min-width: 0; /* Prevent width overflow */
+  min-width: 0;
 }
 
 .naslov-dana {
@@ -27,9 +26,9 @@
 
 .sati {
   display: grid;
-  grid-template-rows: repeat(13, 1fr); /* 13 hours: 9 AM to 9 PM */
+  grid-template-rows: repeat(13, 1fr);
   gap: 6px;
-  min-height: 600px; /* Minimum height, allows expansion */
+  min-height: 600px;
 }
 
 .slot {
@@ -43,9 +42,9 @@
   gap: 10px;
   transition: background-color 0.2s;
   cursor: pointer;
-  min-height: 40px; /* Ensure minimum slot height */
-  position: relative; /* Ensure proper stacking */
-  z-index: 1; /* Above background elements */
+  min-height: 40px;
+  position: relative;
+  z-index: 1;
 }
 
 .slot:hover {
@@ -54,7 +53,7 @@
 
 .multi-hour-slot {
   position: relative;
-  z-index: 2; /* Slightly higher than single slots */
+  z-index: 2;
 }
 
 .sat {
@@ -72,7 +71,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 0; /* Allow flex to manage width */
+  max-width: 0;
 }
 
 .event-info {
@@ -115,9 +114,9 @@
 
 .potvrdi-dugmad {
   margin-top: 5px;
-  max-height: 100px; /* Limit height to prevent excessive growth */
-  overflow-y: auto; /* Enable scrolling within user selections */
-  z-index: 3; /* Above slots but below modal */
+  max-height: 100px;
+  overflow-y: auto;
+  z-index: 3;
 }
 
 .korisnica-red {
@@ -126,7 +125,7 @@
   gap: 5px;
   margin: 2px 0;
   font-size: 12px;
-  z-index: 3; /* Match potvrdi-dugmad */
+  z-index: 3;
 }
 
 .potvrdi-dugme {
@@ -137,16 +136,16 @@
   border-radius: 4px;
   cursor: pointer;
   font-size: 12px;
-  z-index: 4; /* Above korisnica-red */
+  z-index: 4;
 }
 
 .potvrdi-dugme:hover {
   background-color: #218838;
 }
 
-/* Modal Styles */
+/* ✅ Modal fix */
 .modal-overlay {
-  display: none; /* Default hidden, toggled by JS */
+  display: none;
   position: fixed;
   top: 0;
   left: 0;
@@ -155,11 +154,11 @@
   background: rgba(0, 0, 0, 0.5);
   justify-content: center;
   align-items: center;
-  z-index: 1000; /* Above all other elements */
+  z-index: 1000;
 }
 
-.modal-overlay[style*="display: flex"] {
-  display: flex; /* Ensure dynamic display toggle */
+.modal-overlay.show {
+  display: flex;
 }
 
 .modal-content {
@@ -170,7 +169,7 @@
   max-width: 500px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   position: relative;
-  z-index: 1001; /* Above modal-overlay */
+  z-index: 1001;
 }
 
 .form-group {
@@ -256,7 +255,7 @@
   .vertical-schedule-view {
     padding: 8px;
     gap: 16px;
-    max-height: calc(100vh - 150px); /* Adjusted for mobile */
+    max-height: calc(100vh - 150px);
   }
 
   .dan-blok {
@@ -270,7 +269,7 @@
   }
 
   .sati {
-    min-height: 400px; /* Reduced minimum height for mobile */
+    min-height: 400px;
   }
 
   .slot {
@@ -310,7 +309,7 @@
   }
 
   .potvrdi-dugmad {
-    max-height: 80px; /* Reduced for mobile */
+    max-height: 80px;
   }
 
   .modal-content {

@@ -57,58 +57,59 @@ const MojKalendarAdmin = () => {
   const [izboriPoTerminu, setIzboriPoTerminu] = useState({});
   const [selectedWeekStart, setSelectedWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
 
-  const fetchEvents = useCallback(async () => {
-    try {
-      const snapshot = await getDocs(collection(db, "admin_kalendar"));
-      const izboriSnapshot = await getDocs(collection(db, "izboriTermina"));
-      const izbori = izboriSnapshot.docs.map((doc) => doc.data());
-      const uslugeSnapshot = await getDocs(collection(db, "izbor_usluge"));
-      const usluge = uslugeSnapshot.docs.reduce((acc, doc) => {
-        const data = doc.data();
-        acc[data.korisnickoIme] = data.usluga;
-        return acc;
-      }, {});
+const fetchEvents = useCallback(async () => {
+  try {
+    const snapshot = await getDocs(collection(db, "admin_kalendar"));
+    const izboriSnapshot = await getDocs(collection(db, "izboriTermina"));
+    const izbori = izboriSnapshot.docs.map((doc) => doc.data());
+    const uslugeSnapshot = await getDocs(collection(db, "izbor_usluge"));
+    const usluge = uslugeSnapshot.docs.reduce((acc, doc) => {
+      const data = doc.data();
+      acc[data.korisnickoIme] = data.usluga;
+      return acc;
+    }, {});
 
-      const loadedEvents = snapshot.docs.map((doc) => {
-        const data = doc.data();
-        const start = data.start?.toDate?.() || new Date(data.start);
-        const end = data.end?.toDate?.() || new Date(data.end);
-        const izabrale = izbori
-          .filter((izbor) => izbor.eventId === doc.id)
-          .map((izbor) => `${izbor.korisnickoIme} (${usluge[izbor.korisnickoIme] || "N/A"})`);
+    const loadedEvents = snapshot.docs.map((doc) => {
+      const data = doc.data();
+      const start = data.start?.toDate?.() || new Date(data.start);
+      const end = data.end?.toDate?.() || new Date(data.end);
+      const izabrale = izbori
+        .filter((izbor) => izbor.eventId === doc.id)
+        .map((izbor) => `${izbor.korisnickoIme} (${usluge[izbor.korisnickoIme] || "N/A"})`);
 
-        let title = data.title || "Untitled Event";
-        if (data.tip === "slobodan") {
-          title = izabrale.length > 0 ? `slobodan (${izabrale.join(", ")})` : "slobodan";
-        } else if (data.tip === "zauzet") {
-          title = "zauzet";
-        } else if (data.tip === "termin") {
-          const vreme = start.toLocaleTimeString("sr-RS", {
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: false,
-          });
-          title = `💅 ${data.clientUsername || "Nepoznat korisnik"} (${vreme})`;
-        }
+      let title = data.title || "Untitled Event";
+      if (data.tip === "slobodan") {
+        title = izabrale.length > 0 ? `slobodan (${izabrale.join(", ")})` : "slobodan";
+      } else if (data.tip === "zauzet") {
+        title = "zauzet";
+      } else if (data.tip === "termin") {
+        const vreme = start.toLocaleTimeString("sr-RS", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        });
+        title = `💅 ${data.clientUsername || "Nepoznat korisnik"} (${vreme})`;
+      }
 
-        return {
-          id: doc.id,
-          ...data,
-          start,
-          end,
-          title,
-          backgroundColor: EVENT_TYPES[data.tip]?.color || "#ddd",
-        };
-      });
+      return {
+        id: doc.id,
+        ...data,
+        start,
+        end,
+        title,
+        backgroundColor: EVENT_TYPES[data.tip]?.color || "#ddd",
+      };
+    });
 
-      setEvents(loadedEvents);
-    } catch (error) {
-      console.error("Greška pri učitavanju kalendara:", error);
-      toast.error("Greška pri učitavanju kalendara.");
-    } finally {
-      setIsInitialLoading(false);
-    }
-  }, []);
+    console.log("Fetched events:", loadedEvents); // Add this to debug
+    setEvents(loadedEvents);
+  } catch (error) {
+    console.error("Greška pri učitavanju kalendara:", error);
+    toast.error("Greška pri učitavanju kalendara.");
+  } finally {
+    setIsInitialLoading(false);
+  }
+}, []);
 
   const fetchIzboriTermina = useCallback(async () => {
     try {

@@ -4,7 +4,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import "./VerticalScheduleView.css";
 import { format, isSameDay, startOfWeek, addDays, differenceInMinutes } from "date-fns";
 
-const dani = ["Ponedeljak", "Utorak", "Sreda", "Četvrtak", "Petak", "Subota"];
+const dani = ["Nedelja", "Ponedeljak", "Utorak", "Sreda", "Četvrtak", "Petak", "Subota"]; // Added "Nedelja"
 const sati = Array.from({ length: 13 }, (_, i) => 9 + i); // 9h–21h
 
 const getDayName = (date) => {
@@ -36,7 +36,7 @@ const VerticalScheduleView = ({
     const startDate = new Date(startOfSelectedWeek);
     startDate.setDate(startOfSelectedWeek.getDate() + dayIndex);
     startDate.setHours(sat, 0, 0, 0);
-    const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
+    const endDate = new Date(startDate.getTime() + 60 * 60 * 1000); // 1-hour default duration
     onSelectSlot({ start: startDate, end: endDate });
   };
 
@@ -47,12 +47,14 @@ const VerticalScheduleView = ({
         const dayEvents = groupedEvents[dan] || [];
         const eventSlots = {};
 
+        // Populate eventSlots for the day
         dayEvents.forEach((event) => {
-          const podsati = new Date(event.start);
-          podsati.setMinutes(0);
-          const startHour = podsati.getHours();
-          const endHour = new Date(event.end).getHours();
-          const endMinutes = new Date(event.end).getMinutes();
+          const start = new Date(event.start);
+          const end = new Date(event.end);
+          const startHour = start.getHours();
+          const endHour = end.getHours();
+          const endMinutes = end.getMinutes();
+
           for (let hour = startHour; hour <= endHour; hour++) {
             if (hour === startHour || hour < endHour || (hour === endHour && endMinutes > 0)) {
               eventSlots[hour] = event;

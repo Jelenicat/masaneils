@@ -1,12 +1,13 @@
-// src/PonudiTermineModal.js
 import React, { useState, useEffect } from "react";
 import { db } from "../firebase";
-import { doc, setDoc, getDoc } from "firebase/firestore";
+import { doc, setDoc, getDoc, getDocs, query, where, collection } from "firebase/firestore";
 import { toast } from "react-toastify";
+import { utcToZonedTime, format } from "date-fns-tz";
 
 const PonudiTermineModal = ({ korisnickoIme, slobodniTermini, onClose }) => {
   const [selektovani, setSelektovani] = useState([]);
   const [usluga, setUsluga] = useState("N/A");
+  const [adjustedTimes, setAdjustedTimes] = useState({});
 
   useEffect(() => {
     const fetchUsluga = async () => {
@@ -27,10 +28,23 @@ const PonudiTermineModal = ({ korisnickoIme, slobodniTermini, onClose }) => {
 
   const toggleTermin = (terminId) => {
     setSelektovani((prev) =>
-      prev.includes(terminId)
-        ? prev.filter((id) => id !== terminId)
-        : [...prev, terminId]
+      prev.includes(terminId) ? prev.filter((id) => id !== terminId) : [...prev, terminId]
     );
+  };
+
+  const adjustTime = (terminId, field, minutes) => {
+    setAdjustedTimes((prev) => {
+      const termin = slobodniTermini.find((t) => t.id === terminId);
+      const newTime = new Date(field === "start" ? termin.start : termin.end);
+      newTime.setMinutes(newTime.getMinutes() + minutes);
+      return {
+        ...prev,
+        [terminId]: {
+          ...prev[terminId],
+          [field]: newTime,
+        },
+      };
+    });
   };
 
   const handleSubmit = async () => {
@@ -44,35 +58,71 @@ const PonudiTermineModal = ({ korisnickoIme, slobodniTermini, onClose }) => {
     }
 
     try {
-      const odabrani = slobodniTermini.filter((t) => selektovani.includes(t.id));
-      const terminiData = odabrani.map((t) => ({
-        id: t.id,
-        start: t.start,
-        end: t.end,
-        note: t.note || "",
-        usluga,
-      }));
+      const now = utcToZonedTime(new Date(), "Europe/Belgrade");
+      const odabrani = slobodniTermini
+        .filter((t) => selektovani.includes(t.id))
+        .map((t) => ({
+          id: t.id,
+          start: adjustedTimes[t.id]?.start || t.start,
+          end: adjustedTimes[t.id]?.end || t.end,
+          note: t.note || "",
+          usluga,
+        }))
+        .filter((t) => t.start >= now);
+
+      const allEvents = await getDocs(collection(db, "admin_kalendar"));
+      const overlaps = odabrani.some((t1) =>
+        allEvents.docs.some((doc) => {
+          const event = doc.data();
+          if (event.tip === "termin" || event.tip === "zauzet") {
+            const start = utcToZonedTime(event.start?.toDate?.() || new Date(event.start), "Europe/Belgrade");
+            const end = utcToZonedTime(event.end?.toDate?.() || new Date(event.end), "Europe/Belgrade");
+            return (
+              t1.id !== doc.id &&
+              t1.start < end &&
+              t1.end > start
+            );
+          }
+          return false;
+        })
+      );
+
+      if (overlaps) {
+        toast.error("Neki od predloženih termina se preklapaju sa postojećim terminima.");
+        return;
+      }
 
       await setDoc(doc(db, "predlozeniTermini", korisnickoIme), {
         korisnica: korisnickoIme,
-        termini: terminiData,
+        termini: odabrani,
         timestamp: new Date(),
       });
 
       const notificationBody = odabrani
-        .map((t) => `${new Date(t.start).toLocaleString("sr-RS")} (${usluga})`)
+        .map((t) => `${format(t.start, "dd.MM.yyyy HH:mm", { timeZone: "Europe/Belgrade" })} (${usluga})`)
         .join(", ");
 
-      await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          korisnickoIme,
-          title: "Novi predlozi termina 💅",
-          body: `Predloženi termini: ${notificationBody}`,
-          click_action: "https://masaneils.vercel.app/ponudjeni-termini",
-        }),
-      });
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              korisnickoIme,
+              title: "Novi predlozi termina 💅",
+              body: `Predloženi termini: ${notificationBody}`,
+              click_action: "https://masaneils.vercel.app/ponudjeni-termini",
+            }),
+          });
+          break;
+        } catch (err) {
+          if (attempt === 2) {
+            console.error("Neuspešno slanje notifikacije:", err);
+            toast.warn("Predlozi poslati, ali notifikacija nije poslata.");
+          }
+          await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)));
+        }
+      }
 
       toast.success("Predlozi uspešno poslati!");
       onClose();
@@ -89,25 +139,52 @@ const PonudiTermineModal = ({ korisnickoIme, slobodniTermini, onClose }) => {
         {slobodniTermini?.length > 0 ? (
           <ul>
             {slobodniTermini.map((termin) => (
-              <li key={termin.id} style={{ marginBottom: "10px" }}>
+              <li key={termin.id} style={{ marginBottom: "20px" }}>
                 <label>
                   <input
                     type="checkbox"
-                   _room                    checked={selektovani.includes(termin.id)}
+                    checked={selektovani.includes(termin.id)}
                     onChange={() => toggleTermin(termin.id)}
                   />
-                  {`${new Date(termin.start).toLocaleDateString("sr-RS", {
-                    weekday: "long",
-                    day: "numeric",
-                    month: "long",
-                  })}, ${new Date(termin.start).toLocaleTimeString("sr-RS", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })} – ${new Date(termin.end).toLocaleTimeString("sr-RS", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })} (${usluga})`}
+                  <span>
+                    {format(adjustedTimes[termin.id]?.start || termin.start, "dd.MM.yyyy HH:mm", {
+                      timeZone: "Europe/Belgrade",
+                    })}
+                    {" – "}
+                    {format(adjustedTimes[termin.id]?.end || termin.end, "HH:mm", {
+                      timeZone: "Europe/Belgrade",
+                    })}
+                    {" ("}
+                    {usluga}
+                    {")"}
+                  </span>
                 </label>
+                <div style={{ marginLeft: "22px", marginTop: "5px" }}>
+                  <button
+                    onClick={() => adjustTime(termin.id, "start", -30)}
+                    className="duration-button"
+                  >
+                    -30 min
+                  </button>
+                  <button
+                    onClick={() => adjustTime(termin.id, "start", 30)}
+                    className="duration-button"
+                  >
+                    +30 min
+                  </button>
+                  <button
+                    onClick={() => adjustTime(termin.id, "end", -30)}
+                    className="duration-button"
+                  >
+                    -30 min (kraj)
+                  </button>
+                  <button
+                    onClick={() => adjustTime(termin.id, "end", 30)}
+                    className="duration-button"
+                  >
+                    +30 min (kraj)
+                  </button>
+                </div>
                 {termin.note && (
                   <div style={{ fontSize: "12px", color: "#777", marginLeft: "22px" }}>
                     📝 {termin.note}

@@ -1,87 +1,99 @@
-// src/pages/PonudjeniTermini.js
-import React, { useEffect, useState } from "react";
-import { collection, doc, getDocs, deleteDoc, updateDoc, query, where } from "firebase/firestore";
+import React, { useState, useEffect } from "react";
 import { db } from "../firebase";
+import { doc, getDoc, runTransaction, query, collection, getDocs, where } from "firebase/firestore";
 import { toast } from "react-toastify";
+import { utcToZonedTime, format } from "date-fns-tz";
+import { requestPermission } from "../firebase"; // Added for FCM integration
 
-const PonudjeniTermini = () => {
+const PonudjeniTermini = ({ korisnickoIme }) => {
   const [ponudjeni, setPonudjeni] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const korisnickoIme = localStorage.getItem("korisnickoIme");
 
   useEffect(() => {
-    const fetchTermini = async () => {
-      if (!korisnickoIme) {
-        toast.error("Niste prijavljeni.");
-        setLoading(false);
-        return;
-      }
-
+    if (!korisnickoIme) {
+      toast.error("Korisničko ime nije definisano.");
+      return;
+    }
+    requestPermission().catch((err) => {
+      toast.error("Greška prilikom postavljanja notifikacija: " + err.message);
+    });
+    const fetchPonudjeniTermini = async () => {
       try {
-        const q = query(collection(db, "predlozeniTermini"), where("korisnica", "==", korisnickoIme));
-        const snapshot = await getDocs(q);
-        const lista = snapshot.docs
-          .map((doc) => doc.data().termini || [])
-          .flat()
-          .map((termin) => ({
-            id: termin.id,
-            start: new Date(termin.start),
-            end: new Date(termin.end),
-            note: termin.note,
-            usluga: termin.usluga || "N/A",
-          }));
-        setPonudjeni(lista);
-      } catch (err) {
-        console.error("Greška pri učitavanju termina:", err);
-        toast.error("Greška pri učitavanju ponuđenih termina.");
-      } finally {
-        setLoading(false);
+        const docSnap = await getDoc(doc(db, "predlozeniTermini", korisnickoIme));
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          const now = utcToZonedTime(new Date(), "Europe/Belgrade");
+          setPonudjeni(
+            data.termini.filter((t) => utcToZonedTime(t.start, "Europe/Belgrade") >= now)
+          );
+        }
+      } catch (error) {
+        console.error("Greška pri učitavanju predloženih termina:", error);
+        toast.error("Greška pri učitavanju predloženih termina.");
       }
     };
-
-    fetchTermini();
+    fetchPonudjeniTermini();
   }, [korisnickoIme]);
 
   const potvrdiTermin = async (termin) => {
     try {
-      const eventRef = doc(db, "admin_kalendar", termin.id);
-      await updateDoc(eventRef, {
-        start: termin.start,
-        end: termin.end,
-        note: termin.note || "",
-        tip: "termin",
-        title: `💅 ${korisnickoIme}`,
-        status: "potvrđen",
-        clientUsername: korisnickoIme,
-        backgroundColor: "#ffe4ec",
+      await runTransaction(db, async (transaction) => {
+        const eventRef = doc(db, "admin_kalendar", termin.id);
+        const eventSnapshot = await transaction.get(eventRef);
+        if (!eventSnapshot.exists()) {
+          throw new Error("Termin ne postoji.");
+        }
+
+        transaction.update(eventRef, {
+          start: utcToZonedTime(termin.start, "Europe/Belgrade"),
+          end: utcToZonedTime(termin.end, "Europe/Belgrade"),
+          note: termin.note || "",
+          tip: "termin",
+          title: `💅 ${korisnickoIme}`,
+          status: "potvrđen",
+          clientUsername: korisnickoIme,
+          backgroundColor: "#ffe4ec",
+        });
+
+        const izboriSnap = await getDocs(
+          query(collection(db, "izboriTermina"), where("korisnickoIme", "==", korisnickoIme))
+        );
+        izboriSnap.docs.forEach((docSnap) => {
+          transaction.delete(docSnap.ref);
+        });
+
+        const predloziSnap = await getDocs(
+          query(collection(db, "predlozeniTermini"), where("korisnica", "==", korisnickoIme))
+        );
+        predloziSnap.docs.forEach((docSnap) => {
+          transaction.delete(docSnap.ref);
+        });
       });
 
-      const izboriSnap = await getDocs(
-        query(collection(db, "izboriTermina"), where("korisnickoIme", "==", korisnickoIme))
-      );
-      const izboriDeletes = izboriSnap.docs.map((docSnap) => deleteDoc(docSnap.ref));
-
-      const predloziSnap = await getDocs(
-        query(collection(db, "predlozeniTermini"), where("korisnica", "==", korisnickoIme))
-      );
-      const predloziDeletes = predloziSnap.docs.map((docSnap) => deleteDoc(docSnap.ref));
-
-      await Promise.all([...izboriDeletes, ...predloziDeletes]);
-
-      await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          korisnickoIme: "masa",
-          title: "Potvrđen termin",
-          body: `Korisnica ${korisnickoIme} je potvrdila termin: ${termin.start.toLocaleDateString(
-            "sr-RS"
-          )} u ${termin.start.toLocaleTimeString("sr-RS", { hour: "2-digit", minute: "2-digit" })} (${
-            termin.usluga
-          })`,
-          click_action: "https://masaneils.vercel.app/admin",
-        }),
-      });
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              korisnickoIme: "masa",
+              title: "Potvrđen termin",
+              body: `Korisnica ${korisnickoIme} je potvrdila termin: ${format(
+                utcToZonedTime(termin.start, "Europe/Belgrade"),
+                "dd.MM.yyyy HH:mm",
+                { timeZone: "Europe/Belgrade" }
+              )} (${termin.usluga})`,
+              click_action: "https://masaneils.vercel.app/admin",
+            }),
+          });
+          break;
+        } catch (err) {
+          if (attempt === 2) {
+            console.error("Neuspešno slanje notifikacije:", err);
+            toast.warn("Termin potvrđen, ali notifikacija nije poslata.");
+          }
+          await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)));
+        }
+      }
 
       toast.success("Uspešno si potvrdila termin!");
       setPonudjeni([]);
@@ -91,44 +103,43 @@ const PonudjeniTermini = () => {
     }
   };
 
-  if (loading) return <p className="text-center mt-4">Učitavanje...</p>;
-
-  if (!korisnickoIme) return <p className="text-center mt-4">Molimo prijavite se.</p>;
-
-  if (!ponudjeni.length) {
-    return <p className="text-center mt-4">Nema ponuđenih termina.</p>;
-  }
-
   return (
-    <div className="p-6 max-w-xl mx-auto">
-      <h2 className="text-2xl font-bold mb-4 text-center">Izaberi jedan od ponuđenih termina</h2>
-      <ul className="space-y-4">
+    <div className="ponudjeni-termini">
+      <h2>Predloženi termini</h2>
+      <ul>
         {ponudjeni.map((termin) => (
           <li
             key={termin.id}
             className="bg-white rounded-xl shadow-md p-4 flex flex-col items-center"
           >
             <p className="font-semibold text-center">
-              {termin.start.toLocaleDateString("sr-RS", {
-                weekday: "long",
-                day: "numeric",
-                month: "long",
+              {format(utcToZonedTime(termin.start, "Europe/Belgrade"), "EEEE, dd. MMMM yyyy", {
+                locale: "sr-RS",
               })}
               <br />
-              {termin.start.toLocaleTimeString("sr-RS", {
-                hour: "2-digit",
-                minute: "2-digit",
-              })} – {termin.end.toLocaleTimeString("sr-RS", {
-                hour: "2-digit",
-                minute: "2-digit",
+              {format(utcToZonedTime(termin.start, "Europe/Belgrade"), "HH:mm", {
+                timeZone: "Europe/Belgrade",
+              })} – {format(utcToZonedTime(termin.end, "Europe/Belgrade"), "HH:mm", {
+                timeZone: "Europe/Belgrade",
               })}
             </p>
             <p className="text-sm text-gray-600 mt-1 text-center">Usluga: {termin.usluga}</p>
             {termin.note && (
               <p className="text-sm text-gray-600 mt-1 text-center">📝 {termin.note}</p>
             )}
+            <p className="text-xs text-gray-500 mt-2">
+              Napomena: Odabirom ovog termina, svi ostali vaši izbori će biti obrisani.
+            </p>
             <button
-              onClick={() => potvrdiTermin(termin)}
+              onClick={() => {
+                if (
+                  window.confirm(
+                    "Da li ste sigurni da želite potvrditi ovaj termin? Svi ostali izbori će biti obrisani."
+                  )
+                ) {
+                  potvrdiTermin(termin);
+                }
+              }}
               className="mt-3 px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600"
             >
               Izaberi ovaj

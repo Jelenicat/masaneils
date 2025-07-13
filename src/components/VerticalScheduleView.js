@@ -31,6 +31,7 @@ const VerticalScheduleView = ({
   izboriPoTerminu,
   potvrdiTerminZaKorisnicu,
 }) => {
+  console.log("VerticalScheduleView props:", { events, showModal, newEventData, isEditing }); // Debug log
   const groupedEvents = useMemo(() => {
     const groups = {};
     (events || []).forEach((event) => {
@@ -47,7 +48,7 @@ const VerticalScheduleView = ({
     const startDate = new Date(startOfSelectedWeek);
     startDate.setDate(startOfSelectedWeek.getDate() + dayIndex);
     startDate.setHours(sat, 0, 0, 0);
-    const endDate = new Date(startDate.getTime() + 60 * 60 * 1000); // 1-hour default duration
+    const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
     onSelectSlot({ start: startDate, end: endDate });
   };
 
@@ -94,6 +95,7 @@ const VerticalScheduleView = ({
                             setNewEventData(event);
                             setIsEditing(true);
                             setShowModal(true);
+                            console.log("Event clicked:", event); // Debug log
                           }}
                         >
                           <span className="sat">{`${startTime}–${endTime}`}</span>
@@ -213,24 +215,30 @@ const VerticalScheduleView = ({
               <label>
                 Početak <span className="text-red-500">*</span>
               </label>
-              <input
-                type="datetime-local"
-                value={newEventData.start ? new Date(newEventData.start).toISOString().slice(0, 16) : ""}
-                onChange={(e) =>
-                  setNewEventData({ ...newEventData, start: new Date(e.target.value) })
-                }
+              <DatePicker
+                selected={newEventData.start}
+                onChange={(date) => setNewEventData({ ...newEventData, start: date })}
+                showTimeSelect
+                timeIntervals={15}
+                dateFormat="Pp"
+                minTime={new Date(0, 0, 0, 8, 0)}
+                maxTime={new Date(0, 0, 0, 22, 0)}
+                inline
               />
             </div>
             <div className="form-group">
               <label>
                 Kraj <span className="text-red-500">*</span>
               </label>
-              <input
-                type="datetime-local"
-                value={newEventData.end ? new Date(newEventData.end).toISOString().slice(0, 16) : ""}
-                onChange={(e) =>
-                  setNewEventData({ ...newEventData, end: new Date(e.target.value) })
-                }
+              <DatePicker
+                selected={newEventData.end}
+                onChange={(date) => setNewEventData({ ...newEventData, end: date })}
+                showTimeSelect
+                timeIntervals={15}
+                dateFormat="Pp"
+                minTime={new Date(0, 0, 0, 8, 0)}
+                maxTime={new Date(0, 0, 0, 22, 0)}
+                inline
               />
             </div>
             <div className="duration-presets">

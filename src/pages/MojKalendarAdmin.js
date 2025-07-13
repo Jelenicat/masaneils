@@ -4,8 +4,7 @@ import { collection, getDocs, doc, updateDoc, addDoc, runTransaction, query, whe
 import { toast } from "react-toastify";
 import { utcToZonedTime, format } from "date-fns-tz";
 import VerticalScheduleView from "../components/VerticalScheduleView";
-
-import PonudiTermineModal from "./PonudiTermineModal";
+import PonudiTermineModal from "../components/PonudiTermineModal";
 import { requestPermission } from "../firebase"; // Added for FCM integration
 
 const EVENT_TYPES = {

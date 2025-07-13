@@ -1,3 +1,4 @@
+/* src/MojKalendarAdmin.css */
 .kalendar-admin-wrapper {
   padding: 20px;
   max-width: 1200px;
@@ -69,6 +70,29 @@
   background-color: #fff;
 }
 
+/* DatePicker Styling */
+.react-datepicker {
+  font-family: inherit;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.react-datepicker__input-container input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  background-color: #f8f8f8;
+}
+
+.react-datepicker__input-container input:focus {
+  border-color: #007bff;
+  outline: none;
+  background-color: #fff;
+}
+
 .duration-presets {
   display: flex;
   gap: 10px;
@@ -100,9 +124,11 @@
 
 .confirm-button,
 .delete-button,
-.cancel-button {
+.cancel-button,
+.suggest-button,
+.potvrdi-dugme {
   padding: 10px 20px;
-  border: none;
+  border: none; /* Fixed typo from 'efore: none' */
   border-radius: 6px;
   font-size: 0.9rem;
   font-weight: 500;
@@ -137,6 +163,24 @@
   background-color: #d0d0d0;
 }
 
+.suggest-button {
+  background-color: #007bff;
+  color: white;
+}
+
+.suggest-button:hover {
+  background-color: #0056b3;
+}
+
+.potvrdi-dugme {
+  background-color: #28a745;
+  color: white;
+}
+
+.potvrdi-dugme:hover {
+  background-color: #218838;
+}
+
 .bg-primary {
   background-color: #007bff !important;
 }
@@ -145,41 +189,30 @@
   background-color: #0056b3 !important;
 }
 
-/* Responsive adjustments */
-@media (max-width: 600px) {
-  .modal-content {
-    width: 90%;
-    padding: 16px;
-  }
-
-  .kalendar-admin-wrapper {
-    padding: 10px;
-  }
-
-  .modal-buttons {
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .confirm-button,
-  .delete-button,
-  .cancel-button {
-    width: 100%;
-    padding: 12px;
-  }
-}
-
-/* Calendar specific styles */
 .rbc-calendar {
   background: #fff;
   border-radius: 8px;
   padding: 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1); /* Consistent shadow */
 }
 
 .rbc-event {
   border-radius: 6px !important;
   padding: 6px !important;
   font-size: 0.85rem !important;
+}
+
+.rbc-event.termin {
+  background-color: #ffe4ec !important;
+  border-color: #ffadad !important;
+}
+
+.rbc-event.slobodan {
+  background-color: #28a745 !important;
+}
+
+.rbc-event.zauzet {
+  background-color: #dc3545 !important;
 }
 
 .rbc-day-bg {
@@ -199,8 +232,54 @@
   border-radius: 6px;
   font-size: 0.9rem;
   cursor: pointer;
+  border: 1px solid #ddd;
 }
 
 .rbc-toolbar button:hover {
   background-color: #e0e0e0;
+}
+
+.user-selections {
+  margin-top: 8px;
+  font-size: 0.8rem;
+  color: #555;
+}
+
+.user-selection-item {
+  padding: 4px 0;
+  cursor: pointer;
+}
+
+.user-selection-item:hover {
+  color: #007bff;
+}
+
+@media (max-width: 600px) {
+  .modal-content {
+    width: 90%;
+    padding: 16px;
+  }
+
+  .kalendar-admin-wrapper {
+    padding: 10px;
+  }
+
+  .modal-buttons {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .confirm-button,
+  .delete-button,
+  .cancel-button,
+  .suggest-button,
+  .potvrdi-dugme {
+    width: 100%;
+    padding: 12px;
+  }
+
+  .rbc-toolbar button {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+  }
 }

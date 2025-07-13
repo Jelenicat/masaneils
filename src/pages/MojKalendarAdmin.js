@@ -1,3 +1,4 @@
+// src/MojKalendarAdmin.js
 import React, { useState, useEffect, useCallback } from "react";
 import { Calendar, Views, momentLocalizer } from "react-big-calendar";
 import moment from "moment";
@@ -13,17 +14,15 @@ import {
   query,
   where,
   setDoc,
-    serverTimestamp,
+  getDoc,
+  serverTimestamp,
 } from "firebase/firestore";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import "./MojKalendarAdmin.css";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import VerticalScheduleView from "../components/VerticalScheduleView";
 import { startOfWeek, endOfWeek, isWithinInterval, addDays } from "date-fns";
-import { format } from "date-fns";
 
 const localizer = momentLocalizer(moment);
 
@@ -54,76 +53,102 @@ const MojKalendarAdmin = () => {
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [korisnice, setKorisnice] = useState([]);
   const [izboriPoTerminu, setIzboriPoTerminu] = useState({});
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedWeekStart, setSelectedWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
-  const [selectedEvent, setSelectedEvent] = useState(null);
 
   const fetchEvents = useCallback(async () => {
     try {
       const snapshot = await getDocs(collection(db, "admin_kalendar"));
-      const loadedEvents = [];
+      const izboriSnapshot = await getDocs(collection(db, "izboriTermina"));
+      const izbori = izboriSnapshot.docs.map((doc) => doc.data());
+      const uslugeSnapshot = await getDocs(collection(db, "izbor_usluge"));
+      const usluge = uslugeSnapshot.docs.reduce((acc, doc) => {
+        const data = doc.data();
+        acc[data.korisnickoIme] = data.usluga;
+        return acc;
+      }, {});
 
-      snapshot.forEach((doc) => {
+      const loadedEvents = snapshot.docs.map((doc) => {
         const data = doc.data();
         const start = data.start?.toDate?.() || new Date(data.start);
         const end = data.end?.toDate?.() || new Date(data.end);
+        const izabrale = izbori
+          .filter((izbor) => izbor.eventId === doc.id)
+          .map((izbor) => `${izbor.korisnickoIme} (${usluge[izbor.korisnickoIme] || "N/A"})`);
 
-        let title = "Untitled Event";
-
-        if (typeof data.title === "string") {
-          title = data.title;
-        } else if (data.tip === "slobodan") {
-          const izabrale = izboriPoTerminu[doc.id] || [];
+        let title = data.title || "Untitled Event";
+        if (data.tip === "slobodan") {
           title = izabrale.length > 0 ? `slobodan (${izabrale.join(", ")})` : "slobodan";
         } else if (data.tip === "zauzet") {
           title = "zauzet";
         } else if (data.tip === "termin") {
-          title = `💅 ${data.clientUsername || "Nepoznat korisnik"}`;
+          const vreme = start.toLocaleTimeString("sr-RS", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          });
+          title = `💅 ${data.clientUsername || "Nepoznat korisnik"} (${vreme})`;
         }
 
-        loadedEvents.push({
+        return {
           id: doc.id,
           ...data,
           start,
           end,
           title,
-        });
+          backgroundColor: EVENT_TYPES[data.tip]?.color || "#ddd",
+        };
       });
 
       setEvents(loadedEvents);
     } catch (error) {
-      console.error("Greška pri učitavanju kalendara:", error.message);
-      toast.error("Greška pri učitavanju kalendara: " + error.message);
+      console.error("Greška pri učitavanju kalendara:", error);
+      toast.error("Greška pri učitavanju kalendara.");
     } finally {
       setIsInitialLoading(false);
     }
   }, []);
 
-  const fetchIzboriTermina = async () => {
-    const snapshot = await getDocs(collection(db, "izboriTermina"));
-    const sviIzbori = snapshot.docs.map((doc) => doc.data());
+  const fetchIzboriTermina = useCallback(async () => {
+    try {
+      const snapshot = await getDocs(collection(db, "izboriTermina"));
+      const uslugeSnapshot = await getDocs(collection(db, "izbor_usluge"));
+      const usluge = uslugeSnapshot.docs.reduce((acc, doc) => {
+        const data = doc.data();
+        acc[data.korisnickoIme] = data.usluga;
+        return acc;
+      }, {});
 
-    const poTerminu = {};
-    sviIzbori.forEach((izbor) => {
-      if (izbor.eventId) {
-        if (!poTerminu[izbor.eventId]) {
-          poTerminu[izbor.eventId] = [];
+      const poTerminu = {};
+      snapshot.docs.forEach((doc) => {
+        const izbor = doc.data();
+        if (izbor.eventId) {
+          if (!poTerminu[izbor.eventId]) {
+            poTerminu[izbor.eventId] = [];
+          }
+          poTerminu[izbor.eventId].push({
+            korisnickoIme: izbor.korisnickoIme,
+            usluga: usluge[izbor.korisnickoIme] || "N/A",
+          });
         }
-        poTerminu[izbor.eventId].push(izbor.korisnickoIme);
-      }
-    });
-
-    setIzboriPoTerminu(poTerminu);
-  };
+      });
+      setIzboriPoTerminu(poTerminu);
+    } catch (error) {
+      console.error("Greška pri učitavanju izbora termina:", error);
+      toast.error("Greška pri učitavanju izbora termina.");
+    }
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "admin_kalendar"), async () => {
-      await fetchIzboriTermina();
-      await fetchEvents();
+      try {
+        await fetchIzboriTermina();
+        await fetchEvents();
+      } catch (error) {
+        console.error("Greška pri sinhronizaciji podataka:", error);
+        toast.error("Greška pri ažuriranju kalendara u realnom vremenu.");
+      }
     });
-
     return () => unsubscribe();
-  }, [fetchEvents]);
+  }, [fetchEvents, fetchIzboriTermina]);
 
   useEffect(() => {
     const fetchKorisnice = async () => {
@@ -135,14 +160,19 @@ const MojKalendarAdmin = () => {
           .map((user) => user.username);
         setKorisnice(list);
       } catch (error) {
-        toast.error("Greška pri učitavanju korisnica: " + error.message);
+        console.error("Greška pri učitavanju korisnica:", error);
+        toast.error("Greška pri učitavanju korisnica.");
       }
     };
     fetchKorisnice();
-    fetchIzboriTermina();
   }, []);
 
   const handleSelectSlot = ({ start, end }) => {
+    const now = new Date();
+    if (start < now) {
+      toast.error("Početak termina ne može biti u prošlosti.");
+      return;
+    }
     setNewEventData({ ...INITIAL_EVENT_DATA, start, end });
     setIsEditing(false);
     setShowModal(true);
@@ -160,6 +190,11 @@ const MojKalendarAdmin = () => {
       toast.error("Molimo popunite sva obavezna polja.");
       return;
     }
+    const now = new Date();
+    if (newEventData.start < now) {
+      toast.error("Početak termina ne može biti u prošlosti.");
+      return;
+    }
 
     setIsLoading(true);
     try {
@@ -173,6 +208,7 @@ const MojKalendarAdmin = () => {
             : newEventData.tip === "termin"
             ? `💅 ${newEventData.clientUsername || "Nepoznat korisnik"}`
             : newEventData.note || "Untitled Event",
+        backgroundColor: EVENT_TYPES[newEventData.tip]?.color || "#ddd",
       };
 
       if (isEditing) {
@@ -180,21 +216,14 @@ const MojKalendarAdmin = () => {
         toast.success("Termin uspešno izmenjen!");
       } else {
         const docRef = await addDoc(collection(db, "admin_kalendar"), eventData);
-        eventData.id = docRef.id; // Set the ID after adding
-        await setDoc(doc(db, "izboriTermina", `${korisnickoIme}_${eventData.start.toISOString().split("T")[0]}_${eventData.start.toTimeString().slice(0, 5)}`), {
-          korisnickoIme: "admin", // Placeholder, adjust as needed
-          datum: eventData.start.toISOString().split("T")[0],
-          vreme: eventData.start.toTimeString().slice(0, 5),
-          status: "izabrala",
-          timestamp: new Date(),
-          eventId: docRef.id,
-        });
         toast.success("Termin uspešno dodat!");
       }
       setShowModal(false);
       setNewEventData(INITIAL_EVENT_DATA);
+      await fetchEvents();
     } catch (error) {
-      toast.error("Greška pri čuvanju termina: " + error.message);
+      console.error("Greška pri čuvanju termina:", error);
+      toast.error("Greška pri čuvanju termina.");
     } finally {
       setIsLoading(false);
     }
@@ -206,56 +235,77 @@ const MojKalendarAdmin = () => {
       toast.success("Termin uspešno obrisan!");
       setShowModal(false);
       setNewEventData(INITIAL_EVENT_DATA);
+      await fetchEvents();
     } catch (error) {
-      toast.error("Greška pri brisanju termina: " + error.message);
+      console.error("Greška pri brisanju termina:", error);
+      toast.error("Greška pri brisanju termina.");
     }
   };
-const handleSendSuggestion = async () => {
-  try {
-    const { start, end, clientUsername, id } = newEventData;
 
-    if (!start || !end || !clientUsername || !id) {
-      toast.error("Morate izabrati termin i korisnicu.");
-      return;
+  const handleSendSuggestion = async () => {
+    try {
+      const { start, end, clientUsername, id, note } = newEventData;
+      if (!start || !end || !clientUsername || !id) {
+        toast.error("Morate izabrati termin i korisnicu.");
+        return;
+      }
+
+      const uslugeSnapshot = await getDocs(
+        query(collection(db, "izbor_usluge"), where("korisnickoIme", "==", clientUsername))
+      );
+      const usluga = uslugeSnapshot.docs[0]?.data()?.usluga || "N/A";
+
+      await setDoc(doc(db, "predlozeniTermini", `${clientUsername}_${id}`), {
+        eventId: id,
+        korisnica: clientUsername,
+        start,
+        end,
+        note: note || "",
+        usluga,
+        status: "pending",
+        timestamp: serverTimestamp(),
+      });
+
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              korisnickoIme: clientUsername,
+              title: "Novi predlog termina 💅",
+              body: `Predlog za ${moment(start).format("DD.MM.YYYY HH:mm")} (${usluga})`,
+              click_action: "https://masaneils.vercel.app/ponudjeni-termini",
+            }),
+          });
+          break;
+        } catch (err) {
+          if (attempt === 2) throw err;
+          await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)));
+        }
+      }
+
+      toast.success("Predlog poslat korisnici!");
+      setShowModal(false);
+      setNewEventData(INITIAL_EVENT_DATA);
+    } catch (err) {
+      console.error("Greška pri slanju predloga:", err);
+      toast.error("Greška prilikom slanja predloga. Pokušajte ponovo.");
     }
-
-    // 1. Dodavanje u kolekciju predloženih termina
-    await addDoc(collection(db, "predloziTermina"), {
-      eventId: id,
-      clientUsername,
-      start,
-      end,
-      status: "pending",
-      timestamp: serverTimestamp(),
-    });
-
-    // 2. Slanje notifikacije korisnici
-   await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    korisnickoIme: clientUsername,
-    title: "Novi predlog termina 💅",
-    body: `Predlog za ${format(start, "dd.MM.yyyy HH:mm")} – klikni da izabereš.`,
-    click_action: "/ponudjeni-termini",
-  }),
-});
-
-    toast.success("Predlog poslat korisnici 🎉");
-    setShowModal(false);
-  } catch (err) {
-    console.error("Greška:", err);
-    toast.error("Greška prilikom slanja predloga");
-  }
-};
-
+  };
 
   const potvrdiTerminZaKorisnicu = async (eventId, korisnickoIme) => {
     try {
       const eventRef = doc(db, "admin_kalendar", eventId);
+      const eventSnapshot = await getDoc(eventRef);
+      const eventData = eventSnapshot.data();
+      const start = eventData.start?.toDate?.() || new Date(eventData.start);
+
       await updateDoc(eventRef, {
         tip: "termin",
         clientUsername: korisnickoIme,
+        title: `💅 ${korisnickoIme}`,
+        backgroundColor: "#ffe4ec",
       });
 
       const izboriSnapshot = await getDocs(
@@ -270,17 +320,36 @@ const handleSendSuggestion = async () => {
 
       await Promise.all([...brisanjaNjenih, ...brisanjaDrugih]);
 
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              korisnickoIme,
+              title: "Termin potvrđen",
+              body: `Vaš termin je potvrđen za ${moment(start).format("DD.MM.YYYY HH:mm")}.`,
+              click_action: "https://masaneils.vercel.app/ponudjeni-termini",
+            }),
+          });
+          break;
+        } catch (err) {
+          if (attempt === 2) throw err;
+          await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)));
+        }
+      }
+
       toast.success(`Termin potvrđen za ${korisnickoIme}.`);
       await fetchEvents();
       await fetchIzboriTermina();
     } catch (err) {
       console.error("Greška pri potvrdi termina:", err);
-      toast.error("Greška pri potvrdi termina.");
+      toast.error("Greška pri potvrdi termina. Pokušajte ponovo.");
     }
   };
 
   const eventStyleGetter = (event) => {
-    const color = EVENT_TYPES[event.tip]?.color || "#ddd";
+    const color = event.backgroundColor || EVENT_TYPES[event.tip]?.color || "#ddd";
     return {
       style: {
         backgroundColor: color,
@@ -294,15 +363,146 @@ const handleSendSuggestion = async () => {
     };
   };
 
-  const getStartOfWeek = (date) => {
-    const day = date.getDay();
-    const diff = date.getDate() - day + (day === 0 ? -6 : 1);
-    return new Date(date.setDate(diff));
-  };
-
-  useEffect(() => {
-    setCurrentDate(getStartOfWeek(new Date()));
-  }, []);
+  // Re-added modal for event creation/editing
+  const renderModal = () => (
+    <div className="modal-overlay" style={{ display: showModal ? "flex" : "none" }}>
+      <div className="modal-content">
+        <h3 className="text-xl font-bold mb-6 text-gray-800">
+          {isEditing ? "Izmeni termin" : "Dodaj novi termin"}
+        </h3>
+        <div className="form-group">
+          <label>
+            Tip termina <span className="text-red-500">*</span>
+          </label>
+          <select
+            value={newEventData.tip}
+            onChange={(e) => setNewEventData({ ...newEventData, tip: e.target.value })}
+          >
+            <option value="">-- Izaberi tip --</option>
+            <option value="slobodan">Slobodan</option>
+            <option value="zauzet">Zauzet</option>
+            <option value="termin">Termin</option>
+            <option value="obaveza">Obaveza</option>
+          </select>
+        </div>
+        {newEventData.tip === "termin" && (
+          <div className="form-group">
+            <label>
+              Korisnica <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={newEventData.clientUsername || ""}
+              onChange={(e) =>
+                setNewEventData({ ...newEventData, clientUsername: e.target.value })
+              }
+            >
+              <option value="">-- Izaberi korisnicu --</option>
+              {korisnice.map((k) => (
+                <option key={k} value={k}>
+                  {k}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+        <div className="form-group">
+          <label>Napomena</label>
+          <input
+            type="text"
+            value={newEventData.note}
+            onChange={(e) => setNewEventData({ ...newEventData, note: e.target.value })}
+          />
+        </div>
+        <div className="form-group">
+          <label>
+            Početak <span className="text-red-500">*</span>
+          </label>
+          <DatePicker
+            selected={newEventData.start}
+            onChange={(date) => setNewEventData({ ...newEventData, start: date })}
+            showTimeSelect
+            timeIntervals={15}
+            dateFormat="Pp"
+            minTime={new Date(0, 0, 0, 8, 0)}
+            maxTime={new Date(0, 0, 0, 22, 0)}
+          />
+        </div>
+        <div className="form-group">
+          <label>
+            Kraj <span className="text-red-500">*</span>
+          </label>
+          <DatePicker
+            selected={newEventData.end}
+            onChange={(date) => setNewEventData({ ...newEventData, end: date })}
+            showTimeSelect
+            timeIntervals={15}
+            dateFormat="Pp"
+            minTime={new Date(0, 0, 0, 8, 0)}
+            maxTime={new Date(0, 0, 0, 22, 0)}
+          />
+        </div>
+        <div className="duration-presets">
+          <button
+            onClick={() => {
+              if (newEventData.start) {
+                setNewEventData({
+                  ...newEventData,
+                  end: new Date(newEventData.start.getTime() + 30 * 60 * 1000),
+                });
+              }
+            }}
+            className="duration-button"
+          >
+            30 min
+          </button>
+          <button
+            onClick={() => {
+              if (newEventData.start) {
+                setNewEventData({
+                  ...newEventData,
+                  end: new Date(newEventData.start.getTime() + 60 * 60 * 1000),
+                });
+              }
+            }}
+            className="duration-button"
+          >
+            1 sat
+          </button>
+        </div>
+        <div className="modal-buttons flex gap-3 mt-6 justify-center">
+          <button
+            onClick={handleSaveEvent}
+            className="confirm-button bg-primary text-white px-6 py-3 rounded-lg font-semibold hover:bg-primary-hover transition disabled:opacity-50"
+            disabled={isLoading}
+          >
+            {isLoading ? "Čuva se..." : "Sačuvaj"}
+          </button>
+          {isEditing && (
+            <>
+              <button
+                onClick={handleSendSuggestion}
+                className="bg-blue-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-600 transition"
+              >
+                Pošalji predlog korisnicama
+              </button>
+              <button
+                onClick={handleDeleteEvent}
+                className="delete-button bg-red-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-red-600 transition"
+              >
+                Obriši
+              </button>
+            </>
+          )}
+          <button
+            onClick={() => setShowModal(false)}
+            className="cancel-button bg-gray-200 text-gray-800 px-6 py-3 rounded-lg font-semibold hover:bg-gray-300 transition"
+          >
+            Otkaži
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="kalendar-admin-wrapper">
@@ -321,11 +521,11 @@ const handleSendSuggestion = async () => {
         <VerticalScheduleView
           events={events.filter((event) =>
             isWithinInterval(new Date(event.start), {
-              start: selectedWeekStart,
-              end: endOfWeek(selectedWeekStart, { weekStartsOn: 1 }),
+              start: startOfWeek(new Date(), { weekStartsOn: 1 }),
+              end: endOfWeek(new Date(), { weekStartsOn: 1 }),
             })
           )}
-          selectedWeekStart={selectedWeekStart}
+          selectedWeekStart={startOfWeek(new Date(), { weekStartsOn: 1 })}
           onSelectSlot={handleSelectSlot}
           onSelectEvent={handleSelectEvent}
           showModal={showModal}
@@ -351,10 +551,9 @@ const handleSendSuggestion = async () => {
           titleAccessor="title"
           defaultView={Views.DAY}
           views={[Views.WEEK, Views.DAY]}
-          date={currentDate}
+          date={new Date()}
           onNavigate={(newDate) => {
             setCurrentDate(newDate);
-            setSelectedWeekStart(startOfWeek(newDate, { weekStartsOn: 1 }));
           }}
           style={{ height: "calc(100vh - 100px)", margin: "10px" }}
           onSelectEvent={handleSelectEvent}
@@ -380,156 +579,10 @@ const handleSendSuggestion = async () => {
       </div>
 
       <h3 style={{ marginTop: "30px", fontSize: "18px", color: "#c89b8c" }}>
-        Prikaz nedelje: {selectedWeekStart.toLocaleDateString()} –{" "}
-        {endOfWeek(selectedWeekStart, { weekStartsOn: 1 }).toLocaleDateString()}
+        Prikaz nedelje: {startOfWeek(new Date(), { weekStartsOn: 1 }).toLocaleDateString()} –{" "}
+        {endOfWeek(new Date(), { weekStartsOn: 1 }).toLocaleDateString()}
       </h3>
-
-      {showModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h3 className="text-xl font-bold mb-6 text-gray-800">
-              {isEditing ? "Izmeni termin" : "Dodaj novi termin"}
-            </h3>
-
-            <div className="form-group">
-              <label>
-                Tip termina <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={newEventData.tip}
-                onChange={(e) => setNewEventData({ ...newEventData, tip: e.target.value })}
-              >
-                <option value="">-- Izaberi tip --</option>
-                <option value="slobodan">Slobodan</option>
-                <option value="zauzet">Zauzet</option>
-                <option value="termin">Termin</option>
-                <option value="obaveza">Obaveza</option>
-              </select>
-            </div>
-
-            {newEventData.tip === "termin" && (
-              <div className="form-group">
-                <label>
-                  Korisnica <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={newEventData.clientUsername || ""}
-                  onChange={(e) =>
-                    setNewEventData({ ...newEventData, clientUsername: e.target.value })
-                  }
-                >
-                  <option value="">-- Izaberi korisnicu --</option>
-                  {korisnice.map((k) => (
-                    <option key={k} value={k}>
-                      {k}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            <div className="form-group">
-              <label>Napomena</label>
-              <input
-                type="text"
-                value={newEventData.note}
-                onChange={(e) => setNewEventData({ ...newEventData, note: e.target.value })}
-              />
-            </div>
-
-            <div className="form-group">
-              <label>
-                Početak <span className="text-red-500">*</span>
-              </label>
-              <DatePicker
-                selected={newEventData.start}
-                onChange={(date) => setNewEventData({ ...newEventData, start: date })}
-                showTimeSelect
-                timeIntervals={15}
-                dateFormat="Pp"
-                minTime={new Date(0, 0, 0, 8, 0)}
-                maxTime={new Date(0, 0, 0, 22, 0)}
-              />
-            </div>
-
-            <div className="form-group">
-              <label>
-                Kraj <span className="text-red-500">*</span>
-              </label>
-              <DatePicker
-                selected={newEventData.end}
-                onChange={(date) => setNewEventData({ ...newEventData, end: date })}
-                showTimeSelect
-                timeIntervals={15}
-                dateFormat="Pp"
-                minTime={new Date(0, 0, 0, 8, 0)}
-                maxTime={new Date(0, 0, 0, 22, 0)}
-              />
-            </div>
-
-            <div className="duration-presets">
-              <button
-                onClick={() => {
-                  if (newEventData.start) {
-                    setNewEventData({
-                      ...newEventData,
-                      end: new Date(newEventData.start.getTime() + 30 * 60 * 1000),
-                    });
-                  }
-                }}
-                className="duration-button"
-              >
-                30 min
-              </button>
-              <button
-                onClick={() => {
-                  if (newEventData.start) {
-                    setNewEventData({
-                      ...newEventData,
-                      end: new Date(newEventData.start.getTime() + 60 * 60 * 1000),
-                    });
-                  }
-                }}
-                className="duration-button"
-              >
-                1 sat
-              </button>
-            </div>
-
-            <div className="modal-buttons flex gap-3 mt-6 justify-center">
-              <button
-                onClick={handleSaveEvent}
-                className="confirm-button bg-primary text-white px-6 py-3 rounded-lg font-semibold hover:bg-primary-hover transition disabled:opacity-50"
-                disabled={isLoading}
-              >
-                {isLoading ? "Čuva se..." : "Sačuvaj"}
-              </button>
-              {isEditing && (
-                <>
-                  <button
-                    onClick={handleSendSuggestion}
-                    className="bg-blue-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-600 transition"
-                  >
-                    Pošalji predlog korisnicama
-                  </button>
-                  <button
-                    onClick={handleDeleteEvent}
-                    className="delete-button bg-red-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-red-600 transition"
-                  >
-                    Obriši
-                  </button>
-                </>
-              )}
-              <button
-                onClick={() => setShowModal(false)}
-                className="cancel-button bg-gray-200 text-gray-800 px-6 py-3 rounded-lg font-semibold hover:bg-gray-300 transition"
-              >
-                Otkaži
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {renderModal()}
     </div>
   );
 };

@@ -1,3 +1,4 @@
+// src/OdabirUsluge.js
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { db } from "../firebase";
@@ -9,37 +10,41 @@ const OdabirUsluge = () => {
   const [usluga, setUsluga] = useState("");
   const [materijal, setMaterijal] = useState("");
   const navigate = useNavigate();
+  const korisnickoIme = localStorage.getItem("korisnickoIme");
 
-  // ✅ Automatski traži dozvolu za notifikacije kad se korisnik uloguje
   useEffect(() => {
-    const korisnickoIme = localStorage.getItem("korisnickoIme");
     if (korisnickoIme && korisnickoIme !== "masa") {
-      requestPermission(); // Token se tada i snima
+      requestPermission();
+    } else if (!korisnickoIme) {
+      alert("Molimo prijavite se.");
+      navigate("/login");
     }
-  }, []);
+  }, [korisnickoIme, navigate]);
 
   const handleSubmit = async () => {
-    if (!usluga) return alert("Izaberi uslugu.");
-    if (usluga === "Izlivanje" && !materijal)
-      return alert("Izaberi da li imaš materijal.");
-
-    localStorage.setItem("usluga", usluga);
-    localStorage.setItem("materijal", materijal || "");
-
-    const korisnickoIme = localStorage.getItem("korisnickoIme");
+    if (!usluga) {
+      alert("Izaberi uslugu.");
+      return;
+    }
+    if (usluga === "Izlivanje" && !materijal) {
+      alert("Izaberi da li imaš materijal.");
+      return;
+    }
 
     try {
       const docRef = doc(db, "izbor_usluge", korisnickoIme);
       await setDoc(docRef, {
         korisnickoIme,
         usluga,
-        materijal: usluga === "Izlivanje" ? materijal : "nije bitno",
-        timestamp: new Date().toISOString(),
+        materijal: usluga === "Izlivanje" ? materijal : "nije_bitno",
+        timestamp: new Date(),
       });
+      localStorage.setItem("usluga", usluga);
+      localStorage.setItem("materijal", materijal || "nije_bitno");
       navigate("/kalendar");
     } catch (err) {
       console.error("Greška pri čuvanju u Firestore:", err);
-      alert("Došlo je do greške pri čuvanju izbora.");
+      alert(`Greška pri čuvanju: ${err.message}`);
     }
   };
 
@@ -47,7 +52,6 @@ const OdabirUsluge = () => {
     <div className="unesi-page">
       <div className="unesi-form">
         <h2>Odabir usluge</h2>
-
         <div className="radio-group">
           <p>Koju uslugu radiš?</p>
           <div className="button-group">
@@ -55,7 +59,7 @@ const OdabirUsluge = () => {
               className={usluga === "Korekcija" ? "active" : ""}
               onClick={() => {
                 setUsluga("Korekcija");
-                setMaterijal("");
+                setMaterijal("nije_bitno");
               }}
             >
               Korekcija
@@ -68,7 +72,6 @@ const OdabirUsluge = () => {
             </button>
           </div>
         </div>
-
         {usluga === "Izlivanje" && (
           <div className="radio-group">
             <p>Da li već imaš materijal?</p>
@@ -88,7 +91,6 @@ const OdabirUsluge = () => {
             </div>
           </div>
         )}
-
         <button className="submit-button" onClick={handleSubmit}>
           Dalje
         </button>

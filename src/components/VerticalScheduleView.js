@@ -1,5 +1,5 @@
+// src/components/VerticalScheduleView.js
 import React, { useMemo } from "react";
-import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import "./VerticalScheduleView.css";
 import { format, isSameDay, startOfWeek, addDays, differenceInMinutes } from "date-fns";
@@ -17,23 +17,12 @@ const VerticalScheduleView = ({
   selectedWeekStart,
   onSelectSlot,
   onSelectEvent,
-  showModal,
-  setShowModal,
-  newEventData,
-  setNewEventData,
-  isEditing,
-  setIsEditing,
-  korisnice,
-  handleSaveEvent,
-  handleDeleteEvent,
-  handleSendSuggestion,
-  isLoading,
   izboriPoTerminu,
   potvrdiTerminZaKorisnicu,
 }) => {
   const groupedEvents = useMemo(() => {
     const groups = {};
-    events.forEach((event) => {
+    (events || []).forEach((event) => {
       const day = getDayName(event.start);
       if (!groups[day]) groups[day] = [];
       groups[day].push(event);
@@ -59,7 +48,9 @@ const VerticalScheduleView = ({
         const eventSlots = {};
 
         dayEvents.forEach((event) => {
-          const startHour = new Date(event.start).getHours();
+          const podsati = new Date(event.start);
+          podsati.setMinutes(0);
+          const startHour = podsati.getHours();
           const endHour = new Date(event.end).getHours();
           const endMinutes = new Date(event.end).getMinutes();
           for (let hour = startHour; hour <= endHour; hour++) {
@@ -79,7 +70,7 @@ const VerticalScheduleView = ({
                   const startTime = format(new Date(event.start), "HH:mm");
                   const endTime = format(new Date(event.end), "HH:mm");
                   const durationMinutes = differenceInMinutes(new Date(event.end), new Date(event.start));
-                  const rowSpan = Math.ceil(durationMinutes / 60);
+                  const rowSpan = Math.max(1, Math.ceil(durationMinutes / 60));
 
                   return (
                     <React.Fragment key={sat}>
@@ -94,27 +85,20 @@ const VerticalScheduleView = ({
                             <span
                               className="event-info"
                               style={{
-                                backgroundColor:
-                                  event.tip === "slobodan"
-                                    ? "#e0f7e0"
-                                    : event.tip === "zauzet"
-                                    ? "#f7e0e0"
-                                    : event.tip === "termin"
-                                    ? "#ffe4ec"
-                                    : "#f0f0f0",
+                                backgroundColor: event.backgroundColor || "#f0f0f0",
                               }}
                             >
                               {event.title}
                             </span>
-                            {event.tip === "slobodan" && izboriPoTerminu?.[event.id] && (
+                            {event.tip === "slobodan" && izboriPoTerminu?.[event.id]?.length > 0 && (
                               <div className="potvrdi-dugmad">
                                 {izboriPoTerminu[event.id].map((korisnica) => (
-                                  <div key={korisnica} className="korisnica-red">
-                                    ✅ {korisnica}
+                                  <div key={korisnica.korisnickoIme} className="korisnica-red">
+                                    ✅ {korisnica.korisnickoIme} ({korisnica.usluga})
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        potvrdiTerminZaKorisnicu(event.id, korisnica);
+                                        potvrdiTerminZaKorisnicu(event.id, korisnica.korisnickoIme);
                                       }}
                                       className="potvrdi-dugme"
                                     >
@@ -160,153 +144,6 @@ const VerticalScheduleView = ({
           </div>
         );
       })}
-
-      {showModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h3 className="text-xl font-bold mb-6 text-gray-800">
-              {isEditing ? "Izmeni termin" : "Dodaj novi termin"}
-            </h3>
-
-            <div className="form-group">
-              <label>
-                Tip termina <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={newEventData.tip}
-                onChange={(e) => setNewEventData({ ...newEventData, tip: e.target.value })}
-              >
-                <option value="">-- Izaberi tip --</option>
-                <option value="slobodan">Slobodan</option>
-                <option value="zauzet">Zauzet</option>
-                <option value="termin">Termin</option>
-                <option value="obaveza">Obaveza</option>
-              </select>
-            </div>
-
-            {newEventData.tip === "termin" && (
-              <div className="form-group">
-                <label>
-                  Korisnica <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={newEventData.clientUsername || ""}
-                  onChange={(e) =>
-                    setNewEventData({ ...newEventData, clientUsername: e.target.value })
-                  }
-                >
-                  <option value="">-- Izaberi korisnicu --</option>
-                  {korisnice.map((k) => (
-                    <option key={k} value={k}>
-                      {k}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            <div className="form-group">
-              <label>Napomena</label>
-              <input
-                type="text"
-                value={newEventData.note}
-                onChange={(e) => setNewEventData({ ...newEventData, note: e.target.value })}
-              />
-            </div>
-
-            <div className="form-group">
-              <label>
-                Početak <span className="text-red-500">*</span>
-              </label>
-              <DatePicker
-                selected={newEventData.start}
-                onChange={(date) => setNewEventData({ ...newEventData, start: date })}
-                showTimeSelect
-                timeIntervals={15}
-                dateFormat="Pp"
-                minTime={new Date(0, 0, 0, 8, 0)}
-                maxTime={new Date(0, 0, 0, 22, 0)}
-              />
-            </div>
-
-            <div className="form-group">
-              <label>
-                Kraj <span className="text-red-500">*</span>
-              </label>
-              <DatePicker
-                selected={newEventData.end}
-                onChange={(date) => setNewEventData({ ...newEventData, end: date })}
-                showTimeSelect
-                timeIntervals={15}
-                dateFormat="Pp"
-                minTime={new Date(0, 0, 0, 8, 0)}
-                maxTime={new Date(0, 0, 0, 22, 0)}
-              />
-            </div>
-
-            <div className="duration-presets">
-              <button
-                onClick={() => {
-                  if (newEventData.start) {
-                    setNewEventData({
-                      ...newEventData,
-                      end: new Date(newEventData.start.getTime() + 30 * 60 * 1000),
-                    });
-                  }
-                }}
-                className="duration-button"
-              >
-                30 min
-              </button>
-              <button
-                onClick={() => {
-                  if (newEventData.start) {
-                    setNewEventData({
-                      ...newEventData,
-                      end: new Date(newEventData.start.getTime() + 60 * 60 * 1000),
-                    });
-                  }
-                }}
-                className="duration-button"
-              >
-                1 sat
-              </button>
-            </div>
-
-            <div className="modal-buttons flex gap-3 mt-6 justify-center">
-              <button
-                onClick={handleSaveEvent}
-                className="confirm-button bg-primary text-white px-6 py-3 rounded-lg font-semibold hover:bg-primary-hover transition disabled:opacity-50"
-                disabled={isLoading}
-              >
-                {isLoading ? "Čuva se..." : "Sačuvaj"}
-              </button>
-              {isEditing && (
-                <>
-                  <button
-                    onClick={handleSendSuggestion}
-                    className="bg-blue-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-600 transition"
-                  >
-                    Pošalji predlog korisnicama
-                  </button>
-                  <button
-                    onClick={handleDeleteEvent}
-                    className="delete-button bg-red-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-red-600 transition"
-                  >
-                    Obriši
-                  </button>
-                </>
-              )}
-              <button
-                onClick={() => setShowModal(false)}
-                className="cancel-button bg-gray-200 text-gray-800 px-6 py-3 rounded-lg font-semibold hover:bg-gray-300 transition"
-              >
-                Otkaži
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

@@ -1,11 +1,6 @@
+// src/Kalendar.js
 import React, { useEffect, useState } from "react";
-import {
-  collection,
-  getDocs,
-  doc,
-  getDoc,
-  setDoc,
-} from "firebase/firestore";
+import { collection, getDocs, doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import "./Kalendar.css";
 
@@ -15,6 +10,7 @@ const Kalendar = () => {
   const [termini, setTermini] = useState({});
   const [smena, setSmena] = useState("");
   const [izabrani, setIzabrani] = useState([]);
+  const [usluga, setUsluga] = useState("");
   const [ucitava, setUcitava] = useState(true);
   const korisnickoIme = localStorage.getItem("korisnickoIme");
 
@@ -37,21 +33,20 @@ const Kalendar = () => {
 
   const daLiJeDozvoljenTermin = (datum, vreme) => {
     const date = new Date(`${datum}T${vreme}`);
+    const sati = parseInt(vreme.split(":")[0]);
+
     if (smena === "jutro") {
       return (
         date >= ponedeljak &&
         date <= new Date(ponedeljak.getTime() + 5 * 24 * 60 * 60 * 1000) &&
-        parseInt(vreme.split(":")[0]) < 15 &&
+        sati < 15 &&
         jeUdozvoljenomVremenuZaJutro()
       );
-    }
-
-    if (smena === "popodne") {
+    } else if (smena === "popodne") {
       const max = new Date();
       max.setMonth(max.getMonth() + 2);
-      return date >= danas && date <= max;
+      return date >= danas && date <= max && sati >= 17;
     }
-
     return false;
   };
 
@@ -60,57 +55,73 @@ const Kalendar = () => {
     if (postoji) {
       setIzabrani(izabrani.filter((t) => !(t.datum === datum && t.vreme === vreme)));
     } else {
-      setIzabrani([...izabrani, { datum, vreme }]);
+      setIzabrani([...izabrani, { datum, vreme, usluga }]);
     }
   };
 
   const sacuvaj = async () => {
     try {
       const snapshot = await getDocs(collection(db, "admin_kalendar"));
-      const adminTermini = snapshot.docs.map(doc => {
+      const adminTermini = snapshot.docs.map((doc) => {
         const data = doc.data();
         const start = data.start.toDate ? data.start.toDate() : new Date(data.start);
-        const datum = start.toISOString().split("T")[0];
-        const vreme = start.toTimeString().slice(0, 5);
-        return { id: doc.id, datum, vreme };
+        return {
+          id: doc.id,
+          datum: start.toISOString().split("T")[0],
+          vreme: start.toTimeString().slice(0, 5),
+        };
       });
 
       const promises = izabrani.map((termin) => {
-        const match = adminTermini.find(t => t.datum === termin.datum && t.vreme === termin.vreme);
-        const eventId = match?.id || null;
-
-        return setDoc(doc(db, "izboriTermina", `${korisnickoIme}_${termin.datum}_${termin.vreme}`), {
-          korisnickoIme,
-          ...termin,
-          status: "izabrala",
-          timestamp: new Date(),
-          eventId, // Ensure eventId is included
-        });
+        const match = adminTermini.find(
+          (t) => t.datum === termin.datum && t.vreme === termin.vreme
+        );
+        if (!match) throw new Error(`Termin ${termin.datum} ${termin.vreme} nije pronađen.`);
+        return setDoc(
+          doc(db, "izboriTermina", `${korisnickoIme}_${termin.datum}_${termin.vreme}`),
+          {
+            korisnickoIme,
+            datum: termin.datum,
+            vreme: termin.vreme,
+            usluga: termin.usluga,
+            status: "izabrala",
+            timestamp: new Date(),
+            eventId: match.id,
+          }
+        );
       });
 
       await Promise.all(promises);
       alert("Uspešno sačuvano!");
+      setIzabrani([]); // Clear selections after saving
     } catch (err) {
       console.error("Greška pri čuvanju:", err);
-      alert("Došlo je do greške.");
+      alert(`Greška pri čuvanju: ${err.message}`);
     }
   };
 
   useEffect(() => {
     const fetchPodaci = async () => {
       try {
-        const docRef = doc(db, "korisnici", korisnickoIme);
-        const docSnap = await getDoc(docRef);
-        if (!docSnap.exists()) {
+        setUcitava(true);
+        const userDocRef = doc(db, "korisnici", korisnickoIme);
+        const userDocSnap = await getDoc(userDocRef);
+        if (!userDocSnap.exists()) {
           alert("Korisnik ne postoji.");
           return;
         }
 
-        const data = docSnap.data();
-        setSmena(data.smena);
-        if (data.smena !== "jutro" && data.smena !== "popodne") {
+        const userData = userDocSnap.data();
+        setSmena(userData.smena || "");
+        if (userData.smena !== "jutro" && userData.smena !== "popodne") {
           alert("Tvoj kalendar nije trenutno dostupan.");
           return;
+        }
+
+        const uslugaDocRef = doc(db, "izbor_usluge", korisnickoIme);
+        const uslugaDocSnap = await getDoc(uslugaDocRef);
+        if (uslugaDocSnap.exists()) {
+          setUsluga(uslugaDocSnap.data().usluga || "");
         }
 
         const snapshot = await getDocs(collection(db, "admin_kalendar"));
@@ -119,31 +130,45 @@ const Kalendar = () => {
         snapshot.forEach((doc) => {
           const data = doc.data();
           if (data.start) {
-            const d = new Date(data.start.toDate ? data.start.toDate() : data.start);
+            const d = data.start.toDate ? data.start.toDate() : new Date(data.start);
             const datum = d.toISOString().split("T")[0];
             const vreme = d.toTimeString().slice(0, 5);
             const tip = data.tip || "slobodan";
 
             if (!raspored[datum]) raspored[datum] = [];
-            raspored[datum].push({ vreme, tip, id: doc.id }); // Include id for matching
+            raspored[datum].push({ vreme, tip, id: doc.id });
           }
         });
 
         setTermini(raspored);
       } catch (err) {
         console.error("Greška:", err);
+        alert("Greška pri učitavanju podataka.");
       } finally {
         setUcitava(false);
       }
     };
 
-    fetchPodaci();
+    if (korisnickoIme) {
+      fetchPodaci();
+    } else {
+      alert("Niste prijavljeni.");
+      setUcitava(false);
+    }
   }, [korisnickoIme]);
 
   if (ucitava) {
     return (
       <div className="unesi-page">
         <div className="unesi-form">Učitavanje...</div>
+      </div>
+    );
+  }
+
+  if (!korisnickoIme) {
+    return (
+      <div className="unesi-page">
+        <div className="unesi-form">Molimo prijavite se.</div>
       </div>
     );
   }
@@ -158,7 +183,7 @@ const Kalendar = () => {
     );
   }
 
-  const maxRedova = Math.max(...Object.values(termini).map(arr => arr.length));
+  const maxRedova = Math.max(...Object.values(termini).map((arr) => arr.length), 0);
 
   return (
     <div className="unesi-page">
@@ -175,17 +200,24 @@ const Kalendar = () => {
               {daniUNedelji.map((_, i) => {
                 const datum = getDatumZaDan(i);
                 const sviZaDan = termini[datum] || [];
-                const slot = sviZaDan[redniBroj];
-                const vreme = slot?.vreme;
-                const tip = slot?.tip;
-                const selektovan = izabrani.find(t => t.datum === datum && t.vreme === vreme);
+                const slot = sviZaDan[redniBroj] || {};
+                const { vreme, tip } = slot;
+                const selektovan = izabrani.find(
+                  (t) => t.datum === datum && t.vreme === vreme
+                );
                 const dozvoljen = vreme && daLiJeDozvoljenTermin(datum, vreme);
 
                 return (
                   <div
-                    key={i}
-                    className={`termin ${tip === "slobodan" && dozvoljen ? "klikabilan" : "disabled"} ${selektovan ? "selektovan" : ""} ${tip === "zauzet" || tip === "termin" ? "zauzeto" : ""}`}
-                    onClick={() => tip === "slobodan" && dozvoljen && vreme && toggleTermin(datum, vreme)}
+                    key={`${datum}-${vreme || redniBroj}`}
+                    className={`termin ${
+                      tip === "slobodan" && dozvoljen ? "klikabilan" : "disabled"
+                    } ${selektovan ? "selektovan" : ""} ${
+                      tip === "zauzet" || tip === "termin" ? "zauzeto" : ""
+                    }`}
+                    onClick={() =>
+                      tip === "slobodan" && dozvoljen && vreme && toggleTermin(datum, vreme)
+                    }
                   >
                     {vreme || ""}
                   </div>

@@ -23,8 +23,8 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import VerticalScheduleView from "../components/VerticalScheduleView";
 import { startOfWeek, endOfWeek, isWithinInterval, addDays } from "date-fns";
-import DatePicker from "react-datepicker"; // Added import for DatePicker
-import "react-datepicker/dist/react-datepicker.css"; // Added CSS for DatePicker
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 const localizer = momentLocalizer(moment);
 
@@ -57,59 +57,59 @@ const MojKalendarAdmin = () => {
   const [izboriPoTerminu, setIzboriPoTerminu] = useState({});
   const [selectedWeekStart, setSelectedWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
 
-const fetchEvents = useCallback(async () => {
-  try {
-    const snapshot = await getDocs(collection(db, "admin_kalendar"));
-    const izboriSnapshot = await getDocs(collection(db, "izboriTermina"));
-    const izbori = izboriSnapshot.docs.map((doc) => doc.data());
-    const uslugeSnapshot = await getDocs(collection(db, "izbor_usluge"));
-    const usluge = uslugeSnapshot.docs.reduce((acc, doc) => {
-      const data = doc.data();
-      acc[data.korisnickoIme] = data.usluga;
-      return acc;
-    }, {});
+  const fetchEvents = useCallback(async () => {
+    try {
+      const snapshot = await getDocs(collection(db, "admin_kalendar"));
+      const izboriSnapshot = await getDocs(collection(db, "izboriTermina"));
+      const izbori = izboriSnapshot.docs.map((doc) => doc.data());
+      const uslugeSnapshot = await getDocs(collection(db, "izbor_usluge"));
+      const usluge = uslugeSnapshot.docs.reduce((acc, doc) => {
+        const data = doc.data();
+        acc[data.korisnickoIme] = data.usluga;
+        return acc;
+      }, {});
 
-    const loadedEvents = snapshot.docs.map((doc) => {
-      const data = doc.data();
-      const start = data.start?.toDate?.() || new Date(data.start);
-      const end = data.end?.toDate?.() || new Date(data.end);
-      const izabrale = izbori
-        .filter((izbor) => izbor.eventId === doc.id)
-        .map((izbor) => `${izbor.korisnickoIme} (${usluge[izbor.korisnickoIme] || "N/A"})`);
+      const loadedEvents = snapshot.docs.map((doc) => {
+        const data = doc.data();
+        const start = data.start?.toDate?.() || new Date(data.start);
+        const end = data.end?.toDate?.() || new Date(data.end);
+        const izabrale = izbori
+          .filter((izbor) => izbor.eventId === doc.id)
+          .map((izbor) => `${izbor.korisnickoIme} (${usluge[izbor.korisnickoIme] || "N/A"})`);
 
-      let title = data.title || "Untitled Event";
-      if (data.tip === "slobodan") {
-        title = izabrale.length > 0 ? `slobodan (${izabrale.join(", ")})` : "slobodan";
-      } else if (data.tip === "zauzet") {
-        title = "zauzet";
-      } else if (data.tip === "termin") {
-        const vreme = start.toLocaleTimeString("sr-RS", {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false,
-        });
-        title = `💅 ${data.clientUsername || "Nepoznat korisnik"} (${vreme})`;
-      }
+        let title = data.title || "Untitled Event";
+        if (data.tip === "slobodan") {
+          title = izabrale.length > 0 ? `slobodan (${izabrale.join(", ")})` : "slobodan";
+        } else if (data.tip === "zauzet") {
+          title = "zauzet";
+        } else if (data.tip === "termin") {
+          const vreme = start.toLocaleTimeString("sr-RS", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          });
+          title = `💅 ${data.clientUsername || "Nepoznat korisnik"} (${vreme})`;
+        }
 
-      return {
-        id: doc.id,
-        ...data,
-        start,
-        end,
-        title,
-        backgroundColor: EVENT_TYPES[data.tip]?.color || "#ddd",
-      };
-    });
+        return {
+          id: doc.id,
+          ...data,
+          start,
+          end,
+          title,
+          backgroundColor: EVENT_TYPES[data.tip]?.color || "#ddd",
+        };
+      });
 
-    console.log("Fetched events:", loadedEvents); // Add this to debug
-    setEvents(loadedEvents);
-  } catch (error) {
-    console.error("Greška pri učitavanju kalendara:", error);
-    toast.error("Greška pri učitavanju kalendara.");
-  } finally {
-    setIsInitialLoading(false);
-  }
-}, []);
+      console.log("Fetched events:", loadedEvents); // Debug log
+      setEvents(loadedEvents);
+    } catch (error) {
+      console.error("Greška pri učitavanju kalendara:", error);
+      toast.error("Greška pri učitavanju kalendara.");
+    } finally {
+      setIsInitialLoading(false);
+    }
+  }, []);
 
   const fetchIzboriTermina = useCallback(async () => {
     try {
@@ -125,9 +125,7 @@ const fetchEvents = useCallback(async () => {
       snapshot.docs.forEach((doc) => {
         const izbor = doc.data();
         if (izbor.eventId) {
-          if (!poTerminu[izbor.eventId]) {
-            poTerminu[izbor.eventId] = [];
-          }
+          if (!poTerminu[izbor.eventId]) poTerminu[izbor.eventId] = [];
           poTerminu[izbor.eventId].push({
             korisnickoIme: izbor.korisnickoIme,
             usluga: usluge[izbor.korisnickoIme] || "N/A",
@@ -367,148 +365,6 @@ const fetchEvents = useCallback(async () => {
     };
   };
 
-  const renderModal = () => (
-    <div className="modal-overlay" style={{ display: showModal ? "flex" : "none" }}>
-      <div className="modal-content">
-        <h3 className="text-xl font-bold mb-6 text-gray-800">
-          {isEditing ? "Izmeni termin" : "Dodaj novi termin"}
-        </h3>
-        <div className="form-group">
-          <label>
-            Tip termina <span className="text-red-500">*</span>
-          </label>
-          <select
-            value={newEventData.tip}
-            onChange={(e) => setNewEventData({ ...newEventData, tip: e.target.value })}
-          >
-            <option value="">-- Izaberi tip --</option>
-            <option value="slobodan">Slobodan</option>
-            <option value="zauzet">Zauzet</option>
-            <option value="termin">Termin</option>
-            <option value="obaveza">Obaveza</option>
-          </select>
-        </div>
-        {newEventData.tip === "termin" && (
-          <div className="form-group">
-            <label>
-              Korisnica <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={newEventData.clientUsername || ""}
-              onChange={(e) =>
-                setNewEventData({ ...newEventData, clientUsername: e.target.value })
-              }
-            >
-              <option value="">-- Izaberi korisnicu --</option>
-              {korisnice.map((k) => (
-                <option key={k} value={k}>
-                  {k}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-        <div className="form-group">
-          <label>Napomena</label>
-          <input
-            type="text"
-            value={newEventData.note}
-            onChange={(e) => setNewEventData({ ...newEventData, note: e.target.value })}
-          />
-        </div>
-        <div className="form-group">
-          <label>
-            Početak <span className="text-red-500">*</span>
-          </label>
-          <DatePicker
-            selected={newEventData.start}
-            onChange={(date) => setNewEventData({ ...newEventData, start: date })}
-            showTimeSelect
-            timeIntervals={15}
-            dateFormat="Pp"
-            minTime={new Date(0, 0, 0, 8, 0)}
-            maxTime={new Date(0, 0, 0, 22, 0)}
-            inline
-          />
-        </div>
-        <div className="form-group">
-          <label>
-            Kraj <span className="text-red-500">*</span>
-          </label>
-          <DatePicker
-            selected={newEventData.end}
-            onChange={(date) => setNewEventData({ ...newEventData, end: date })}
-            showTimeSelect
-            timeIntervals={15}
-            dateFormat="Pp"
-            minTime={new Date(0, 0, 0, 8, 0)}
-            maxTime={new Date(0, 0, 0, 22, 0)}
-            inline
-          />
-        </div>
-        <div className="duration-presets">
-          <button
-            onClick={() => {
-              if (newEventData.start) {
-                setNewEventData({
-                  ...newEventData,
-                  end: new Date(newEventData.start.getTime() + 30 * 60 * 1000),
-                });
-              }
-            }}
-            className="duration-button"
-          >
-            30 min
-          </button>
-          <button
-            onClick={() => {
-              if (newEventData.start) {
-                setNewEventData({
-                  ...newEventData,
-                  end: new Date(newEventData.start.getTime() + 60 * 60 * 1000),
-                });
-              }
-            }}
-            className="duration-button"
-          >
-            1 sat
-          </button>
-        </div>
-        <div className="modal-buttons flex gap-3 mt-6 justify-center">
-          <button
-            onClick={handleSaveEvent}
-            className="confirm-button bg-primary text-white px-6 py-3 rounded-lg font-semibold hover:bg-primary-hover transition disabled:opacity-50"
-            disabled={isLoading}
-          >
-            {isLoading ? "Čuva se..." : "Sačuvaj"}
-          </button>
-          {isEditing && (
-            <>
-              <button
-                onClick={handleSendSuggestion}
-                className="suggest-button bg-blue-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-600 transition"
-              >
-                Pošalji predlog korisnicama
-              </button>
-              <button
-                onClick={handleDeleteEvent}
-                className="delete-button bg-red-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-red-600 transition"
-              >
-                Obriši
-              </button>
-            </>
-          )}
-          <button
-            onClick={() => setShowModal(false)}
-            className="cancel-button bg-gray-200 text-gray-800 px-6 py-3 rounded-lg font-semibold hover:bg-gray-300 transition"
-          >
-            Otkaži
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-
   return (
     <div className="kalendar-admin-wrapper">
       <div style={{ marginBottom: "20px", textAlign: "center" }}>
@@ -587,7 +443,6 @@ const fetchEvents = useCallback(async () => {
         Prikaz nedelje: {selectedWeekStart.toLocaleDateString()} –{" "}
         {endOfWeek(selectedWeekStart, { weekStartsOn: 1 }).toLocaleDateString()}
       </h3>
-      {renderModal()}
     </div>
   );
 };

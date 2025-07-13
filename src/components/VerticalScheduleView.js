@@ -4,7 +4,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import "./VerticalScheduleView.css";
 import { format, isSameDay, startOfWeek, addDays, differenceInMinutes } from "date-fns";
 
-const dani = ["Nedelja", "Ponedeljak", "Utorak", "Sreda", "Četvrtak", "Petak", "Subota"]; // Added "Nedelja"
+const dani = ["Nedelja", "Ponedeljak", "Utorak", "Sreda", "Četvrtak", "Petak", "Subota"];
 const sati = Array.from({ length: 13 }, (_, i) => 9 + i); // 9h–21h
 
 const getDayName = (date) => {
@@ -17,6 +17,17 @@ const VerticalScheduleView = ({
   selectedWeekStart,
   onSelectSlot,
   onSelectEvent,
+  showModal,
+  setShowModal,
+  newEventData,
+  setNewEventData,
+  isEditing,
+  setIsEditing,
+  korisnice,
+  handleSaveEvent,
+  handleDeleteEvent,
+  handleSendSuggestion,
+  isLoading,
   izboriPoTerminu,
   potvrdiTerminZaKorisnicu,
 }) => {
@@ -47,7 +58,6 @@ const VerticalScheduleView = ({
         const dayEvents = groupedEvents[dan] || [];
         const eventSlots = {};
 
-        // Populate eventSlots for the day
         dayEvents.forEach((event) => {
           const start = new Date(event.start);
           const end = new Date(event.end);
@@ -80,7 +90,11 @@ const VerticalScheduleView = ({
                         <div
                           className="slot multi-hour-slot"
                           style={{ gridRow: `span ${rowSpan}` }}
-                          onClick={() => onSelectEvent(event)}
+                          onClick={() => {
+                            setNewEventData(event);
+                            setIsEditing(true);
+                            setShowModal(true);
+                          }}
                         >
                           <span className="sat">{`${startTime}–${endTime}`}</span>
                           <div className="sadrzaj">
@@ -146,6 +160,141 @@ const VerticalScheduleView = ({
           </div>
         );
       })}
+      {showModal && (
+        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-xl font-bold mb-6 text-gray-800">
+              {isEditing ? "Izmeni termin" : "Dodaj novi termin"}
+            </h3>
+            <div className="form-group">
+              <label>
+                Tip termina <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={newEventData.tip}
+                onChange={(e) => setNewEventData({ ...newEventData, tip: e.target.value })}
+              >
+                <option value="">-- Izaberi tip --</option>
+                <option value="slobodan">Slobodan</option>
+                <option value="zauzet">Zauzet</option>
+                <option value="termin">Termin</option>
+                <option value="obaveza">Obaveza</option>
+              </select>
+            </div>
+            {newEventData.tip === "termin" && (
+              <div className="form-group">
+                <label>
+                  Korisnica <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={newEventData.clientUsername || ""}
+                  onChange={(e) =>
+                    setNewEventData({ ...newEventData, clientUsername: e.target.value })
+                  }
+                >
+                  <option value="">-- Izaberi korisnicu --</option>
+                  {korisnice.map((k) => (
+                    <option key={k} value={k}>
+                      {k}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <div className="form-group">
+              <label>Napomena</label>
+              <input
+                type="text"
+                value={newEventData.note}
+                onChange={(e) => setNewEventData({ ...newEventData, note: e.target.value })}
+              />
+            </div>
+            <div className="form-group">
+              <label>
+                Početak <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="datetime-local"
+                value={newEventData.start ? new Date(newEventData.start).toISOString().slice(0, 16) : ""}
+                onChange={(e) =>
+                  setNewEventData({ ...newEventData, start: new Date(e.target.value) })
+                }
+              />
+            </div>
+            <div className="form-group">
+              <label>
+                Kraj <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="datetime-local"
+                value={newEventData.end ? new Date(newEventData.end).toISOString().slice(0, 16) : ""}
+                onChange={(e) =>
+                  setNewEventData({ ...newEventData, end: new Date(e.target.value) })
+                }
+              />
+            </div>
+            <div className="duration-presets">
+              <button
+                onClick={() => {
+                  if (newEventData.start) {
+                    setNewEventData({
+                      ...newEventData,
+                      end: new Date(newEventData.start.getTime() + 30 * 60 * 1000),
+                    });
+                  }
+                }}
+                className="duration-button"
+              >
+                30 min
+              </button>
+              <button
+                onClick={() => {
+                  if (newEventData.start) {
+                    setNewEventData({
+                      ...newEventData,
+                      end: new Date(newEventData.start.getTime() + 60 * 60 * 1000),
+                    });
+                  }
+                }}
+                className="duration-button"
+              >
+                1 sat
+              </button>
+            </div>
+            <div className="modal-buttons flex gap-3 mt-6 justify-center">
+              <button
+                onClick={handleSaveEvent}
+                className="confirm-button bg-primary text-white px-6 py-3 rounded-lg font-semibold hover:bg-primary-hover transition disabled:opacity-50"
+                disabled={isLoading}
+              >
+                {isLoading ? "Čuva se..." : "Sačuvaj"}
+              </button>
+              {isEditing && (
+                <>
+                  <button
+                    onClick={handleSendSuggestion}
+                    className="suggest-button bg-blue-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-600 transition"
+                  >
+                    Pošalji predlog korisnicama
+                  </button>
+                  <button
+                    onClick={handleDeleteEvent}
+                    className="delete-button bg-red-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-red-600 transition"
+                  >
+                    Obriši
+                  </button>
+                </>
+              )}
+              <button
+                onClick={() => setShowModal(false)}
+                className="cancel-button bg-gray-200 text-gray-800 px-6 py-3 rounded-lg font-semibold hover:bg-gray-300 transition"
+              >
+                Otkaži
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -4,8 +4,9 @@
   flex-direction: column;
   gap: 24px;
   padding: 12px;
-  overflow-y: auto;
-  max-height: calc(100vh - 150px); /* Adjust based on header/footer height */
+  overflow-y: auto; /* Ensure vertical scrolling */
+  max-height: calc(100vh - 200px); /* Dynamic height based on viewport, adjusted for header/footer */
+  width: 100%;
 }
 
 .dan-blok {
@@ -13,6 +14,7 @@
   border-radius: 8px;
   padding: 12px;
   box-shadow: 0 0 6px rgba(0, 0, 0, 0.05);
+  min-width: 0; /* Prevent width overflow */
 }
 
 .naslov-dana {
@@ -27,7 +29,7 @@
   display: grid;
   grid-template-rows: repeat(13, 1fr); /* 13 hours: 9 AM to 9 PM */
   gap: 6px;
-  height: 600px; /* Fixed height for consistency */
+  min-height: 600px; /* Minimum height, allows expansion */
 }
 
 .slot {
@@ -40,7 +42,8 @@
   align-items: center;
   gap: 10px;
   transition: background-color 0.2s;
-  cursor: pointer; /* Indicate clickable slots */
+  cursor: pointer;
+  min-height: 40px; /* Ensure minimum slot height */
 }
 
 .slot:hover {
@@ -49,7 +52,7 @@
 
 .multi-hour-slot {
   position: relative;
-  z-index: 1; /* Ensure it stays above other slots */
+  z-index: 1;
 }
 
 .sat {
@@ -67,6 +70,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  max-width: 0; /* Allow flex to manage width */
 }
 
 .event-info {
@@ -78,6 +82,9 @@
   background-color: #f0f0f0;
   display: inline-block;
   max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .prazno {
@@ -106,6 +113,8 @@
 
 .potvrdi-dugmad {
   margin-top: 5px;
+  max-height: 100px; /* Limit height to prevent excessive growth */
+  overflow-y: auto; /* Enable scrolling within user selections */
 }
 
 .korisnica-red {
@@ -113,6 +122,7 @@
   align-items: center;
   gap: 5px;
   margin: 2px 0;
+  font-size: 12px;
 }
 
 .potvrdi-dugme {
@@ -134,6 +144,7 @@
   .vertical-schedule-view {
     padding: 8px;
     gap: 16px;
+    max-height: calc(100vh - 150px); /* Adjusted for mobile */
   }
 
   .dan-blok {
@@ -147,13 +158,14 @@
   }
 
   .sati {
-    height: 400px; /* Reduced height for mobile */
+    min-height: 400px; /* Reduced minimum height for mobile */
   }
 
   .slot {
     font-size: 13px;
     padding: 6px 8px;
     flex-wrap: wrap;
+    min-height: 35px;
   }
 
   .sat {
@@ -183,5 +195,9 @@
   .potvrdi-dugme {
     font-size: 10px;
     padding: 1px 6px;
+  }
+
+  .potvrdi-dugmad {
+    max-height: 80px; /* Reduced for mobile */
   }
 }

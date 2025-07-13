@@ -6,6 +6,8 @@
   background-color: #f9f9f9;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  min-height: calc(100vh - 40px); /* Ensure wrapper takes full height */
+  overflow: hidden; /* Prevent unwanted overflow from children */
 }
 
 .modal-overlay {
@@ -29,6 +31,8 @@
   max-width: 500px;
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
   position: relative;
+  max-height: 90vh; /* Limit modal height */
+  overflow-y: auto; /* Enable scrolling if content overflows */
 }
 
 .modal-content h3 {
@@ -128,7 +132,7 @@
 .suggest-button,
 .potvrdi-dugme {
   padding: 10px 20px;
-  border: none; /* Fixed typo from 'efore: none' */
+  border: none;
   border-radius: 6px;
   font-size: 0.9rem;
   font-weight: 500;
@@ -193,7 +197,7 @@
   background: #fff;
   border-radius: 8px;
   padding: 10px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1); /* Consistent shadow */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
 .rbc-event {

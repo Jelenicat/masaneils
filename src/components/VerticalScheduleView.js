@@ -1,8 +1,10 @@
 // src/components/VerticalScheduleView.js
-import React, { useMemo } from "react";
+import React, { useMemo, useEffect } from "react";
 import "react-datepicker/dist/react-datepicker.css";
 import "./VerticalScheduleView.css";
 import { format, isSameDay, startOfWeek, addDays, differenceInMinutes } from "date-fns";
+import DatePicker from "react-datepicker"; // ⬅️ dodaj ovo
+
 
 const dani = ["Nedelja", "Ponedeljak", "Utorak", "Sreda", "Četvrtak", "Petak", "Subota"];
 const sati = Array.from({ length: 13 }, (_, i) => 9 + i); // 9h–21h
@@ -31,7 +33,10 @@ const VerticalScheduleView = ({
   izboriPoTerminu,
   potvrdiTerminZaKorisnicu,
 }) => {
-  console.log("VerticalScheduleView props:", { events, showModal, newEventData, isEditing }); // Debug log
+  useEffect(() => {
+    console.log("VerticalScheduleView props:", { events, showModal, newEventData, isEditing });
+  }, [showModal, newEventData, isEditing]); // Log on state change
+
   const groupedEvents = useMemo(() => {
     const groups = {};
     (events || []).forEach((event) => {
@@ -91,11 +96,16 @@ const VerticalScheduleView = ({
                         <div
                           className="slot multi-hour-slot"
                           style={{ gridRow: `span ${rowSpan}` }}
-                          onClick={() => {
-                            setNewEventData(event);
-                            setIsEditing(true);
-                            setShowModal(true);
-                            console.log("Event clicked:", event); // Debug log
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (event && event.id) {
+                              setNewEventData(event);
+                              setIsEditing(true);
+                              setShowModal(true);
+                              console.log("Event clicked:", event, "ShowModal set to:", true);
+                            } else {
+                              console.log("Invalid event:", event);
+                            }
                           }}
                         >
                           <span className="sat">{`${startTime}–${endTime}`}</span>
@@ -163,7 +173,7 @@ const VerticalScheduleView = ({
         );
       })}
       {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+        <div key={Date.now()} className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-xl font-bold mb-6 text-gray-800">
               {isEditing ? "Izmeni termin" : "Dodaj novi termin"}

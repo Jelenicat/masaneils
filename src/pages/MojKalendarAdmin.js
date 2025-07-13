@@ -185,6 +185,7 @@ const MojKalendarAdmin = () => {
     setNewEventData({ ...event });
     setIsEditing(true);
     setShowModal(true);
+    console.log("handleSelectEvent triggered:", event); // Debug log
   };
 
   const handleSaveEvent = async () => {

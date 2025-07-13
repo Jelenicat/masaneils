@@ -1,4 +1,3 @@
-// src/pages/MojKalendarAdmin.js
 import React, { useState, useEffect, useCallback } from "react";
 import { Calendar, Views, momentLocalizer } from "react-big-calendar";
 import moment from "moment";
@@ -23,8 +22,6 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import VerticalScheduleView from "../components/VerticalScheduleView";
 import { startOfWeek, endOfWeek, isWithinInterval, addDays } from "date-fns";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
 
 const localizer = momentLocalizer(moment);
 
@@ -45,7 +42,6 @@ const INITIAL_EVENT_DATA = {
 };
 
 const MojKalendarAdmin = () => {
-  const korisnickoIme = localStorage.getItem("korisnickoIme");
   const [prikaziVertical, setPrikaziVertical] = useState(false);
   const [events, setEvents] = useState([]);
   const [showModal, setShowModal] = useState(false);
@@ -101,7 +97,6 @@ const MojKalendarAdmin = () => {
         };
       });
 
-      console.log("Fetched events:", loadedEvents); // Debug log
       setEvents(loadedEvents);
     } catch (error) {
       console.error("Greška pri učitavanju kalendara:", error);
@@ -409,7 +404,6 @@ const MojKalendarAdmin = () => {
           isLoading={isLoading}
           izboriPoTerminu={izboriPoTerminu}
           potvrdiTerminZaKorisnicu={potvrdiTerminZaKorisnicu}
-    
         />
       ) : (
         <Calendar
@@ -421,9 +415,6 @@ const MojKalendarAdmin = () => {
           defaultView={Views.DAY}
           views={[Views.WEEK, Views.DAY]}
           date={new Date()}
-          onNavigate={(newDate) => {
-            setSelectedWeekStart(startOfWeek(newDate, { weekStartsOn: 1 }));
-          }}
           style={{ height: "calc(100vh - 100px)", margin: "10px" }}
           onSelectEvent={handleSelectEvent}
           onSelectSlot={handleSelectSlot}
@@ -448,8 +439,7 @@ const MojKalendarAdmin = () => {
       </div>
 
       <h3 style={{ marginTop: "30px", fontSize: "18px", color: "#c89b8c" }}>
-        Prikaz nedelje: {selectedWeekStart.toLocaleDateString()} –{" "}
-        {endOfWeek(selectedWeekStart, { weekStartsOn: 1 }).toLocaleDateString()}
+        Prikaz nedelje: {selectedWeekStart.toLocaleDateString()} – {endOfWeek(selectedWeekStart, { weekStartsOn: 1 }).toLocaleDateString()}
       </h3>
     </div>
   );

@@ -4,8 +4,6 @@ import "./VerticalScheduleView.css";
 import { format, isSameDay, startOfWeek, addDays, differenceInMinutes } from "date-fns";
 import DatePicker from "react-datepicker"; // Verify this import
 
-
-
 const dani = ["Nedelja", "Ponedeljak", "Utorak", "Sreda", "Četvrtak", "Petak", "Subota"];
 const sati = Array.from({ length: 13 }, (_, i) => 9 + i); // 9h–21h
 
@@ -18,7 +16,7 @@ const VerticalScheduleView = ({
   events,
   selectedWeekStart,
   onSelectSlot,
-  onSelectEvent,
+  onSelectEvent, // Kept for now, but unused
   showModal,
   setShowModal,
   newEventData,
@@ -64,6 +62,18 @@ const VerticalScheduleView = ({
     onSelectSlot({ start: startDate, end: endDate });
   };
 
+  const handleEventClick = (event) => {
+    console.log("Click detected on slot:", event); // Debug click
+    setNewEventData({
+      ...event,
+      start: new Date(event.start),
+      end: new Date(event.end),
+    });
+    setIsEditing(true);
+    setShowModal(true);
+    console.log("Event clicked:", event, "ShowModal set to:", true); // Confirm state
+  };
+
   return (
     <div className="vertical-schedule-view">
       {dani.map((dan) => {
@@ -104,12 +114,8 @@ const VerticalScheduleView = ({
                           className="slot multi-hour-slot"
                           style={{ gridRow: `span ${rowSpan}` }}
                           onClick={(e) => {
-                            console.log("Click detected on slot:", event); // Debug click
                             e.stopPropagation();
-                            setNewEventData(event);
-                            setIsEditing(true);
-                            setShowModal(true);
-                            console.log("Event clicked:", event, "ShowModal set to:", true); // Confirm state
+                            handleEventClick(event);
                           }}
                         >
                           <span className="sat">{`${startTime}–${endTime}`}</span>

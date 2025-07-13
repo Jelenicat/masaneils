@@ -1,4 +1,3 @@
-// src/components/VerticalScheduleView.js
 import React, { useMemo, useEffect } from "react";
 import "react-datepicker/dist/react-datepicker.css";
 import "./VerticalScheduleView.css";
@@ -103,10 +102,12 @@ const VerticalScheduleView = ({
                           className="slot multi-hour-slot"
                           style={{ gridRow: `span ${rowSpan}` }}
                           onClick={(e) => {
+                            console.log("Click detected on slot:", event); // Debug click
                             e.stopPropagation();
                             setNewEventData(event);
                             setIsEditing(true);
                             setShowModal(true);
+                            console.log("Event clicked:", event, "ShowModal set to:", true); // Confirm state
                           }}
                         >
                           <span className="sat">{`${startTime}–${endTime}`}</span>
@@ -122,7 +123,11 @@ const VerticalScheduleView = ({
                             {event.tip === "slobodan" && izboriPoTerminu?.[event.id]?.length > 0 && (
                               <div className="potvrdi-dugmad">
                                 {izboriPoTerminu[event.id].map((korisnica) => (
-                                  <div key={korisnica.korisnickoIme} className="korisnica-red">
+                                  <div
+                                    key={korisnica.korisnickoIme}
+                                    className="korisnica-red"
+                                    onClick={(e) => e.stopPropagation()} // Prevent nested click interference
+                                  >
                                     ✅ {korisnica.korisnickoIme} ({korisnica.usluga})
                                     <button
                                       onClick={(e) => {

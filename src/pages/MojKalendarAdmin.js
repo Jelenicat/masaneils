@@ -218,14 +218,13 @@ const MojKalendarAdmin = () => {
         await updateDoc(doc(db, "admin_kalendar", newEventData.id), eventData);
         toast.success("Termin uspešno izmenjen!");
       } else {
-       const docRef = await addDoc(collection(db, "admin_kalendar"), {
-  ...newEventData,
-  id: "", // privremeno
-});
-
-await updateDoc(doc(db, "admin_kalendar", docRef.id), {
-  id: docRef.id,
-});
+        const { id, ...eventDataWithoutId } = newEventData;
+        const docRef = await addDoc(collection(db, "admin_kalendar"), {
+          ...eventDataWithoutId,
+        });
+        await updateDoc(doc(db, "admin_kalendar", docRef.id), {
+          id: docRef.id,
+        });
         toast.success("Termin uspešno dodat!");
       }
       setShowModal(false);
@@ -410,6 +409,7 @@ await updateDoc(doc(db, "admin_kalendar", docRef.id), {
           isLoading={isLoading}
           izboriPoTerminu={izboriPoTerminu}
           potvrdiTerminZaKorisnicu={potvrdiTerminZaKorisnicu}
+          console.log("Parent showModal:", showModal) // Temporary debug
         />
       ) : (
         <Calendar

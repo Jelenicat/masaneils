@@ -409,7 +409,7 @@ const MojKalendarAdmin = () => {
           isLoading={isLoading}
           izboriPoTerminu={izboriPoTerminu}
           potvrdiTerminZaKorisnicu={potvrdiTerminZaKorisnicu}
-          console.log("Parent showModal:", showModal) // Temporary debug
+    
         />
       ) : (
         <Calendar

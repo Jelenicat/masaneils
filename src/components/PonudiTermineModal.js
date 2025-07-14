@@ -1,17 +1,16 @@
-
-
 import React, { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { srLatn } from "date-fns/locale";
-import { doc, getDoc, getDocs, collection } from "firebase/firestore";
-import { db } from "../firebase";
-import { toast } from "react-toastify";
 import {
+  doc,
+  getDoc,
+  getDocs,
+  collection,
   updateDoc,
-  arrayUnion,
   setDoc,
 } from "firebase/firestore";
-
+import { db } from "../firebase";
+import { toast } from "react-toastify";
 import "../pages/MojKalendarAdmin.css";
 
 const PonudiTermineModal = ({
@@ -28,7 +27,7 @@ const PonudiTermineModal = ({
   const [usluga, setUsluga] = useState("N/A");
   const [adjustedTimes, setAdjustedTimes] = useState({});
 
-   useEffect(() => {
+  useEffect(() => {
     const fetchUsluga = async () => {
       if (!selectedUser) return;
       try {
@@ -78,28 +77,21 @@ const PonudiTermineModal = ({
   };
 
   const sendSuggestion = async (korisnickoIme, termini) => {
-    const docRef = doc(db, "ponudjeniTermini", korisnickoIme);
-    const docSnap = await getDoc(docRef);
-
-    const noviTermini = termini.map((t) => ({
-      id: t.id,
-      start: t.start,
-      end: t.end,
-      usluga: t.usluga,
-      note: t.note || "",
-      timestamp: new Date(),
-      originalEventId: t.id,
-    }));
-
-    if (docSnap.exists()) {
-      await updateDoc(docRef, {
-        termini: arrayUnion(...noviTermini),
-      });
-    } else {
-      await setDoc(docRef, {
-        korisnickoIme,
-        termini: noviTermini,
-      });
+    try {
+      for (const t of termini) {
+        await setDoc(doc(db, "ponudjeniTermini", t.id), {
+          korisnickoIme,
+          start: t.start,
+          end: t.end,
+          usluga: t.usluga,
+          note: t.note,
+          timestamp: new Date(),
+          originalEventId: t.id,
+        });
+      }
+    } catch (error) {
+      console.error("Greška prilikom upisa predloga termina u Firestore:", error);
+      toast.error("Greška pri snimanju predloga termina.");
     }
   };
 
@@ -138,7 +130,7 @@ const PonudiTermineModal = ({
         return;
       }
 
-      await onSuggest(selectedUser, odabrani);
+      await sendSuggestion(selectedUser, odabrani);
 
       const notificationBody = odabrani
         .map((t) =>
@@ -340,4 +332,3 @@ const PonudiTermineModal = ({
 };
 
 export default PonudiTermineModal;
-

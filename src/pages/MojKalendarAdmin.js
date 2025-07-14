@@ -18,6 +18,8 @@ import { format, startOfWeek, addDays } from "date-fns";
 import VerticalScheduleView from "../components/VerticalScheduleView";
 import PonudiTermineModal from "../components/PonudiTermineModal";
 import { requestPermission } from "../firebase";
+import DodajTerminModal from "../components/DodajTerminModal";
+
 
 const EVENT_TYPES = {
   slobodan: { color: "#90ee90" },
@@ -268,28 +270,41 @@ const MojKalendarAdmin = () => {
     }
   };
 
-  return (
-    <div className="moj-kalendar-admin">
-      <VerticalScheduleView
-        events={events}
-        izboriPoTerminu={izboriPoTerminu}
-        potvrdiTerminZaKorisnicu={potvrdiTerminZaKorisnicu}
-        selectedWeekStart={selectedWeekStart}
-        onSelectSlot={(slot) => {
-          setNewEventData({ ...INITIAL_EVENT_DATA, ...slot, tip: "slobodan" });
-          setShowModal(true);
-          setIsEditing(false);
-        }}
-        onSelectEvent={(event) => {
-          setNewEventData(event);
-          setShowModal(true);
-          setIsEditing(true);
-        }}
-        pomeriNedeljuUnazad={pomeriNedeljuUnazad}
-        pomeriNedeljuUnapred={pomeriNedeljuUnapred}
+return (
+  <div className="moj-kalendar-admin">
+    <VerticalScheduleView
+      events={events}
+      izboriPoTerminu={izboriPoTerminu}
+      potvrdiTerminZaKorisnicu={potvrdiTerminZaKorisnicu}
+      selectedWeekStart={selectedWeekStart}
+      onSelectSlot={(slot) => {
+        setNewEventData({ ...INITIAL_EVENT_DATA, ...slot, tip: "slobodan" });
+        setShowModal(true);
+        setIsEditing(false);
+      }}
+      onSelectEvent={(event) => {
+        setNewEventData(event);
+        setShowModal(true);
+        setIsEditing(true);
+      }}
+      pomeriNedeljuUnazad={pomeriNedeljuUnazad}
+      pomeriNedeljuUnapred={pomeriNedeljuUnapred}
+    />
+
+    {/* MODAL ZA DODAVANJE I IZMENU TERMINA */}
+    {showModal && (
+      <DodajTerminModal
+        eventData={newEventData}
+        onClose={() => setShowModal(false)}
+        onSave={handleSaveEvent}
+        isEditing={isEditing}
+        setEventData={setNewEventData}
+        isLoading={isLoading}
       />
-    </div>
-  );
+    )}
+  </div>
+);
+
 };
 
 export default MojKalendarAdmin;

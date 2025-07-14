@@ -45,12 +45,28 @@
 }
 
 .event-item {
-  background-color: #f0f0f0;
+  background-color: #ccf3c0; /* ista svetlo zelena kao na slici */
   border-radius: 8px;
-  padding: 8px;
+  padding: 10px 14px;
   margin-bottom: 8px;
   cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  flex-direction: column;
 }
+
+.event-time {
+  font-weight: bold;
+  margin-bottom: 4px;
+  color: #222;
+}
+
+.event-title {
+  font-size: 14px;
+  color: #333;
+}
+
 
 .izbori-lista {
   margin-top: 6px;

@@ -69,7 +69,8 @@ const VerticalScheduleView = ({
                     style={{ backgroundColor: event.backgroundColor }}
                     onClick={() => onSelectEvent && onSelectEvent(event)}
                   >
-                    <strong>{format(event.start, "HH:mm")}h</strong> — {event.title}
+                    {format(event.start, "HH:mm")}–{format(event.end, "HH:mm")} — {event.title}
+
                     {event.tip === "slobodan" && izbori.length > 0 && (
                       <div className="izbori-lista">
                         {izbori.map(({ korisnickoIme, usluga }) => (

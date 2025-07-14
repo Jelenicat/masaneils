@@ -79,12 +79,15 @@
 
 /* Prikaz jednog termina */
 .event-item {
-  background-color: #f0f0f0;
+  background-color: #90ee90;
   border-radius: 8px;
   padding: 8px 12px;
   margin-bottom: 8px;
   cursor: pointer;
   font-size: 14px;
+  display: flex;
+  flex-direction: column;
+  font-weight: 500;
 }
 
 /* Lista korisnica koje su izabrale termin */

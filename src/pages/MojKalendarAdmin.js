@@ -106,7 +106,7 @@ const MojKalendarAdmin = () => {
               (izbor) => `${izbor.korisnickoIme} (${usluge[izbor.korisnickoIme] || "N/A"})`
             );
 
-       const vremeOd = start.toLocaleTimeString("sr-RS", {
+const vremeOd = start.toLocaleTimeString("sr-RS", {
   hour: "2-digit",
   minute: "2-digit",
   hour12: false,
@@ -116,6 +116,8 @@ const vremeDo = end.toLocaleTimeString("sr-RS", {
   minute: "2-digit",
   hour12: false,
 });
+
+
 
 let title = `${vremeOd}–${vremeDo} — `;
 

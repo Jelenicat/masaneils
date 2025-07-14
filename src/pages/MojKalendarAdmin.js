@@ -151,10 +151,14 @@ if (data.tip === "slobodan") {
   }, []);
 
   const handleSaveEvent = async () => {
+     console.log("🧪 newEventData", newEventData);
     if (!newEventData.tip || !newEventData.start || !newEventData.end) {
       toast.error("Molimo popunite sva obavezna polja.");
       return;
+      
     }
+   
+
 
     const now = new Date();
     if (newEventData.start < now) {

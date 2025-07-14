@@ -6,7 +6,7 @@ import { format } from "date-fns";
 import { sr } from "date-fns/locale"; // import locale za srpski
 
 import { requestPermission } from "../firebase"; // Added for FCM integration
-import "./PondjeniTermini.css";
+import "./PonudjeniTermini.css";
 
 const PonudjeniTermini = ({ korisnickoIme }) => {
   const [ponudjeni, setPonudjeni] = useState([]);

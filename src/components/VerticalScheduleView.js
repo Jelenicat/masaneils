@@ -1,6 +1,7 @@
 // src/components/VerticalScheduleView.js
 import React from "react";
 import { addDays, format, isSameDay } from "date-fns";
+import { srLatn } from "date-fns/locale";
 import "./VerticalScheduleView.css";
 
 const dani = ["Ponedeljak", "Utorak", "Sreda", "Četvrtak", "Petak", "Subota"];
@@ -12,21 +13,24 @@ const VerticalScheduleView = ({
   onSelectEvent,
   izboriPoTerminu = {},
   potvrdiTerminZaKorisnicu,
+  pomeriNedeljuUnazad,
+  pomeriNedeljuUnapred,
 }) => {
   const getEventsForDay = (dayDate) =>
     events
       .filter((event) => isSameDay(event.start, dayDate))
-      .sort((a, b) => a.start - b.start); // sortiranje po vremenu
+      .sort((a, b) => a.start - b.start);
 
   return (
     <div className="vertical-week-view">
       <div className="week-nav">
-       <span>
-  {selectedWeekStart
-    ? `${format(selectedWeekStart, "dd.MM")}–${format(addDays(selectedWeekStart, 5), "dd.MM.yyyy")}`
-    : "Nedeljni prikaz"}
-</span>
-
+        <button onClick={pomeriNedeljuUnazad}>←</button>
+        <span>
+          {selectedWeekStart
+            ? `${format(selectedWeekStart, "dd.MM")}–${format(addDays(selectedWeekStart, 5), "dd.MM.yyyy")}`
+            : "Nedeljni prikaz"}
+        </span>
+        <button onClick={pomeriNedeljuUnapred}>→</button>
       </div>
 
       {dani.map((dan, i) => {
@@ -37,7 +41,7 @@ const VerticalScheduleView = ({
           <div key={i} className="day-block">
             <div className="day-header">
               <h4>
-                {dan} {format(currentDate, "dd. MMM", { locale: "sr-RS" })}
+                {dan} {format(currentDate, "dd. MMM", { locale: srLatn })}
               </h4>
               <button
                 className="add-button"

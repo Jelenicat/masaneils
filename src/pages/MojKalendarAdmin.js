@@ -106,19 +106,27 @@ const MojKalendarAdmin = () => {
               (izbor) => `${izbor.korisnickoIme} (${usluge[izbor.korisnickoIme] || "N/A"})`
             );
 
-          let title = data.title || "Untitled Event";
-          if (data.tip === "slobodan") {
-            title = izabrale.length > 0 ? `slobodan (${izabrale.join(", ")})` : "slobodan";
-          } else if (data.tip === "zauzet") {
-            title = "zauzet";
-          } else if (data.tip === "termin") {
-            const vreme = start.toLocaleTimeString("sr-RS", {
-              hour: "2-digit",
-              minute: "2-digit",
-              hour12: false,
-            });
-            title = `💅 ${data.clientUsername || "Nepoznat korisnik"} (${vreme})`;
-          }
+       const vremeOd = start.toLocaleTimeString("sr-RS", {
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
+const vremeDo = end.toLocaleTimeString("sr-RS", {
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
+
+let title = `${vremeOd}–${vremeDo} — `;
+
+if (data.tip === "slobodan") {
+  title += izabrale.length > 0 ? `slobodan (${izabrale.join(", ")})` : "slobodan";
+} else if (data.tip === "zauzet") {
+  title += "zauzet";
+} else if (data.tip === "termin") {
+  title += `💅 ${data.clientUsername || "Nepoznat korisnik"}`;
+}
+
 
           return {
             id: doc.id,

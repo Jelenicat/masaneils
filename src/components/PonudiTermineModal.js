@@ -1,9 +1,16 @@
+
+
 import React, { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { srLatn } from "date-fns/locale";
 import { doc, getDoc, getDocs, collection } from "firebase/firestore";
 import { db } from "../firebase";
 import { toast } from "react-toastify";
+import {
+  updateDoc,
+  arrayUnion,
+  setDoc,
+} from "firebase/firestore";
 
 import "../pages/MojKalendarAdmin.css";
 
@@ -21,7 +28,7 @@ const PonudiTermineModal = ({
   const [usluga, setUsluga] = useState("N/A");
   const [adjustedTimes, setAdjustedTimes] = useState({});
 
-  useEffect(() => {
+   useEffect(() => {
     const fetchUsluga = async () => {
       if (!selectedUser) return;
       try {
@@ -68,6 +75,32 @@ const PonudiTermineModal = ({
         [field]: newTime,
       },
     }));
+  };
+
+  const sendSuggestion = async (korisnickoIme, termini) => {
+    const docRef = doc(db, "ponudjeniTermini", korisnickoIme);
+    const docSnap = await getDoc(docRef);
+
+    const noviTermini = termini.map((t) => ({
+      id: t.id,
+      start: t.start,
+      end: t.end,
+      usluga: t.usluga,
+      note: t.note || "",
+      timestamp: new Date(),
+      originalEventId: t.id,
+    }));
+
+    if (docSnap.exists()) {
+      await updateDoc(docRef, {
+        termini: arrayUnion(...noviTermini),
+      });
+    } else {
+      await setDoc(docRef, {
+        korisnickoIme,
+        termini: noviTermini,
+      });
+    }
   };
 
   const handleSuggest = async () => {
@@ -307,3 +340,4 @@ const PonudiTermineModal = ({
 };
 
 export default PonudiTermineModal;
+

@@ -8,6 +8,14 @@ const DodajTerminModal = ({ eventData, onClose, onSave, setEventData, isEditing,
     setEventData((prev) => ({ ...prev, [name]: value }));
   };
 
+  // Formatiranje datuma za datetime-local input bez UTC pomeraja
+  const formatDateForInput = (date) => {
+    if (!date) return "";
+    const local = new Date(date);
+    local.setMinutes(local.getMinutes() - local.getTimezoneOffset());
+    return local.toISOString().slice(0, 16);
+  };
+
   return (
     <div className="modal-overlay">
       <div className="modal">
@@ -24,7 +32,7 @@ const DodajTerminModal = ({ eventData, onClose, onSave, setEventData, isEditing,
         <input
           type="datetime-local"
           name="start"
-          value={eventData.start ? new Date(eventData.start).toISOString().slice(0, 16) : ""}
+          value={formatDateForInput(eventData.start)}
           onChange={(e) =>
             setEventData((prev) => ({
               ...prev,
@@ -37,7 +45,7 @@ const DodajTerminModal = ({ eventData, onClose, onSave, setEventData, isEditing,
         <input
           type="datetime-local"
           name="end"
-          value={eventData.end ? new Date(eventData.end).toISOString().slice(0, 16) : ""}
+          value={formatDateForInput(eventData.end)}
           onChange={(e) =>
             setEventData((prev) => ({
               ...prev,

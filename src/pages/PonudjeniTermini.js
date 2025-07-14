@@ -34,23 +34,26 @@ const PonudjeniTermini = ({ korisnickoIme: propIme }) => {
       toast.error("Greška pri postavljanju notifikacija: " + err.message);
     });
 
-    const fetchPonudjeniTermini = async () => {
-      try {
-        const docSnap = await getDoc(
-          doc(db, "predlozeniTermini", korisnickoIme)
-        );
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          const now = new Date();
-          setPonudjeni(
-            data.termini.filter((t) => new Date(t.start) >= now)
-          );
-        }
-      } catch (error) {
-        console.error("Greška pri učitavanju predloženih termina:", error);
-        toast.error("Greška pri učitavanju predloženih termina.");
-      }
-    };
+const fetchPonudjeniTermini = async () => {
+  try {
+    const q = query(
+      collection(db, "ponudjeniTermini"),
+      where("korisnickoIme", "==", korisnickoIme)
+    );
+    const querySnapshot = await getDocs(q);
+
+    const now = new Date();
+    const termini = querySnapshot.docs
+      .map((doc) => ({ id: doc.id, ...doc.data() }))
+      .filter((t) => new Date(t.start) >= now);
+
+    setPonudjeni(termini);
+  } catch (error) {
+    console.error("Greška pri učitavanju predloženih termina:", error);
+    toast.error("Greška pri učitavanju predloženih termina.");
+  }
+};
+
 
     fetchPonudjeniTermini();
   }, [korisnickoIme]);
@@ -87,8 +90,8 @@ const PonudjeniTermini = ({ korisnickoIme: propIme }) => {
 
         const predloziSnap = await getDocs(
           query(
-            collection(db, "predlozeniTermini"),
-            where("korisnica", "==", korisnickoIme)
+            collection(db, "ponudjeniTermini"),
+            where("korisnickoIme", "==", korisnickoIme)
           )
         );
         predloziSnap.docs.forEach((docSnap) => {

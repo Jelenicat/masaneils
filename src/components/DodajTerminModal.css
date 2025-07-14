@@ -1,62 +1,69 @@
-/* Stilizacija inputa za react-datepicker */
-.react-datepicker-wrapper,
-.react-datepicker__input-container input {
-  width: 100%;
+/* DodajTerminModal.css */
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
 }
 
-.react-datepicker__input-container input {
-  padding: 8px 12px;
-  font-size: 14px;
+.modal {
+  background-color: white;
+  border-radius: 12px;
+  padding: 24px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+  z-index: 1001;
+}
+
+.modal h2 {
+  margin-bottom: 20px;
+  font-size: 22px;
+  text-align: center;
+}
+
+.modal label {
+  display: block;
+  margin-top: 12px;
+  font-weight: 500;
+}
+
+.modal input,
+.modal select {
+  width: 100%;
+  padding: 8px;
+  margin-top: 4px;
   border: 1px solid #ccc;
   border-radius: 6px;
-  margin-bottom: 12px;
-  font-family: inherit;
+  font-size: 14px;
 }
 
-/* Roze dugmići u kalendaru */
-.react-datepicker__day--selected,
-.react-datepicker__day--keyboard-selected {
-  background-color: #ff69b4 !important;
-  color: white !important;
-  border-radius: 50% !important;
+.modal-buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 24px;
 }
 
-/* Hover efekat */
-.react-datepicker__day:hover {
-  background-color: #ffb6c1;
-}
-
-/* Vreme (dropdown stil) */
-.react-datepicker__time-container .react-datepicker__time {
-  background: #fff8f3;
-}
-
-.react-datepicker__time-box ul li.react-datepicker__time-list-item--selected {
-  background-color: #ff69b4;
-  color: white;
-}
-
-/* Modal dugmad */
 .modal-buttons button {
-  margin-top: 10px;
   padding: 8px 16px;
   border: none;
   border-radius: 6px;
-  font-weight: bold;
-  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
 }
 
 .modal-buttons button:first-child {
   background-color: #ddd;
-  margin-right: 10px;
 }
 
 .modal-buttons button:last-child {
   background-color: #ff69b4;
   color: white;
-}
-
-.modal-buttons button:last-child:hover {
-  background-color: #ff3d99;
 }

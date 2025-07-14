@@ -43,19 +43,19 @@ const VerticalScheduleView = ({
               <h4>
                 {dan} {format(currentDate, "dd. MMM", { locale: srLatn })}
               </h4>
-              <button
-                className="add-button"
-                onClick={() => {
-               const start = new Date(currentDate);
-start.setHours(9, 0, 0, 0);
-const end = new Date(currentDate);
-end.setHours(10, 0, 0, 0);
+       <button
+  className="add-button"
+  onClick={() => {
+    const start = new Date(currentDate);
+    start.setHours(9, 0, 0, 0);
+    const end = new Date(currentDate);
+    end.setHours(10, 0, 0, 0);
+    onSelectSlot({ start, end, tip: "slobodan" });
+  }}
+>
+  Dodaj termin
+</button>
 
-                  onSelectSlot({ start, end });
-                }}
-              >
-                Dodaj termin
-              </button>
             </div>
 
             {dailyEvents.length === 0 ? (

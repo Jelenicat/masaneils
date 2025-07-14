@@ -12,9 +12,8 @@ const VerticalScheduleView = ({
   onSelectSlot,
   onSelectEvent,
   izboriPoTerminu = {},
-  potvrdiTerminZaKorisnicu,
-  pomeriNedeljuUnazad,
-  pomeriNedeljuUnapred,
+    pomeriNedeljuUnazad,
+  pomeriNedeljuUnapred
 }) => {
   const getEventsForDay = (dayDate) =>
     events
@@ -24,13 +23,16 @@ const VerticalScheduleView = ({
   return (
     <div className="vertical-week-view">
       <div className="week-nav">
-        <button onClick={pomeriNedeljuUnazad}>←</button>
+        <button onClick={() => pomeriNedeljuUnazad()}>←</button>
         <span>
           {selectedWeekStart
-            ? `${format(selectedWeekStart, "dd.MM")}–${format(addDays(selectedWeekStart, 5), "dd.MM.yyyy")}`
+            ? `${format(selectedWeekStart, "dd.MM")}–${format(
+                addDays(selectedWeekStart, 5),
+                "dd.MM.yyyy"
+              )}`
             : "Nedeljni prikaz"}
         </span>
-        <button onClick={pomeriNedeljuUnapred}>→</button>
+       <button onClick={() => pomeriNedeljuUnapred()}>→</button>
       </div>
 
       {dani.map((dan, i) => {
@@ -38,22 +40,20 @@ const VerticalScheduleView = ({
         const dailyEvents = getEventsForDay(currentDate);
 
         return (
-          <div key={i} className="day-block">
+          <div key={format(currentDate, 'yyyy-MM-dd')} className="day-block">
             <div className="day-header">
               <h4>
                 {dan} {format(currentDate, "dd. MMM", { locale: srLatn })}
               </h4>
               <button
                 className="add-button"
-               onClick={() => {
-  const start = new Date(currentDate);
-  start.setHours(9, 0, 0, 0);
-  const end = new Date(currentDate);
-  end.setHours(10, 0, 0, 0);
-
-  onSelectSlot({ start, end });
-}}
-
+                onClick={() => {
+                  const start = new Date(currentDate);
+                  start.setHours(9, 0, 0, 0);
+                  const end = new Date(currentDate);
+                  end.setHours(10, 0, 0, 0);
+                  onSelectSlot({ start, end });
+                }}
               >
                 Dodaj termin
               </button>
@@ -72,37 +72,16 @@ const VerticalScheduleView = ({
                     onClick={() => onSelectEvent && onSelectEvent(event)}
                   >
                     {event.title}
-
-
                     {event.tip === "slobodan" && izbori.length > 0 && (
                       <div className="izbori-lista">
-                      {izbori.map(({ korisnickoIme, usluga }) => (
-  <div key={korisnickoIme} className="izbor-red">
-    ✅ {korisnickoIme} ({usluga})
-    <button
-      className="potvrdi-dugme"
-      onClick={(e) => {
-        e.stopPropagation();
-        potvrdiTerminZaKorisnicu(event.id, korisnickoIme);
-      }}
-    >
-      Potvrdi
-    </button>
-    <button
-      className="predlozi-dugme"
-      onClick={(e) => {
-        e.stopPropagation();
-        // Ovo zovemo iz MojKalendarAdmin.js
-        if (typeof predloziTerminKorisnici === "function") {
-          predloziTerminKorisnici(event, korisnickoIme);
-        }
-      }}
-    >
-      Predloži
-    </button>
-  </div>
-))}
-
+                        {izbori.map(({ korisnickoIme, usluga }) => (
+                          <div
+                            key={`${event.id}-${korisnickoIme}`}
+                            className="izbor-red"
+                          >
+                            ✅ {korisnickoIme} ({usluga})
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>

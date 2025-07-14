@@ -11,20 +11,19 @@
 .admin-panel {
   background-color: rgba(255, 255, 255, 0.5);
   padding: 40px;
-  border-radius: 0; /* oštre ivice */
+  border-radius: 0; /* Sharp edges */
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
   text-align: center;
   width: 90%;
   max-width: 500px;
 }
 
-.login-form h1 {
- font-family: 'Playfair Display', serif;
+.admin-panel h1 {
+  font-family: 'Playfair Display', serif;
   font-size: 32px;
   color: #2e2e2e;
   margin-bottom: 20px;
 }
-
 
 .admin-menu {
   list-style: none;
@@ -45,18 +44,37 @@
 .admin-menu li:hover {
   background-color: #c4b49b;
 }
+
 .logout-button {
   margin-top: 20px;
-  padding: 10px 20px;
-  background-color: #c43c3c;
-  color: white;
-  font-weight: bold;
-  border: none;
-  border-radius: 5px;
+  padding: 12px 24px;
+  background: rgba(245, 232, 199, 0.7); /* Nude tint for glass effect */
+  color: #5a4032;
+  font-family: 'Playfair Display', serif;
+  font-size: 18px;
+  font-weight: 600;
+  border: 2px solid #d9a68c; /* Strict, elegant border */
+  border-radius: 4px; /* Minimal rounding */
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  backdrop-filter: blur(10px); /* Stronger glass blur */
+  -webkit-backdrop-filter: blur(10px);
+  text-shadow: 1px 1px 2px rgba(217, 166, 140, 0.2); /* Subtle depth */
+  transition: background-color 0.3s ease, transform 0.2s ease, border-color 0.3s ease;
 }
 
 .logout-button:hover {
-  background-color: #a83232;
+  background: rgba(216, 179, 140, 0.7); /* Darker nude tint on hover */
+  border-color: #c68e72;
+  transform: scale(1.05); /* Slight scale for interactivity */
+}
+
+@media (max-width: 600px) {
+  .admin-panel {
+    padding: 20px;
+  }
+
+  .logout-button {
+    padding: 10px 20px;
+    font-size: 16px;
+  }
 }

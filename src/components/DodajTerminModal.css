@@ -6,33 +6,38 @@
   left: 0;
   width: 100vw;
   height: 100vh;
-  background-color: rgba(0, 0, 0, 0.4);
+  background-color: rgba(245, 232, 199, 0.6); /* Nude tint with transparency */
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  backdrop-filter: blur(10px); /* Enhanced glass effect */
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .modal {
-  background-color: white;
-  border-radius: 12px;
-  padding: 24px;
+  background-color: rgba(255, 250, 240, 0.9); /* Translucent nude background */
+  border-radius: 6px; /* Minimal rounding for strict lines */
+  padding: 20px;
   width: 90%;
   max-width: 400px;
-  box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 15px rgba(217, 166, 140, 0.3); /* Nude shadow */
   z-index: 1001;
+  border: 2px solid #d9a68c; /* Light brown border */
 }
 
 .modal h2 {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
   font-size: 22px;
   text-align: center;
+  color: #5a4032; /* Darker nude text */
 }
 
 .modal label {
   display: block;
   margin-top: 12px;
   font-weight: 500;
+  color: #5a4032; /* Darker nude text */
 }
 
 .modal input,
@@ -40,30 +45,73 @@
   width: 100%;
   padding: 8px;
   margin-top: 4px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
+  border: 2px solid #e8d4b5; /* Ivory border */
+  border-radius: 4px; /* Minimal rounding */
   font-size: 14px;
+  background-color: rgba(245, 232, 199, 0.8); /* Nude input background */
+  color: #5a4032; /* Darker nude text */
+  transition: border-color 0.3s ease;
+}
+
+.modal input:focus,
+.modal select:focus {
+  border-color: #d9a68c; /* Light brown highlight on focus */
+  outline: none;
 }
 
 .modal-buttons {
   display: flex;
   justify-content: space-between;
-  margin-top: 24px;
+  margin-top: 20px;
+  gap: 10px;
 }
 
 .modal-buttons button {
   padding: 8px 16px;
-  border: none;
-  border-radius: 6px;
+  border: 2px solid transparent; /* Strict border */
+  border-radius: 4px; /* Minimal rounding */
   font-weight: 500;
   cursor: pointer;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 .modal-buttons button:first-child {
-  background-color: #ddd;
+  background-color: #e8d4b5; /* Ivory for cancel */
+  color: #5a4032; /* Darker nude text */
 }
 
 .modal-buttons button:last-child {
-  background-color: #ff69b4;
+  background-color: #d9a68c; /* Light brown for confirm */
   color: white;
+}
+
+.modal-buttons button:first-child:hover {
+  background-color: #d9b99d; /* Lighter nude on hover */
+  border-color: #d9a68c; /* Light brown border */
+}
+
+.modal-buttons button:last-child:hover {
+  background-color: #c68e72; /* Darker light brown on hover */
+  border-color: #c68e72; /* Matching border */
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .modal {
+    padding: 16px;
+  }
+
+  .modal h2 {
+    font-size: 20px;
+    margin-bottom: 12px;
+  }
+
+  .modal-buttons {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .modal-buttons button {
+    width: 100%;
+  }
 }

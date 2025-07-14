@@ -1,170 +1,309 @@
-.moj-kalendar-admin {
-  background-color: #fff8f3;
-  padding: 24px;
-  min-height: 100vh;
-  font-family: "Segoe UI", sans-serif;
+/* Dugme iznad kalendara */
+.action-dugme {
+  display: block;
+  margin: 0 auto 24px;
+  background: linear-gradient(90deg, #d9a68c, #e8d4b5); /* Light brown to ivory gradient */
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(217, 166, 140, 0.3); /* Nude shadow */
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* Navigacija kroz nedelju */
-.week-nav {
+.action-dugme:hover,
+.action-dugme:focus {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(217, 166, 140, 0.4); /* Darker nude shadow */
+  outline: none;
+}
+
+/* Modal styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 16px;
-  margin-bottom: 24px;
-  font-size: 18px;
-  font-weight: bold;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
 }
 
-.week-nav button {
-  background-color: #ff69b4;
-  color: white;
-  border: none;
-  padding: 6px 14px;
-  border-radius: 8px;
-  font-size: 16px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
+.modal-content {
+  background: #ffffff;
+  border-radius: 15px;
+  padding: 24px;
+  width: 90%;
+  max-width: 550px;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 24px rgba(217, 166, 140, 0.2); /* Nude shadow */
+  position: relative;
 }
 
-.week-nav button:hover {
-  background-color: #ff3d99;
-}
-
-/* Blok za svaki dan */
-.day-block {
-  background-color: #ffffff;
-  border: 2px solid #ddd;
-  border-radius: 12px;
-  padding: 18px;
-  margin-bottom: 24px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
-}
-
-/* Naslov dana + dugme za dodavanje */
-.day-header {
+.modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 14px;
-  flex-wrap: wrap;
-  gap: 10px;
+  margin-bottom: 20px;
 }
 
-.day-header h4 {
+.modal-header h3 {
   margin: 0;
-  font-size: 16px;
-  color: #333;
+  font-size: 20px;
+  color: #5a4032; /* Darker nude text */
+  font-weight: 700;
 }
 
-.add-button {
-  background-color: #ff69b4;
+.close-button {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #d9a68c; /* Light brown */
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.close-button:hover,
+.close-button:focus {
+  color: #c68e72; /* Darker light brown */
+  outline: none;
+}
+
+/* User list container */
+.user-list-container {
+  margin-bottom: 20px;
+}
+
+.scroll-lista-korisnica {
+  max-height: 250px;
+  overflow-y: auto;
+  background: linear-gradient(135deg, #f5e8c7, #e8d4b5); /* Nude to ivory gradient */
+  border: 2px solid #d9a68c; /* Light brown border */
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.korisnica-item {
+  padding: 12px 16px;
+  border-bottom: 1px solid #e8d4b5; /* Ivory divider */
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  color: #5a4032; /* Darker nude text */
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  border-radius: 8px;
+}
+
+.korisnica-item:hover,
+.korisnica-item:focus {
+  background-color: #f5e8c7; /* Nude beige hover */
+  transform: translateX(5px);
+  outline: none;
+}
+
+.no-users-message {
+  text-align: center;
+  color: #8a6f5a; /* Muted nude text */
+  font-style: italic;
+  padding: 10px;
+}
+
+/* User info and termini container */
+.user-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.user-info h4 {
+  margin: 0;
+  font-size: 18px;
+  color: #5a4032; /* Darker nude text */
+}
+
+.user-name {
+  color: #d9a68c; /* Light brown highlight */
+  font-weight: 600;
+}
+
+.back-button {
+  background: none;
+  border: none;
+  color: #d9a68c; /* Light brown */
+  font-size: 16px;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.back-button:hover,
+.back-button:focus {
+  color: #c68e72; /* Darker light brown */
+  outline: none;
+}
+
+.termini-container {
+  margin-bottom: 20px;
+}
+
+.termin-card {
+  background: linear-gradient(135deg, #f5e8c7, #e8d4b5); /* Nude to ivory gradient */
+  border: 1px solid #d9a68c; /* Light brown border */
+  border-radius: 10px;
+  padding: 15px;
+  margin-bottom: 15px;
+  box-shadow: 0 4px 10px rgba(217, 166, 140, 0.2); /* Nude shadow */
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.termin-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(217, 166, 140, 0.3); /* Darker nude shadow */
+}
+
+.termin-label {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.termin-label input[type="checkbox"] {
+  margin-right: 12px;
+  transform: scale(1.2);
+  accent-color: #d9a68c; /* Light brown checkbox */
+}
+
+.time-range {
+  font-size: 15px;
+  color: #5a4032; /* Darker nude text */
+}
+
+.time-adjust-buttons {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.adjust-button {
+  background: linear-gradient(90deg, #d9a68c, #e8d4b5); /* Light brown to ivory gradient */
   color: white;
   border: none;
   padding: 6px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.add-button:hover {
-  background-color: #ff3d99;
-}
-
-/* Ako nema termina */
-.no-events {
-  font-style: italic;
-  color: #888;
-  padding-left: 4px;
-}
-
-/* Pojedinačni događaj (termin, zauzet, obaveza...) */
-.event-item {
-  background-color: #ccf3c0;
-  border-left: 5px solid #90ee90;
-  border-radius: 8px;
-  padding: 10px 14px;
-  margin-bottom: 10px;
-  font-size: 14px;
-  font-weight: 500;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  cursor: pointer;
-}
-
-/* Lista korisnica koje su izabrale termin */
-.izbori-lista {
-  margin-top: 6px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
   font-size: 13px;
-}
-
-/* Red sa imenom i dugmadi */
-.izbor-red {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background-color: #f0f8ff;
-  padding: 6px 10px;
   border-radius: 6px;
-  font-weight: 500;
-  gap: 10px;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
 }
 
-/* Dugmad za potvrdu i predlog */
-.potvrdi-dugme,
-.predlozi-dugme {
-  background-color: #ff69b4;
+.adjust-button:hover,
+.adjust-button:focus {
+  background: linear-gradient(90deg, #c68e72, #d9b99d); /* Darker nude gradient */
+  transform: scale(1.05);
+  outline: none;
+}
+
+.confirm-button {
+  background: linear-gradient(90deg, #a3be8c, #7a9e5a); /* Earthy green alternative */
   color: white;
   border: none;
-  font-size: 12px;
-  padding: 4px 8px;
+  padding: 8px 16px;
+  font-size: 14px;
   border-radius: 6px;
   cursor: pointer;
-  transition: background-color 0.2s ease-in-out;
+  transition: background 0.2s ease, transform 0.2s ease;
+  width: 100%;
 }
 
-.potvrdi-dugme:hover,
-.predlozi-dugme:hover {
-  background-color: #ff3d99;
+.confirm-button:hover,
+.confirm-button:focus {
+  background: linear-gradient(90deg, #7a9e5a, #5a7a3d); /* Darker earthy green */
+  transform: scale(1.05);
+  outline: none;
 }
 
-/* Responsive za mobilne uređaje */
+.confirm-button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.suggest-button {
+  background: linear-gradient(90deg, #d9a68c, #e8d4b5); /* Light brown to ivory gradient */
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  font-size: 15px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+  width: 100%;
+}
+
+.suggest-button:hover,
+.suggest-button:focus {
+  background: linear-gradient(90deg, #c68e72, #d9b99d); /* Darker nude gradient */
+  transform: scale(1.05);
+  outline: none;
+}
+
+.suggest-button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.no-terms-message {
+  text-align: center;
+  color: #8a6f5a; /* Muted nude text */
+  font-style: italic;
+  padding: 10px;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Responsive */
 @media (max-width: 600px) {
-  .moj-kalendar-admin {
+  .modal-content {
+    width: 95%;
+    padding: 16px;
+  }
+
+  .scroll-lista-korisnica {
+    max-height: 200px;
+  }
+
+  .korisnica-item {
+    font-size: 14px;
+    padding: 10px;
+  }
+
+  .termin-card {
     padding: 12px;
   }
 
-  .week-nav {
+  .time-range {
+    font-size: 14px;
+  }
+
+  .time-adjust-buttons {
     flex-direction: column;
-    gap: 10px;
-    font-size: 16px;
   }
 
-  .week-nav button {
-    width: 100px;
-  }
-
-  .day-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .add-button {
+  .adjust-button,
+  .confirm-button,
+  .suggest-button {
     width: 100%;
-    font-size: 13px;
-  }
-
-  .event-item {
-    font-size: 13px;
-  }
-
-  .potvrdi-dugme,
-  .predlozi-dugme {
-    font-size: 11px;
-    padding: 4px 6px;
+    margin-bottom: 8px;
   }
 }

@@ -10,26 +10,25 @@ const AdminPanel = () => {
     const username = localStorage.getItem("korisnickoIme");
 
     if (username) {
-      await removeTokenFromFirestore(username); // 🧹 obrisi iz Firestore baze
+      await removeTokenFromFirestore(username); // 🧹 Remove from Firestore
     }
 
-    removeFcmToken(); // 🧹 obrisi iz localStorage
-    localStorage.removeItem("korisnickoIme"); // obrisi username
-    navigate("/"); // vrati na Home
+    removeFcmToken(); // 🧹 Remove from localStorage
+    localStorage.removeItem("korisnickoIme"); // Remove username
+    navigate("/"); // Return to Home
   };
 
   return (
-    <div className="admin-page">
+    <div className="admin-page" role="main" aria-label="Admin Panel">
       <div className="admin-panel">
-        <h1>Admin Panel</h1>
         <ul className="admin-menu">
-          <li onClick={() => navigate("/admin/lista")}>📋 Lista svih profila</li>
-          <li onClick={() => navigate("/podsetnici")}>📝 Lista podsetnik</li>
-          <li onClick={() => navigate("/admin/troskovi")}>💸 Troškovi</li>
-          <li onClick={() => navigate("/admin/kalendar")}>📅 Moj kalendar</li>
-          <li onClick={() => navigate("/admin/podsetnik")}>⏰ Dodaj podsetnik</li>
+          <li onClick={() => navigate("/admin/lista")} aria-label="Lista svih profila">📋 Lista svih profila</li>
+          <li onClick={() => navigate("/podsetnici")} aria-label="Lista podsetnika">📝 Lista podsetnik</li>
+          <li onClick={() => navigate("/admin/troskovi")} aria-label="Troškovi">💸 Troškovi</li>
+          <li onClick={() => navigate("/admin/kalendar")} aria-label="Moj kalendar">📅 Moj kalendar</li>
+          <li onClick={() => navigate("/admin/podsetnik")} aria-label="Dodaj podsetnik">⏰ Dodaj podsetnik</li>
         </ul>
-        <button onClick={handleLogout} className="logout-button">🚪 Odjavi se</button>
+        <button onClick={handleLogout} className="logout-button" aria-label="Odjavi se">🚪 Odjavi se</button>
       </div>
     </div>
   );

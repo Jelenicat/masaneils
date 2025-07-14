@@ -1,6 +1,6 @@
 .vertical-week-view {
   padding: 20px;
-  background-color: #fff8f3;
+  background-color: #f5e8c7; /* Nude beige background */
   font-family: "Segoe UI", sans-serif;
 }
 
@@ -10,16 +10,35 @@
   font-weight: bold;
   margin-bottom: 24px;
   text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+}
+
+.week-nav button {
+  background-color: #d9a68c; /* Light brown button */
+  color: white;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.week-nav button:hover {
+  background-color: #c68e72; /* Darker light brown on hover */
 }
 
 /* Blok za svaki dan */
 .day-block {
   background-color: #ffffff;
-  border: 2px solid #ddd;
+  border: 2px solid #e8d4b5; /* Ivory border */
   border-radius: 12px;
   margin-bottom: 24px;
   padding: 18px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 2px 6px rgba(217, 166, 140, 0.04); /* Subtle shadow in nude tone */
 }
 
 /* Naslov i dugme za dodavanje termina */
@@ -32,8 +51,14 @@
   gap: 10px;
 }
 
+.day-header h4 {
+  margin: 0;
+  font-size: 16px;
+  color: #5a4032; /* Darker nude text */
+}
+
 .add-button {
-  background-color: #ff69b4;
+  background-color: #d9a68c; /* Light brown button */
   color: white;
   border: none;
   padding: 6px 12px;
@@ -44,20 +69,20 @@
 }
 
 .add-button:hover {
-  background-color: #ff3d99;
+  background-color: #c68e72; /* Darker light brown on hover */
 }
 
 /* Poruka ako nema termina */
 .no-events {
   font-style: italic;
-  color: #888;
+  color: #8a6f5a; /* Muted nude text */
   padding-left: 4px;
 }
 
 /* Pojedinačni termin */
 .event-item {
-  background-color: #ccf3c0; /* svetlozelena */
-  border-left: 5px solid #90ee90;
+  background-color: #e8d4b5; /* Ivory background */
+  border-left: 5px solid #d9a68c; /* Light brown border */
   border-radius: 8px;
   padding: 10px 14px;
   margin-bottom: 10px;
@@ -67,17 +92,12 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  transition: box-shadow 0.2s ease;
+  user-select: none; /* Sprečava selektovanje teksta pri kliku */
 }
 
-.event-time {
-  font-weight: bold;
-  color: #222;
-  margin-bottom: 2px;
-}
-
-.event-title {
-  font-size: 14px;
-  color: #333;
+.event-item:hover {
+  box-shadow: 0 0 6px rgba(217, 166, 140, 0.08); /* Nude shadow */
 }
 
 /* Lista korisnica koje su izabrale termin */
@@ -89,59 +109,49 @@
   gap: 4px;
 }
 
-/* Svaki red sa imenom i dugmadi */
+/* Red sa imenom korisnice */
 .izbor-red {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background-color: #f0f8ff;
+  background-color: #f5e8c7; /* Nude beige background */
   padding: 6px 10px;
   border-radius: 6px;
   font-size: 12px;
   font-weight: 500;
-  gap: 10px;
+  pointer-events: none; /* Ne ometa klik na parent .event-item */
 }
 
-/* Dugmad */
-.potvrdi-dugme,
-.predlozi-dugme {
-  background-color: #ff69b4;
-  color: white;
-  border: none;
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-size: 11px;
-  cursor: pointer;
-  transition: background-color 0.2s ease-in-out;
-}
-
-.potvrdi-dugme:hover,
-.predlozi-dugme:hover {
-  background-color: #ff3d99;
-}
-
-/* Mobilna prilagođenost */
+/* Responsive za mobilne uređaje */
 @media (max-width: 600px) {
   .vertical-week-view {
     padding: 12px;
   }
 
   .week-nav {
+    flex-direction: column;
     font-size: 16px;
+    gap: 10px;
+  }
+
+  .week-nav button {
+    width: 100%;
+  }
+
+  .day-header {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .add-button {
-    font-size: 13px;
     width: 100%;
+    font-size: 13px;
   }
 
   .event-item {
     font-size: 13px;
+    padding: 10px;
   }
 
-  .potvrdi-dugme,
-  .predlozi-dugme {
-    font-size: 10px;
-    padding: 4px 6px;
+  .izbor-red {
+    font-size: 11px;
+    padding: 5px 8px;
   }
 }

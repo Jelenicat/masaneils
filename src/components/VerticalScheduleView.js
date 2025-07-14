@@ -21,9 +21,12 @@ const VerticalScheduleView = ({
   return (
     <div className="vertical-week-view">
       <div className="week-nav">
-        <span>
-          {format(selectedWeekStart, "dd.MM")}–{format(addDays(selectedWeekStart, 5), "dd.MM.yyyy")}
-        </span>
+       <span>
+  {selectedWeekStart
+    ? `${format(selectedWeekStart, "dd.MM")}–${format(addDays(selectedWeekStart, 5), "dd.MM.yyyy")}`
+    : "Nedeljni prikaz"}
+</span>
+
       </div>
 
       {dani.map((dan, i) => {

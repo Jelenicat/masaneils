@@ -20,7 +20,6 @@ import PonudiTermineModal from "../components/PonudiTermineModal";
 import { requestPermission } from "../firebase";
 import DodajTerminModal from "../components/DodajTerminModal";
 
-
 const EVENT_TYPES = {
   slobodan: { color: "#90ee90" },
   zauzet: { color: "#ff6347" },
@@ -48,7 +47,8 @@ const MojKalendarAdmin = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showSuggestionModal, setShowSuggestionModal] = useState(false);
-  const [slobodniTermini, setSlobodniTermini] = useState([]);
+  const [selectedUser, setSelectedUser] = useState("");
+  const [originalEvent, setOriginalEvent] = useState(null);
 
   useEffect(() => {
     requestPermission().catch((err) => {
@@ -106,29 +106,26 @@ const MojKalendarAdmin = () => {
               (izbor) => `${izbor.korisnickoIme} (${usluge[izbor.korisnickoIme] || "N/A"})`
             );
 
-const vremeOd = start.toLocaleTimeString("sr-RS", {
-  hour: "2-digit",
-  minute: "2-digit",
-  hour12: false,
-});
-const vremeDo = end.toLocaleTimeString("sr-RS", {
-  hour: "2-digit",
-  minute: "2-digit",
-  hour12: false,
-});
+          const vremeOd = start.toLocaleTimeString("sr-RS", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          });
+          const vremeDo = end.toLocaleTimeString("sr-RS", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          });
 
+          let title = `${vremeOd}–${vremeDo} — `;
 
-
-let title = `${vremeOd}–${vremeDo} — `;
-
-if (data.tip === "slobodan") {
-  title += izabrale.length > 0 ? `slobodan (${izabrale.join(", ")})` : "slobodan";
-} else if (data.tip === "zauzet") {
-  title += "zauzet";
-} else if (data.tip === "termin") {
-  title += `💅 ${data.clientUsername || "Nepoznat korisnik"}`;
-}
-
+          if (data.tip === "slobodan") {
+            title += izabrale.length > 0 ? `slobodan (${izabrale.join(", ")})` : "slobodan";
+          } else if (data.tip === "zauzet") {
+            title += "zauzet";
+          } else if (data.tip === "termin") {
+            title += `💅 ${data.clientUsername || "Nepoznat korisnik"}`;
+          }
 
           return {
             id: doc.id,
@@ -151,14 +148,11 @@ if (data.tip === "slobodan") {
   }, []);
 
   const handleSaveEvent = async () => {
-     console.log("🧪 newEventData", newEventData);
+    console.log("🧪 newEventData", newEventData);
     if (!newEventData.tip || !newEventData.start || !newEventData.end) {
       toast.error("Molimo popunite sva obavezna polja.");
       return;
-      
     }
-   
-
 
     const now = new Date();
     if (newEventData.start < now) {
@@ -284,41 +278,56 @@ if (data.tip === "slobodan") {
     }
   };
 
-return (
-  <div className="moj-kalendar-admin">
-    <VerticalScheduleView
-      events={events}
-      izboriPoTerminu={izboriPoTerminu}
-      potvrdiTerminZaKorisnicu={potvrdiTerminZaKorisnicu}
-      selectedWeekStart={selectedWeekStart}
-      onSelectSlot={(slot) => {
-        setNewEventData({ ...INITIAL_EVENT_DATA, ...slot, tip: "slobodan" });
-        setShowModal(true);
-        setIsEditing(false);
-      }}
-      onSelectEvent={(event) => {
-        setNewEventData(event);
-        setShowModal(true);
-        setIsEditing(true);
-      }}
-      pomeriNedeljuUnazad={pomeriNedeljuUnazad}
-      pomeriNedeljuUnapred={pomeriNedeljuUnapred}
-    />
-
-    {/* MODAL ZA DODAVANJE I IZMENU TERMINA */}
-    {showModal && (
-      <DodajTerminModal
-        eventData={newEventData}
-        onClose={() => setShowModal(false)}
-        onSave={handleSaveEvent}
-        isEditing={isEditing}
-        setEventData={setNewEventData}
-        isLoading={isLoading}
+  return (
+    <div className="moj-kalendar-admin">
+      <VerticalScheduleView
+        events={events}
+        izboriPoTerminu={izboriPoTerminu}
+        potvrdiTerminZaKorisnicu={potvrdiTerminZaKorisnicu}
+        selectedWeekStart={selectedWeekStart}
+        pomeriNedeljuUnazad={pomeriNedeljuUnazad}
+        pomeriNedeljuUnapred={pomeriNedeljuUnapred}
+        onSelectSlot={(slot) => {
+          setNewEventData({ ...INITIAL_EVENT_DATA, ...slot, tip: "slobodan" });
+          setShowModal(true);
+          setIsEditing(false);
+        }}
+        onSelectEvent={(event) => {
+          setNewEventData(event);
+          setShowModal(true);
+          setIsEditing(true);
+        }}
+        predloziTerminKorisnici={(event, korisnickoIme) => {
+          setSelectedUser(korisnickoIme);
+          setOriginalEvent(event);
+          setShowSuggestionModal(true);
+        }}
       />
-    )}
-  </div>
-);
 
+      {showModal && (
+        <DodajTerminModal
+          eventData={newEventData}
+          onClose={() => setShowModal(false)}
+          onSave={handleSaveEvent}
+          isEditing={isEditing}
+          setEventData={setNewEventData}
+          isLoading={isLoading}
+        />
+      )}
+
+      {showSuggestionModal && (
+        <PonudiTermineModal
+          korisnickoIme={selectedUser}
+          originalEvent={originalEvent}
+          onClose={() => setShowSuggestionModal(false)}
+          onSuccess={async () => {
+            setShowSuggestionModal(false);
+            await fetchEvents();
+          }}
+        />
+      )}
+    </div>
+  );
 };
 
 export default MojKalendarAdmin;

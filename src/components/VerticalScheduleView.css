@@ -1,28 +1,35 @@
 .vertical-week-view {
   padding: 20px;
   background-color: #fff8f3;
+  font-family: "Segoe UI", sans-serif;
 }
 
+/* Navigacija kroz nedelju */
 .week-nav {
   font-size: 18px;
   font-weight: bold;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
   text-align: center;
 }
 
+/* Blok za svaki dan */
 .day-block {
   background-color: #ffffff;
   border: 2px solid #ddd;
-  border-radius: 10px;
-  margin-bottom: 20px;
-  padding: 16px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  padding: 18px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
 }
 
+/* Naslov i dugme za dodavanje termina */
 .day-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .add-button {
@@ -33,33 +40,39 @@
   border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
+  transition: background-color 0.2s ease;
 }
 
 .add-button:hover {
   background-color: #ff3d99;
 }
 
+/* Poruka ako nema termina */
 .no-events {
   font-style: italic;
   color: #888;
+  padding-left: 4px;
 }
 
+/* Pojedinačni termin */
 .event-item {
-  background-color: #ccf3c0; /* ista svetlo zelena kao na slici */
+  background-color: #ccf3c0; /* svetlozelena */
+  border-left: 5px solid #90ee90;
   border-radius: 8px;
   padding: 10px 14px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
   display: flex;
   flex-direction: column;
+  gap: 6px;
 }
 
 .event-time {
   font-weight: bold;
-  margin-bottom: 4px;
   color: #222;
+  margin-bottom: 2px;
 }
 
 .event-title {
@@ -67,28 +80,68 @@
   color: #333;
 }
 
-
+/* Lista korisnica koje su izabrale termin */
 .izbori-lista {
   margin-top: 6px;
   font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
+/* Svaki red sa imenom i dugmadi */
 .izbor-red {
   display: flex;
   justify-content: space-between;
   align-items: center;
   background-color: #f0f8ff;
-  padding: 4px 6px;
+  padding: 6px 10px;
   border-radius: 6px;
-  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  gap: 10px;
 }
 
-.potvrdi-dugme {
+/* Dugmad */
+.potvrdi-dugme,
+.predlozi-dugme {
   background-color: #ff69b4;
   color: white;
   border: none;
-  font-size: 11px;
-  padding: 2px 8px;
+  padding: 4px 8px;
   border-radius: 6px;
+  font-size: 11px;
   cursor: pointer;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.potvrdi-dugme:hover,
+.predlozi-dugme:hover {
+  background-color: #ff3d99;
+}
+
+/* Mobilna prilagođenost */
+@media (max-width: 600px) {
+  .vertical-week-view {
+    padding: 12px;
+  }
+
+  .week-nav {
+    font-size: 16px;
+  }
+
+  .add-button {
+    font-size: 13px;
+    width: 100%;
+  }
+
+  .event-item {
+    font-size: 13px;
+  }
+
+  .potvrdi-dugme,
+  .predlozi-dugme {
+    font-size: 10px;
+    padding: 4px 6px;
+  }
 }

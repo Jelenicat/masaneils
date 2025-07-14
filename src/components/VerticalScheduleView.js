@@ -76,20 +76,33 @@ const VerticalScheduleView = ({
 
                     {event.tip === "slobodan" && izbori.length > 0 && (
                       <div className="izbori-lista">
-                        {izbori.map(({ korisnickoIme, usluga }) => (
-                          <div key={korisnickoIme} className="izbor-red">
-                            ✅ {korisnickoIme} ({usluga})
-                            <button
-                              className="potvrdi-dugme"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                potvrdiTerminZaKorisnicu(event.id, korisnickoIme);
-                              }}
-                            >
-                              Potvrdi
-                            </button>
-                          </div>
-                        ))}
+                      {izbori.map(({ korisnickoIme, usluga }) => (
+  <div key={korisnickoIme} className="izbor-red">
+    ✅ {korisnickoIme} ({usluga})
+    <button
+      className="potvrdi-dugme"
+      onClick={(e) => {
+        e.stopPropagation();
+        potvrdiTerminZaKorisnicu(event.id, korisnickoIme);
+      }}
+    >
+      Potvrdi
+    </button>
+    <button
+      className="predlozi-dugme"
+      onClick={(e) => {
+        e.stopPropagation();
+        // Ovo zovemo iz MojKalendarAdmin.js
+        if (typeof predloziTerminKorisnici === "function") {
+          predloziTerminKorisnici(event, korisnickoIme);
+        }
+      }}
+    >
+      Predloži
+    </button>
+  </div>
+))}
+
                       </div>
                     )}
                   </div>

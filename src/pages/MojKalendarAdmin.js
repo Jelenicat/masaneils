@@ -13,7 +13,7 @@ import {
   getDoc,
 } from "firebase/firestore";
 import { toast } from "react-toastify";
-import { format, startOfWeek } from "date-fns";
+import { format, startOfWeek, addDays } from "date-fns";
 
 import VerticalScheduleView from "../components/VerticalScheduleView";
 import PonudiTermineModal from "../components/PonudiTermineModal";
@@ -56,7 +56,15 @@ const MojKalendarAdmin = () => {
 
   useEffect(() => {
     fetchEvents();
-  }, []);
+  }, [selectedWeekStart]);
+
+  const pomeriNedeljuUnazad = () => {
+    setSelectedWeekStart((prev) => addDays(prev, -7));
+  };
+
+  const pomeriNedeljuUnapred = () => {
+    setSelectedWeekStart((prev) => addDays(prev, 7));
+  };
 
   const fetchEvents = useCallback(async () => {
     try {
@@ -266,10 +274,20 @@ const MojKalendarAdmin = () => {
         events={events}
         izboriPoTerminu={izboriPoTerminu}
         potvrdiTerminZaKorisnicu={potvrdiTerminZaKorisnicu}
+        selectedWeekStart={selectedWeekStart}
+        onSelectSlot={(slot) => {
+          setNewEventData({ ...INITIAL_EVENT_DATA, ...slot, tip: "slobodan" });
+          setShowModal(true);
+          setIsEditing(false);
+        }}
+        onSelectEvent={(event) => {
+          setNewEventData(event);
+          setShowModal(true);
+          setIsEditing(true);
+        }}
+        pomeriNedeljuUnazad={pomeriNedeljuUnazad}
+        pomeriNedeljuUnapred={pomeriNedeljuUnapred}
       />
-
-      {/* Modal za dodavanje/izmenu termina */}
-      {/* ... modal logika ostaje nepromenjena ako si je već imala ... */}
     </div>
   );
 };

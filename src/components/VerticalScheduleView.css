@@ -1,57 +1,78 @@
-.vertical-schedule {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  padding: 16px;
-  max-height: calc(100vh - 200px);
-  overflow-y: auto;
+.vertical-week-view {
+  padding: 20px;
+  background-color: #fff8f3;
 }
 
-.event-block {
-  background: #fff4f8;
-  border-radius: 8px;
-  padding: 12px 16px;
-  box-shadow: 0 0 8px rgba(0, 0, 0, 0.05);
-}
-
-.event-header {
+.week-nav {
   font-size: 18px;
-  color: #c89b8c;
-  margin-bottom: 10px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  text-align: center;
 }
 
-.potvrdi-dugmad {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+.day-block {
+  background-color: #ffffff;
+  border: 2px solid #ddd;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  padding: 16px;
 }
 
-.korisnica-red {
-  background-color: #f0f0f0;
-  border-radius: 6px;
-  padding: 6px 10px;
-  font-size: 14px;
+.day-header {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.add-button {
+  background-color: #ff69b4;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.add-button:hover {
+  background-color: #ff3d99;
+}
+
+.no-events {
+  font-style: italic;
+  color: #888;
+}
+
+.event-item {
+  background-color: #f0f0f0;
+  border-radius: 8px;
+  padding: 8px;
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+
+.izbori-lista {
+  margin-top: 6px;
+  font-size: 12px;
+}
+
+.izbor-red {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #f0f8ff;
+  padding: 4px 6px;
+  border-radius: 6px;
+  margin-top: 4px;
 }
 
 .potvrdi-dugme {
-  padding: 4px 10px;
-  background-color: #28a745;
+  background-color: #ff69b4;
   color: white;
   border: none;
-  border-radius: 4px;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 13px;
-  transition: background-color 0.3s;
-}
-
-.potvrdi-dugme:hover {
-  background-color: #218838;
-}
-
-.nema-izbora {
-  font-style: italic;
-  color: #999;
 }

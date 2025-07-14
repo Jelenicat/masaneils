@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import Home from "./pages/Home";
 import Verify from "./pages/Verify";
 import AdminPanel from "./pages/AdminPanel";

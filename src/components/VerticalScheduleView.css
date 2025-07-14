@@ -1,6 +1,8 @@
 .vertical-week-view {
-  padding: 20px;
-  background-color: #f5e8c7; /* Nude beige background */
+ padding: 20px;
+  background-image: url('../assets/slikaHome.webp'); 
+  font-family: "Segoe UI", sans-serif;
+  min-height: 100vh;
   font-family: "Segoe UI", sans-serif;
 }
 
@@ -30,16 +32,38 @@
 .week-nav button:hover {
   background-color: #c68e72; /* Darker light brown on hover */
 }
+.week-nav {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 30px;
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  color: #5a4032;
+ 
+  padding: 10px 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(217, 166, 140, 0.15);
+}
 
 /* Blok za svaki dan */
 .day-block {
-  background-color: #ffffff;
-  border: 2px solid #e8d4b5; /* Ivory border */
-  border-radius: 12px;
-  margin-bottom: 24px;
-  padding: 18px;
-  box-shadow: 0 2px 6px rgba(217, 166, 140, 0.04); /* Subtle shadow in nude tone */
+  background-color: #ffffffe6;
+  border: 2px solid #e8d4b5;
+  border-radius: 16px;
+  margin-bottom: 28px;
+  padding: 20px;
+  box-shadow: 0 8px 20px rgba(217, 166, 140, 0.1);
+  transition: transform 0.2s ease, box-shadow 0.3s ease;
 }
+
+.day-block:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(217, 166, 140, 0.2);
+}
+
 
 /* Naslov i dugme za dodavanje termina */
 .day-header {

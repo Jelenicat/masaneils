@@ -1,7 +1,7 @@
 /* Dugme iznad kalendara */
 .action-dugme {
   display: block;
-  margin: 0 auto 24px;
+  margin: 24px auto 24px;
   background: linear-gradient(90deg, #d9a68c, #e8d4b5); /* Light brown to ivory gradient */
   color: white;
   border: none;
@@ -19,7 +19,9 @@
   transform: translateY(-2px);
   box-shadow: 0 6px 15px rgba(217, 166, 140, 0.4); /* Darker nude shadow */
   outline: none;
+ 
 }
+
 
 /* Modal styles */
 .modal-overlay {

@@ -6,17 +6,16 @@
   left: 0;
   width: 100vw;
   height: 100vh;
-  background-color: rgba(245, 232, 199, 0.6); /* Nude tint with transparency */
+  background-color: rgba(245, 232, 199, 0.8); /* Nude tint with transparency */
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
-  backdrop-filter: blur(10px); /* Enhanced glass effect */
-  -webkit-backdrop-filter: blur(10px);
+
 }
 
 .modal {
-  background-color: rgba(255, 250, 240, 0.9); /* Translucent nude background */
+  background-color: rgba(255, 250, 240, 0.8); /* Translucent nude background */
   border-radius: 6px; /* Minimal rounding for strict lines */
   padding: 20px;
   width: 90%;

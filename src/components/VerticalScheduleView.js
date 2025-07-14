@@ -46,10 +46,11 @@ const VerticalScheduleView = ({
               <button
                 className="add-button"
                 onClick={() => {
-                  const start = new Date(currentDate);
-                  start.setHours(9, 0, 0, 0);
-                  const end = new Date(start);
-                  end.setHours(10);
+               const start = new Date(currentDate);
+start.setHours(9, 0, 0, 0);
+const end = new Date(currentDate);
+end.setHours(10, 0, 0, 0);
+
                   onSelectSlot({ start, end });
                 }}
               >

@@ -74,8 +74,8 @@ const PonudjeniTermini = ({ korisnickoIme: propIme }) => {
         }
 
         transaction.update(eventRef, {
-          start: new Date(termin.start),
-          end: new Date(termin.end),
+         start: termin.start.toDate ? termin.start.toDate() : new Date(termin.start),
+          end: termin.end.toDate ? termin.end.toDate() : new Date(termin.end),
           note: termin.note || "",
           tip: "termin",
           title: `💅 ${korisnickoIme}`,

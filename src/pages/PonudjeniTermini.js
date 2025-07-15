@@ -65,7 +65,9 @@ const fetchPonudjeniTermini = async () => {
   const potvrdiTermin = async (termin) => {
     try {
       await runTransaction(db, async (transaction) => {
-        const eventRef = doc(db, "admin_kalendar", termin.id);
+        const praviId = termin.originalEventId || termin.id;
+const eventRef = doc(db, "admin_kalendar", praviId);
+
         const eventSnapshot = await transaction.get(eventRef);
         if (!eventSnapshot.exists()) {
           throw new Error("Termin ne postoji.");
@@ -122,6 +124,8 @@ await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
 
       toast.success("Uspešno si potvrdila termin!");
       setPonudjeni([]);
+      await fetchPonudjeniTermini();
+
     } catch (err) {
       console.error("Greška pri potvrdi termina:", err);
       toast.error("Greška pri potvrdi termina.");
@@ -175,6 +179,7 @@ await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
                       "Da li ste sigurni da želite potvrditi ovaj termin? Svi ostali izbori će biti obrisani."
                     )
                   ) {
+                    console.log("✅ Potvrđen termin za:", termin.originalEventId || termin.id);
                     potvrdiTermin(termin);
                   }
                 }}

@@ -103,21 +103,22 @@ const fetchPonudjeniTermini = async () => {
         });
       });
 
-      // Slanje notifikacije masi
-      await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          korisnickoIme: "masa",
-          title: "Potvrđen termin",
-          body: `Korisnica ${korisnickoIme} je potvrdila termin: ${format(
-            new Date(termin.start),
-            "dd.MM.yyyy HH:mm",
-            { locale: sr }
-          )} (${termin.usluga})`,
-          click_action: `https://masaneils.vercel.app/ponudjeni/${korisnickoIme}`,
-        }),
-      });
+await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    korisnickoIme: "masa",
+    title: "Potvrđen termin",
+    body: `Korisnica ${korisnickoIme} je potvrdila termin: ${format(
+      new Date(termin.start),
+      "dd.MM.yyyy HH:mm",
+      { locale: sr }
+    )} (${termin.usluga})`,
+    click_action: `https://masaneils.vercel.app/ponudjeni/${korisnickoIme}`,
+  }),
+});
+
+
 
       toast.success("Uspešno si potvrdila termin!");
       setPonudjeni([]);

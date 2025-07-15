@@ -15,6 +15,11 @@ import { format } from "date-fns";
 import { sr } from "date-fns/locale";
 import { requestPermission } from "../firebase";
 import "./PonudjeniTermini.css";
+const safeDate = (d) => {
+  if (!d) return new Date("Invalid");
+  return d.toDate ? d.toDate() : new Date(d);
+};
+
 
 const PonudjeniTermini = ({ korisnickoIme: propIme }) => {
   const { korisnickoIme: urlIme } = useParams();
@@ -140,32 +145,18 @@ const PonudjeniTermini = ({ korisnickoIme: propIme }) => {
           {ponudjeni.map((termin) => (
             <li key={termin.id} className="termin-card">
               <p className="termin-datum">
-                {termin.start &&
-                  format(
-                    termin.start.toDate ? termin.start.toDate() : new Date(termin.start),
-                    "EEEE, dd. MMMM yyyy",
-                    { locale: sr }
-                  )}
+                {format(safeDate(termin.start), "EEEE, dd. MMMM yyyy", { locale: sr })}
                 <br />
-                {termin.start &&
-                  format(
-                    termin.start.toDate ? termin.start.toDate() : new Date(termin.start),
-                    "HH:mm",
-                    { locale: sr }
-                  )} {" "}
-                – {" "}
-                {termin.end &&
-                  format(
-                    termin.end.toDate ? termin.end.toDate() : new Date(termin.end),
-                    "HH:mm",
-                    { locale: sr }
-                  )}
+                {format(safeDate(termin.start), "HH:mm", { locale: sr })} {" – "}
+                {format(safeDate(termin.end), "HH:mm", { locale: sr })}
               </p>
               <p className="termin-usluga">Usluga: {termin.usluga}</p>
               {termin.note && <p className="termin-note">📝 {termin.note}</p>}
               <p className="termin-info">
                 Napomena: Odabirom ovog termina, svi ostali vaši izbori će biti obrisani.
               </p>
+          
+              
               <button
                 onClick={() => {
                   if (

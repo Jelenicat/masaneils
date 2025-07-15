@@ -147,7 +147,8 @@ const PonudiTermineModal = ({
               korisnickoIme: selectedUser,
               title: "Novi predlozi termina 💅",
               body: `Predloženi termini: ${notificationBody}`,
-              click_action: `https://masaneils.vercel.app/ponudjeni/${korisnickoIme}`,
+              click_action: `https://masaneils.vercel.app/ponudjeni/${selectedUser}`,
+
 
             }),
           });

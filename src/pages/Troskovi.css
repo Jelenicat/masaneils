@@ -5,19 +5,20 @@
   min-height: 100vh;
   display: flex;
   justify-content: center;
-  align-items: center;
-  padding: 40px 0;
+  align-items: flex-start;
+  padding: 40px 20px;
   overflow-y: auto;
 }
 
 .troskovi-box {
   background-color: rgba(255, 255, 255, 0.5);
   padding: 40px;
-  width: 90%;
+  width: 100%;
   max-width: 750px;
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
   font-family: 'Playfair Display', serif;
-  border-radius: 6px;
+  border-radius: 8px;
+  backdrop-filter: blur(4px);
 }
 
 .troskovi-box h1 {
@@ -38,6 +39,29 @@
   display: block;
   margin-left: auto;
   margin-right: auto;
+}
+
+.finansije-dugmad {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.finansije-dugmad button {
+  padding: 10px 20px;
+  background-color: #d7a98c;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.finansije-dugmad button:hover {
+  background-color: #b87f60;
 }
 
 .unos-forma {
@@ -98,4 +122,79 @@
   font-weight: bold;
   background-color: #f9f9f9;
   font-size: 16px;
+}
+
+.statistika-box {
+  text-align: center;
+  background-color: rgba(255, 255, 255, 0.85);
+  padding: 1.5rem;
+  border-radius: 10px;
+  margin-top: 1rem;
+}
+
+.ukupna-zarada {
+  margin-top: 2rem;
+  text-align: center;
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #4d3e38;
+}
+.dugme-nazad {
+  margin-top: 30px;
+  text-align: center;
+}
+
+.dugme-nazad button {
+  padding: 12px 24px;
+  font-size: 16px;
+  background-color: #b88c7d;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+}
+
+.dugme-nazad button:hover {
+  background-color: #f29c80;
+}
+
+
+/* =====================
+   📱 Responsive design
+   ===================== */
+@media (max-width: 600px) {
+  .troskovi-box {
+    padding: 20px;
+  }
+
+  .finansije-dugmad {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .finansije-dugmad button {
+    width: 100%;
+  }
+
+  .tabela-troskova th,
+  .tabela-troskova td {
+    font-size: 14px;
+    padding: 8px 10px;
+  }
+
+  .unos-forma input,
+  .unos-forma button {
+    font-size: 15px;
+  }
+
+  .mesec-input {
+    font-size: 15px;
+    padding: 10px;
+  }
+
+  .ukupna-zarada {
+    font-size: 1rem;
+  }
 }

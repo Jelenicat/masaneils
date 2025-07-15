@@ -24,7 +24,7 @@ const AdminPanel = () => {
         <ul className="admin-menu">
           <li onClick={() => navigate("/admin/lista")} aria-label="Lista svih profila">📋 Lista svih profila</li>
           <li onClick={() => navigate("/podsetnici")} aria-label="Lista podsetnika">📝 Lista podsetnik</li>
-          <li onClick={() => navigate("/admin/troskovi")} aria-label="Troškovi">💸 Troškovi</li>
+          <li onClick={() => navigate("/admin/troskovi")} aria-label="Troškovi">💸 Troškovi i zarada</li>
           <li onClick={() => navigate("/admin/kalendar")} aria-label="Moj kalendar">📅 Moj kalendar</li>
           <li onClick={() => navigate("/admin/podsetnik")} aria-label="Dodaj podsetnik">⏰ Dodaj podsetnik</li>
         </ul>

@@ -62,35 +62,54 @@ const VerticalScheduleView = ({
             {dailyEvents.length === 0 ? (
               <p className="no-events">Nema termina</p>
             ) : (
-              dailyEvents.map((event) => {
-                const izbori = izboriPoTerminu[event.id] || [];
-                return (
-                  <div
-                    key={event.id}
-                    className="event-item"
-                    style={{ backgroundColor: event.backgroundColor }}
-                    onClick={() => onSelectEvent && onSelectEvent(event)}
-                  >
-                    {event.title}
-                    {event.tip === "slobodan" && izbori.length > 0 && (
-                      <div className="izbori-lista">
-                        {izbori.map(({ korisnickoIme, usluga }) => (
-                          <div
-                            key={`${event.id}-${korisnickoIme}`}
-                            className="izbor-red"
-                          >
-                            ✅ {korisnickoIme} ({usluga})
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })
+       dailyEvents.map((event) => {
+  const izbori = izboriPoTerminu[event.id] || [];
+  return (
+    <div
+      key={event.id}
+      className="event-item"
+      style={{ backgroundColor: event.backgroundColor }}
+      onClick={() => onSelectEvent && onSelectEvent(event)}
+    >
+      {event.title}
+
+      {event.tip === "slobodan" && izbori.length > 0 && (
+        <div className="izbori-lista">
+          {izbori.map(({ korisnickoIme, usluga }) => (
+            <div
+              key={`${event.id}-${korisnickoIme}`}
+              className="izbor-red"
+            >
+              ✅ {korisnickoIme} ({usluga})
+            </div>
+          ))}
+        </div>
+      )}
+
+      {event.note && (
+        <div className="napomena">
+          📝 {event.note}
+        </div>
+      )}
+    </div>
+  );
+})
+
             )}
           </div>
         );
       })}
+      <div style={{ textAlign: "center", marginTop: "30px" }}>
+  <button
+    className="nazad-dugme"
+    onClick={() => {
+      window.location.href = "/admin";
+    }}
+  >
+    Nazad
+  </button>
+</div>
+
     </div>
   );
 };

@@ -82,3 +82,72 @@
 .unesi-form button.submit-button:hover {
   background-color: #a87769;
 }
+.nazad-dugme {
+  margin-top: 15px;
+  padding: 10px 20px;
+  background-color: #d7a98c;
+  color: white;
+  font-weight: bold;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.nazad-dugme:hover {
+  background-color: #b87f60;
+}
+@media (max-width: 768px) {
+  .unesi-form {
+    padding: 30px 20px;
+    max-width: 90%;
+  }
+
+  .unesi-form h2 {
+    font-size: 24px;
+  }
+
+  .unesi-form p {
+    font-size: 16px;
+  }
+
+  .button-group {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .button-group button {
+    width: 100%;
+    font-size: 14px;
+    min-width: unset;
+  }
+
+  .unesi-form button.submit-button {
+    padding: 10px;
+    font-size: 15px;
+  }
+
+  .nazad-dugme {
+    width: 100%;
+    padding: 10px;
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .unesi-form h2 {
+    font-size: 20px;
+  }
+
+  .unesi-form p {
+    font-size: 15px;
+  }
+
+  .button-group {
+    gap: 10px;
+  }
+
+  .button-group button {
+    font-size: 13px;
+  }
+}

@@ -1,0 +1,85 @@
+/* src/pages/Istorija.css */
+
+.istorija-stranica {
+  min-height: 100vh;
+  background-image: url('../assets/slikaHome.webp');/* stavi svoju sliku ili zadrži krem stil */
+  background-size: cover;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: "Playfair Display", serif;
+}
+
+.istorija-box {
+  background-color: rgba(255, 255, 255, 0.9);
+  padding: 30px;
+  border-radius: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  width: 90%;
+  max-width: 500px;
+}
+
+.istorija-box h2 {
+  margin-bottom: 20px;
+  font-size: 24px;
+  color: #333;
+}
+
+.istorija-box ul {
+  list-style: none;
+  padding: 0;
+}
+
+.istorija-box li {
+  margin-bottom: 10px;
+  padding: 10px;
+  background-color: #ffeef4;
+  border-radius: 8px;
+}
+.nazad-dugme {
+  margin-top: 20px;
+  padding: 10px 20px;
+  background-color: #d7a98c;
+  color: white;
+  font-weight: bold;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.nazad-dugme:hover {
+  background-color: #b87f60;
+}
+
+@media (max-width: 768px) {
+  .istorija-box {
+    padding: 20px;
+    max-width: 90%;
+  }
+
+  .istorija-box h2 {
+    font-size: 20px;
+    text-align: center;
+  }
+
+  .istorija-box li {
+    font-size: 16px;
+    padding: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .istorija-box {
+    padding: 16px;
+  }
+
+  .istorija-box h2 {
+    font-size: 18px;
+  }
+
+  .istorija-box li {
+    font-size: 14px;
+    padding: 6px;
+  }
+}

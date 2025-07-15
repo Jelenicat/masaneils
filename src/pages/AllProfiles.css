@@ -7,16 +7,16 @@
   display: flex;
   justify-content: center;
   align-items: flex-start;
+  font-family: 'Playfair Display', serif;
 }
 
 .all-profiles-box {
   background-color: rgba(255, 255, 255, 0.85);
   padding: 30px;
-  max-width: 900px;
+  max-width: 1000px;
   width: 100%;
-  border-radius: 0; /* oštre ivice */
+  border-radius: 0;
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
-  font-family: 'Playfair Display', serif;
   color: #2e2e2e;
 }
 
@@ -26,6 +26,53 @@
   font-size: 36px;
   margin-bottom: 30px;
   color: #3a2e2e;
+}
+
+.dropdown {
+  display: block;
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto 30px auto;
+  padding: 10px;
+  font-size: 16px;
+  border: 2px solid #ccc;
+  border-radius: 6px;
+  background-color: #fff8f0;
+  color: #3a2e2e;
+  font-family: 'Playfair Display', serif;
+}
+
+.rezultati-box {
+  margin-top: 30px;
+}
+
+.tabela-troskova {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+.tabela-troskova th,
+.tabela-troskova td {
+  padding: 10px 15px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+  font-family: 'Playfair Display', serif;
+}
+
+.tabela-troskova th {
+  background-color: #f1e6da;
+  color: #3a2e2e;
+}
+
+.tabela-troskova td {
+  background-color: #fffdfc;
+  color: #2e2e2e;
+}
+
+.tabela-troskova tfoot td {
+  font-weight: bold;
+  background-color: #f7f2ee;
 }
 
 .profiles-grid {
@@ -47,4 +94,60 @@
 .profile-card:hover {
   transform: scale(1.03);
   background-color: #e3d2c0;
+}
+.nazad-container {
+  margin-top: 30px;
+  text-align: center;
+}
+
+.nazad-dugme {
+  background-color: #d8b9a3;
+  border: none;
+  padding: 10px 20px;
+  font-size: 16px;
+  font-family: 'Playfair Display', serif;
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.nazad-dugme:hover {
+  background-color: #bfa08b;
+}
+
+
+/* Responsive */
+@media (max-width: 768px) {
+  .all-profiles-box {
+    padding: 20px;
+  }
+
+  .dropdown {
+    max-width: 100%;
+    font-size: 14px;
+  }
+
+  .tabela-troskova th,
+  .tabela-troskova td {
+    font-size: 14px;
+    padding: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .all-profiles-box h1 {
+    font-size: 28px;
+  }
+
+  .dropdown {
+    font-size: 13px;
+    padding: 8px;
+  }
+
+  .tabela-troskova th,
+  .tabela-troskova td {
+    font-size: 12px;
+    padding: 6px;
+  }
 }

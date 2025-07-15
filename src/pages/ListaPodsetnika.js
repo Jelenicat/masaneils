@@ -9,9 +9,12 @@ import {
   doc,
 } from "firebase/firestore";
 import "./ListaPodsetnika.css";
+import { useNavigate } from "react-router-dom";
+
 
 const ListaPodsetnika = () => {
   const [podsetnici, setPodsetnici] = useState([]);
+const navigate = useNavigate();
 
   const ucitajPodsetnike = async () => {
     try {
@@ -60,7 +63,12 @@ const ListaPodsetnika = () => {
               </li>
             ))}
           </ul>
+          
         )}
+        <button className="nazad-dugme" onClick={() => navigate("/admin")}>
+  Nazad
+</button>
+
       </div>
     </div>
   );

@@ -13,6 +13,7 @@ import Podsetnik from "./pages/Podsetnik";
 import ListaPodsetnika from "./pages/ListaPodsetnika";
 import PonudjeniTermini from "./pages/PonudjeniTermini";
 import Korisnik from "./pages/Korisnik";
+import Istorija from "./pages/Istorija";
 // ✅ OVDE je helper komponenta za dinamicko korisnicko ime
 const PonudjeniTerminiWrapper = () => {
   const { korisnickoIme } = useParams();
@@ -36,7 +37,7 @@ function App() {
         <Route path="/ponudjeni-termini" element={<PonudjeniTermini />} />
         <Route path="/korisnik" element={<Korisnik />} />
         <Route path="/ponudjeni/:korisnickoIme" element={<PonudjeniTerminiWrapper />} />
-
+<Route path="/istorija" element={<Istorija />} />
       </Routes>
     </Router>
   );

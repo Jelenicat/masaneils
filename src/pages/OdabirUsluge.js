@@ -6,11 +6,14 @@ import { doc, setDoc } from "firebase/firestore";
 import { requestPermission } from "../firebase";
 import "./OdabirUsluge.css";
 
+
 const OdabirUsluge = () => {
   const [usluga, setUsluga] = useState("");
   const [materijal, setMaterijal] = useState("");
   const navigate = useNavigate();
   const korisnickoIme = localStorage.getItem("korisnickoIme");
+   const smena = localStorage.getItem("smena");
+ 
 
   useEffect(() => {
     if (korisnickoIme && korisnickoIme !== "masa") {
@@ -94,6 +97,7 @@ const OdabirUsluge = () => {
         <button className="submit-button" onClick={handleSubmit}>
           Dalje
         </button>
+        <button onClick={() => navigate("/korisnik")} className="nazad-dugme">Nazad</button>
       </div>
     </div>
   );

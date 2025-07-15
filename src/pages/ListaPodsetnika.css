@@ -71,3 +71,76 @@
 .lista-item button:hover {
   background-color: #f7b79d;
 }
+.nazad-dugme {
+  margin-top: 30px;
+  padding: 12px 24px;
+  background-color: #d7a98c;
+  color: white;
+  font-weight: bold;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.nazad-dugme:hover {
+  background-color: #b87f60;
+}
+
+/* TABLETI */
+@media (max-width: 1024px) {
+  .lista-form {
+    padding: 1.5rem;
+    max-width: 90%;
+  }
+
+  .lista-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .lista-item .tekst {
+    font-size: 1rem;
+  }
+
+  .lista-item button {
+    width: 100%;
+  }
+
+  .nazad-dugme {
+    width: 100%;
+    font-size: 1rem;
+  }
+}
+
+/* TELEFONI */
+@media (max-width: 600px) {
+  .lista-form {
+    padding: 1rem;
+    border-radius: 10px;
+    gap: 0.75rem;
+  }
+
+  .lista-item {
+    padding: 0.75rem;
+    font-size: 0.95rem;
+  }
+
+  .lista-item .tekst {
+    font-size: 0.95rem;
+  }
+
+  .lista-item button {
+    font-size: 0.9rem;
+    padding: 0.5rem;
+  }
+
+  .nazad-dugme {
+    padding: 10px 20px;
+    font-size: 0.95rem;
+  }
+}

@@ -45,7 +45,7 @@ const Korisnik = () => {
         <p>Izaberi šta želiš da radiš:</p>
         <div className="korisnik-dugmad">
           <button onClick={handleZakazi}>Zakazi termin</button>
-          <button onClick={handleDrugaFunkcija}>Još nešto (uskoro)</button>
+          <button onClick={() => navigate("/istorija")}>Istorija</button>
           <button onClick={handleLogout} className="odjava-dugme">Odjavi se</button>
         </div>
       </div>

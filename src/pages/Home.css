@@ -52,3 +52,32 @@
 .home-form button:hover {
   background-color: #c18167;
 }
+@media (max-width: 600px) {
+  .login-page {
+    padding: 20px;
+    align-items: flex-start;
+  }
+
+  .home-form {
+    padding: 25px 20px;
+    border-radius: 12px;
+    margin-top: 50px;
+    width: 100%;
+    max-width: 100%;
+    box-shadow: none;
+  }
+
+  .home-form h1 {
+    font-size: 24px;
+  }
+
+  .home-form input {
+    font-size: 14px;
+    padding: 10px;
+  }
+
+  .home-form button {
+    font-size: 14px;
+    padding: 10px;
+  }
+}

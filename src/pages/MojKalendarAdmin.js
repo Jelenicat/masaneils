@@ -22,6 +22,8 @@ const EVENT_TYPES = {
   slobodan: { color: "#90ee90" },
   zauzet: { color: "#ff6347" },
   termin: { color: "#ffe4ec" },
+  edukacija: { color: "#bfa0dc" }, // Ljubičasta boja za edukacije
+
 };
 
 const INITIAL_EVENT_DATA = {
@@ -118,12 +120,14 @@ const MojKalendarAdmin = () => {
 
           let title = `${vremeOd}–${vremeDo} — `;
           if (data.tip === "slobodan") {
-            title += izabrale.length > 0 ? `slobodan (${izabrale.join(", ")})` : "slobodan";
+           title += "slobodan"; 
           } else if (data.tip === "zauzet") {
             title += "zauzet";
           } else if (data.tip === "termin") {
             title += `💅 ${data.clientUsername || "Nepoznat korisnik"}`;
-          }
+          } else if (data.tip === "edukacija") {
+  title += "🎓 edukacija";
+}
 
           return {
              ...data,

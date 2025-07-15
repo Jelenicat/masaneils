@@ -1,35 +1,38 @@
 /* src/pages/Korisnik.css */
 
 .korisnik-page {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
   min-height: 100vh;
-  background-color: #fff7f5; /* krem pozadina */
-  padding: 20px;
+  background-image: url('../assets/slikaHome.webp'); /* prilagodi putanju ako je drugačija */
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   font-family: 'Playfair Display', serif;
+  padding: 20px;
 }
 
 .korisnik-box {
-  background-color: white;
-  padding: 30px;
-  border-radius: 20px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background: rgba(255, 255, 255, 0.5); /* providno belo */
+  padding: 40px;
+  border-radius: 0; /* oštre ivice kao u home-form */
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(5px); /* efekat stakla */
+  -webkit-backdrop-filter: blur(5px);
   text-align: center;
-  width: 90%;
   max-width: 400px;
+  width: 90%;
 }
 
 .korisnik-box h2 {
-  font-size: 26px;
+  font-size: 28px;
   margin-bottom: 20px;
-  color: #333;
+  color: #2e2e2e;
 }
 
 .korisnik-box p {
   font-size: 18px;
-  color: #666;
+  color: #444;
   margin-bottom: 20px;
 }
 
@@ -40,19 +43,19 @@
 }
 
 .korisnik-dugmad button {
-  background-color: #ff80ab;
-  border: none;
+  background-color: #b88c7d;
   color: white;
-  padding: 12px 24px;
+  border: none;
+  padding: 12px;
   font-size: 16px;
-  border-radius: 12px;
+  border-radius: 8px;
   cursor: pointer;
   transition: background-color 0.3s ease;
   width: 100%;
 }
 
 .korisnik-dugmad button:hover {
-  background-color: #ff5c97;
+  background-color: #c18167;
 }
 
 .odjava-dugme {
@@ -62,4 +65,30 @@
 
 .odjava-dugme:hover {
   background-color: #d32f2f !important;
+}
+.termin-kocka.disabled {
+  background-color: #ddd;
+  cursor: not-allowed;
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+@media (max-width: 600px) {
+  .korisnik-box {
+    padding: 30px 20px;
+    border-radius: 0;
+  }
+
+  .korisnik-box h2 {
+    font-size: 24px;
+  }
+
+  .korisnik-box p {
+    font-size: 16px;
+  }
+
+  .korisnik-dugmad button {
+    font-size: 15px;
+    padding: 10px;
+  }
 }

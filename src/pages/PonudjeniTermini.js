@@ -45,7 +45,11 @@ const fetchPonudjeniTermini = async () => {
     const now = new Date();
     const termini = querySnapshot.docs
       .map((doc) => ({ id: doc.id, ...doc.data() }))
-      .filter((t) => new Date(t.start) >= now);
+    .filter((t) => {
+  const start = t.start.toDate ? t.start.toDate() : new Date(t.start);
+  return start >= now;
+});
+
 
     setPonudjeni(termini);
   } catch (error) {

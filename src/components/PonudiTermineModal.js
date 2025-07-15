@@ -139,6 +139,9 @@ const PonudiTermineModal = ({
         .join(", ");
 
       for (let attempt = 0; attempt < 3; attempt++) {
+        console.log("📨 Šaljemo notifikaciju za:", selectedUser);
+console.log("Predloženi termini:", notificationBody);
+
         try {
           await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
             method: "POST",

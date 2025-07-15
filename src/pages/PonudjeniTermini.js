@@ -137,14 +137,29 @@ await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
         <ul>
           {ponudjeni.map((termin) => (
             <li key={termin.id} className="termin-card">
-              <p className="termin-datum">
-                {format(new Date(termin.start), "EEEE, dd. MMMM yyyy", {
-                  locale: sr,
-                })}
-                <br />
-                {format(new Date(termin.start), "HH:mm", { locale: sr })} –{" "}
-                {format(new Date(termin.end), "HH:mm", { locale: sr })}
-              </p>
+           <p className="termin-datum">
+  {termin.start &&
+    format(
+      termin.start.toDate ? termin.start.toDate() : new Date(termin.start),
+      "EEEE, dd. MMMM yyyy",
+      { locale: sr }
+    )}
+  <br />
+  {termin.start &&
+    format(
+      termin.start.toDate ? termin.start.toDate() : new Date(termin.start),
+      "HH:mm",
+      { locale: sr }
+    )}{" "}
+  –{" "}
+  {termin.end &&
+    format(
+      termin.end.toDate ? termin.end.toDate() : new Date(termin.end),
+      "HH:mm",
+      { locale: sr }
+    )}
+</p>
+
               <p className="termin-usluga">Usluga: {termin.usluga}</p>
               {termin.note && (
                 <p className="termin-note">📝 {termin.note}</p>

@@ -24,14 +24,20 @@ const Kalendar = () => {
   const [vecIzabraniTerminiIDs, setVecIzabraniTerminiIDs] = useState([]);
 
 
-  useEffect(() => {
+ useEffect(() => {
+  const fetchSve = async () => {
     if (!korisnickoIme || !smena || !usluga) {
       toast.error("Nedostaju korisnički podaci.");
       return;
     }
-    fetchVecIzabraniTermini();
-    fetchSlobodniTermini();
-  }, [offsetNedelja]);
+
+    await fetchVecIzabraniTermini();
+    await fetchSlobodniTermini();
+  };
+
+  fetchSve();
+}, [offsetNedelja]);
+
 
   const fetchVecIzabraniTermini = async () => {
     try {

@@ -14,22 +14,19 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 // Background poruke
-messaging.onBackgroundMessage(function(payload) {
+messaging.onBackgroundMessage(function (payload) {
   console.log('[firebase-messaging-sw.js] Primljena background poruka:', payload);
 
-  const notification = payload.notification || payload.data;
+  const notificationTitle = payload?.notification?.title || payload?.data?.title || "Nova obaveštenja";
+  const notificationBody = payload?.notification?.body || payload?.data?.body || "";
+  const clickAction = payload?.data?.click_action || "https://masaneils.vercel.app";
 
-  const notificationTitle = notification.title || "Nova obaveštenja";
   const notificationOptions = {
-    body: notification.body || "",
+    body: notificationBody,
     icon: "/icon-192x192.png",
-   data: {
-  click_action:
-    payload?.data?.click_action || 
-    notification.click_action || 
-    "https://masaneils.vercel.app",
-},
-
+    data: {
+      click_action: clickAction,
+    },
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);

@@ -39,8 +39,9 @@ function App() {
         <Route path="/korisnik" element={<Korisnik />} />
         <Route path="/ponudjeni/:korisnickoIme" element={<PonudjeniTerminiWrapper />} />
 <Route path="/istorija" element={<Istorija />} />
-      </Routes>
       <Route path="/moj-termin" element={<MojTermin />} />
+      </Routes>
+      
     </Router>
   );
 }

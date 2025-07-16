@@ -88,14 +88,14 @@ const requestPermission = async () => {
   }
 };
 // 📤 Slanje notifikacije putem backend API-ja
-const sendNotification = async (token, { title, body, click_action }) => {
+const sendNotification = async (korisnickoIme, { title, body, click_action }) => {
   try {
     await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token, title, body, click_action }),
+      body: JSON.stringify({ korisnickoIme, title, body, click_action }),
     });
-    console.log("✅ Notifikacija poslata za token:", token);
+    console.log("✅ Notifikacija poslata korisniku:", korisnickoIme);
   } catch (error) {
     console.error("❌ Greška pri slanju notifikacije:", error);
   }

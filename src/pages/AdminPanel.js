@@ -67,19 +67,17 @@ const AdminPanel = () => {
       const docRef = doc(db, "fcmTokens", korisnickoIme);
       const docSnap = await getDoc(docRef);
 
-      if (docSnap.exists()) {
-        const token = docSnap.data().token;
-        console.log("✅ Token za slanje:", token);
-        await sendNotification(token, {
-          title: "📅 Podsetnik",
-          body: "Imaš zakazan termin naredne nedelje. Klikni da vidiš kada!",
-          click_action: `https://masaneils.vercel.app/moj-termin?vreme=${encodeURIComponent(
-            vreme
-          )}`,
-        });
-      } else {
-        console.warn(`❌ Nema tokena za korisnika ${korisnickoIme}`);
-      }
+   if (docSnap.exists()) {
+  console.log("✅ Token postoji za korisnika:", korisnickoIme);
+  await sendNotification(korisnickoIme, {
+    title: "📅 Podsetnik",
+    body: "Imaš zakazan termin naredne nedelje. Klikni da vidiš kada!",
+    click_action: `/moj-termin?vreme=${encodeURIComponent(vreme)}`,
+  });
+} else {
+  console.warn(`❌ Nema tokena za korisnika ${korisnickoIme}`);
+}
+
     }
 
     alert("✅ Podsetnici su poslati!");

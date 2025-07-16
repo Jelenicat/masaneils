@@ -55,13 +55,16 @@ const posaljiPodsetnike = async () => {
     }
   });
 
-  for (const [korisnickoIme, vreme] of korisniciMap.entries()) {
+  
+    for (const [korisnickoIme, vreme] of korisniciMap.entries()) {
+    console.log(`📤 Šaljem podsetnik za ${korisnickoIme} u ${vreme}`);
     const tokenQuery = await getDocs(
       query(collection(db, "fcmTokens"), where("username", "==", korisnickoIme))
     );
 
     tokenQuery.forEach((doc) => {
       const token = doc.data().token;
+      console.log("✅ Token za slanje:", token);
       sendNotification(token, {
         title: "📅 Podsetnik",
         body: "Imaš zakazan termin naredne nedelje. Klikni da vidiš kada!",
@@ -69,6 +72,7 @@ const posaljiPodsetnike = async () => {
       });
     });
   }
+
 
   alert("✅ Podsetnici su poslati!");
 };

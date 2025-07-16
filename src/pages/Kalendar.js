@@ -20,7 +20,7 @@ const Kalendar = () => {
   const navigate = useNavigate();
   const [dostupniTermini, setDostupniTermini] = useState([]);
   const [izabrani, setIzabrani] = useState([]);
-  const [offsetNedelja, setOffsetNedelja] = useState(0);
+ const [offsetNedelja, setOffsetNedelja] = useState(1);
   const [vecIzabraniTerminiIDs, setVecIzabraniTerminiIDs] = useState([]);
 
 
@@ -59,7 +59,9 @@ const Kalendar = () => {
 
       const sada = new Date();
       const startOfWeek = new Date(sada);
-      startOfWeek.setDate(sada.getDate() - sada.getDay() + 1 + offsetNedelja * 7);
+     const dayOfWeek = sada.getDay() === 0 ? 7 : sada.getDay();
+startOfWeek.setDate(sada.getDate() - dayOfWeek + 1 + offsetNedelja * 7);
+
       startOfWeek.setHours(0, 0, 0, 0);
 
       const endOfWeek = new Date(startOfWeek);
@@ -69,7 +71,10 @@ const Kalendar = () => {
       const terminiZaPrikaz = slobodni.filter((t) => {
         if (vecIzabraniTerminiIDs.includes(t.id)) return false;
 
-        const start = t.start.toDate ? t.start.toDate() : new Date(t.start);
+        const start = new Date(
+  t.start.toDate ? t.start.toDate().getTime() : new Date(t.start).getTime()
+);
+
         const startTime = start.getTime();
         const localHour = start.getHours();
         const localMinute = start.getMinutes();
@@ -170,7 +175,8 @@ const Kalendar = () => {
     <div className="kalendar">
       <div className="kalendar-inner">
         <h2>Izabrana usluga: <span>{usluga}</span></h2>
-        <h3>Dostupni termini za ovu nedelju:</h3>
+      <h3>Dostupni termini za {offsetNedelja === 0 ? "ovu" : offsetNedelja === 1 ? "narednu" : `${offsetNedelja}. nedelju`}:</h3>
+
 
         <div className="navigation-buttons">
           <button onClick={() => setOffsetNedelja((prev) => prev - 1)}>⬅ Prethodna</button>

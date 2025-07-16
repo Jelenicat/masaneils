@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { db } from "../firebase";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, getDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import "./UnesiPodatke.css";
 
@@ -8,6 +8,25 @@ const UnesiPodatke = () => {
   const [brojTelefona, setBrojTelefona] = useState("");
   const [datumRodjenja, setDatumRodjenja] = useState("");
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchSmena = async () => {
+      const korisnickoIme = localStorage.getItem("korisnickoIme");
+      if (!korisnickoIme) return;
+
+      const docRef = doc(db, "korisnici", korisnickoIme);
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.smena) {
+          localStorage.setItem("smena", data.smena);
+        }
+      }
+    };
+
+    fetchSmena();
+  }, []);
 
   const handleSubmit = async () => {
     if (!brojTelefona || !datumRodjenja) {

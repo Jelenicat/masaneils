@@ -2,26 +2,44 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { db } from "../firebase";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, getDoc } from "firebase/firestore"; // dodato getDoc
 import { requestPermission } from "../firebase";
 import "./OdabirUsluge.css";
-
 
 const OdabirUsluge = () => {
   const [usluga, setUsluga] = useState("");
   const [materijal, setMaterijal] = useState("");
   const navigate = useNavigate();
   const korisnickoIme = localStorage.getItem("korisnickoIme");
-   const smena = localStorage.getItem("smena");
- 
 
   useEffect(() => {
+    // Provera prijave i notifikacije
     if (korisnickoIme && korisnickoIme !== "masa") {
       requestPermission();
     } else if (!korisnickoIme) {
       alert("Molimo prijavite se.");
       navigate("/login");
     }
+
+    // Ako smena nije postavljena, preuzmi je iz baze
+    const fetchSmena = async () => {
+      if (!localStorage.getItem("smena") && korisnickoIme) {
+        try {
+          const docRef = doc(db, "korisnici", korisnickoIme);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            if (data.smena) {
+              localStorage.setItem("smena", data.smena);
+            }
+          }
+        } catch (err) {
+          console.error("Greška pri dohvatanju smene:", err);
+        }
+      }
+    };
+
+    fetchSmena();
   }, [korisnickoIme, navigate]);
 
   const handleSubmit = async () => {
@@ -97,7 +115,9 @@ const OdabirUsluge = () => {
         <button className="submit-button" onClick={handleSubmit}>
           Dalje
         </button>
-        <button onClick={() => navigate("/korisnik")} className="nazad-dugme">Nazad</button>
+        <button onClick={() => navigate("/korisnik")} className="nazad-dugme">
+          Nazad
+        </button>
       </div>
     </div>
   );

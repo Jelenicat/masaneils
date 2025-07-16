@@ -27,50 +27,51 @@ const AdminPanel = () => {
     navigate("/"); // Return to Home
   };
 
-  const posaljiPodsetnike = async () => {
-    const danas = new Date();
-    const ponedeljak = startOfWeek(addDays(danas, 7), { weekStartsOn: 1 });
-    const subota = endOfWeek(addDays(danas, 7), { weekStartsOn: 1 });
-    const q = query(
-      collection(db, "admin_kalendar"),
-      where("start", ">=", Timestamp.fromDate(ponedeljak)),
-      where("start", "<=", Timestamp.fromDate(subota)),
-      where("tip", "==", "termin") // Samo potvrđeni termini
-    );
+const posaljiPodsetnike = async () => {
+  const danas = new Date();
+  const sledeciPonedeljak = startOfWeek(addDays(danas, 7), { weekStartsOn: 1 });
+  const sledecaSubota = addDays(sledeciPonedeljak, 5);
 
-    const snapshot = await getDocs(q);
-    const korisniciMap = new Map();
+  console.log("📆 Podsetnici za termine od", sledeciPonedeljak, "do", sledecaSubota);
 
-    snapshot.forEach((doc) => {
-  const data = doc.data();
-  if (data.clientUsername && data.start) {
-    const username = data.clientUsername;
-    const vreme = data.start.toDate().toISOString(); // formatirano za URL
-    // čuvamo samo prvi termin koji nađemo
-    if (!korisniciMap.has(username)) {
-      korisniciMap.set(username, vreme);
-    }
-  }
-});
-
-   for (const [korisnickoIme, vreme] of korisniciMap.entries()) {
-  const tokenQuery = await getDocs(
-    query(collection(db, "fcmTokens"), where("username", "==", korisnickoIme))
+  const q = query(
+    collection(db, "admin_kalendar"),
+    where("start", ">=", Timestamp.fromDate(sledeciPonedeljak)),
+    where("start", "<=", Timestamp.fromDate(sledecaSubota)),
+    where("tip", "==", "termin")
   );
 
-  tokenQuery.forEach((doc) => {
-    const token = doc.data().token;
-    sendNotification(token, {
-      title: "📅 Podsetnik",
-      body: "Imaš zakazan termin naredne nedelje. Klikni da vidiš kada!",
-      click_action: `https://masaneils.vercel.app/moj-termin?vreme=${encodeURIComponent(vreme)}`,
-    });
+  const snapshot = await getDocs(q);
+  const korisniciMap = new Map();
+
+  snapshot.forEach((doc) => {
+    const data = doc.data();
+    if (data.clientUsername && data.start) {
+      const username = data.clientUsername;
+      const vreme = data.start.toDate().toISOString();
+      if (!korisniciMap.has(username)) {
+        korisniciMap.set(username, vreme);
+      }
+    }
   });
-}
 
+  for (const [korisnickoIme, vreme] of korisniciMap.entries()) {
+    const tokenQuery = await getDocs(
+      query(collection(db, "fcmTokens"), where("username", "==", korisnickoIme))
+    );
 
-    alert("✅ Podsetnici su poslati!");
-  };
+    tokenQuery.forEach((doc) => {
+      const token = doc.data().token;
+      sendNotification(token, {
+        title: "📅 Podsetnik",
+        body: "Imaš zakazan termin naredne nedelje. Klikni da vidiš kada!",
+        click_action: `https://masaneils.vercel.app/moj-termin?vreme=${encodeURIComponent(vreme)}`,
+      });
+    });
+  }
+
+  alert("✅ Podsetnici su poslati!");
+};
 
   return (
     <div className="admin-page" role="main" aria-label="Admin Panel">

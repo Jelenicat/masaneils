@@ -5,6 +5,7 @@ import "firebase/compat/firestore";
 
 import { doc, setDoc, deleteDoc } from "firebase/firestore";
 
+
 const firebaseConfig = {
   apiKey: "AIzaSyBpluULKCmNlrbfQLzbqms4Yfvw2p_3OQ8",
   authDomain: "masaneils.firebaseapp.com",
@@ -86,6 +87,20 @@ const requestPermission = async () => {
     console.error("🔥 Greška prilikom traženja dozvole za notifikacije:", err);
   }
 };
+// 📤 Slanje notifikacije putem backend API-ja
+const sendNotification = async (token, { title, body, click_action }) => {
+  try {
+    await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, title, body, click_action }),
+    });
+    console.log("✅ Notifikacija poslata za token:", token);
+  } catch (error) {
+    console.error("❌ Greška pri slanju notifikacije:", error);
+  }
+};
+
 
 // ✅ Exportuj sve što koristiš
 export {
@@ -97,4 +112,5 @@ export {
   refreshFcmToken,
   requestPermission,
   removeTokenFromFirestore,
+  sendNotification
 };

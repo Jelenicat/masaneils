@@ -43,7 +43,11 @@ export default async function handler(req, res) {
     return res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 
-  const { korisnickoIme, title, body } = req.body;
+  const { korisnickoIme, title, body, click_action } = req.body;
+
+  if (!korisnickoIme) {
+    return res.status(400).json({ error: "Nedostaje korisnickoIme u zahtevu." });
+  }
 
   try {
     const { getFirestore } = await import("firebase-admin/firestore");
@@ -74,27 +78,24 @@ export default async function handler(req, res) {
       console.warn("⚠️ Nije moguće proveriti predloge:", err.message);
     }
 
-  // 📤 Slanje notifikacije
-await getMessaging().send({
-  token,
-  notification: {
-    title,
-    body,
-  },
-  webpush: {
-    fcmOptions: {
-      // Ako se prosledi click_action, koristi njega; ako ne, koristi staro ponašanje
-      link: req.body.click_action || `https://masaneils.vercel.app${finalClickAction}`,
-    },
-  },
-});
-
+    // 📤 Slanje notifikacije
+    await getMessaging().send({
+      token,
+      notification: {
+        title,
+        body,
+      },
+      webpush: {
+        fcmOptions: {
+          link: click_action || `https://masaneils.vercel.app${finalClickAction}`,
+        },
+      },
+    });
 
     return res.status(200).json({ success: true });
   } catch (error) {
     console.error("❌ Greška prilikom slanja notifikacije:", error);
 
-    // 🧹 Ako je token nevažeći, obriši ga iz baze
     if (error.code === "messaging/registration-token-not-registered") {
       try {
         const { getFirestore } = await import("firebase-admin/firestore");

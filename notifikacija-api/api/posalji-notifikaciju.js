@@ -74,19 +74,21 @@ export default async function handler(req, res) {
       console.warn("⚠️ Nije moguće proveriti predloge:", err.message);
     }
 
-    // 📤 Slanje notifikacije
-    await getMessaging().send({
-      token,
-      notification: {
-        title,
-        body,
-      },
-      webpush: {
-        fcmOptions: {
-          link: `https://masaneils.vercel.app${finalClickAction}`,
-        },
-      },
-    });
+  // 📤 Slanje notifikacije
+await getMessaging().send({
+  token,
+  notification: {
+    title,
+    body,
+  },
+  webpush: {
+    fcmOptions: {
+      // Ako se prosledi click_action, koristi njega; ako ne, koristi staro ponašanje
+      link: req.body.click_action || `https://masaneils.vercel.app${finalClickAction}`,
+    },
+  },
+});
+
 
     return res.status(200).json({ success: true });
   } catch (error) {

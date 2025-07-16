@@ -23,10 +23,13 @@ messaging.onBackgroundMessage(function(payload) {
   const notificationOptions = {
     body: notification.body || "",
     icon: "/icon-192x192.png",
-    data: {
-     click_action: notification.click_action || "https://masaneils.vercel.app/ponudjeni-termini",
+   data: {
+  click_action:
+    payload?.data?.click_action || 
+    notification.click_action || 
+    "https://masaneils.vercel.app",
+},
 
-    },
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);

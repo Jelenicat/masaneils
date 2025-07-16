@@ -43,12 +43,13 @@ export default async function handler(req, res) {
     return res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 
-  const { korisnickoIme, title, body, click_action = "/" } = req.body;
+  const { korisnickoIme, title, body } = req.body;
 
   try {
-    // 🔍 Uzimamo FCM token iz Firestore-a
     const { getFirestore } = await import("firebase-admin/firestore");
     const db = getFirestore();
+
+    // 🔍 Uzimamo FCM token iz Firestore-a
     const docRef = db.collection("fcmTokens").doc(korisnickoIme);
     const docSnap = await docRef.get();
 
@@ -57,6 +58,21 @@ export default async function handler(req, res) {
     }
 
     const token = docSnap.data().token;
+
+    // 🧠 Proveri da li korisnik ima aktivne predloge termina
+    let finalClickAction = "/";
+    try {
+      const predloziSnapshot = await db
+        .collection("ponudjeniTermini")
+        .where("korisnickoIme", "==", korisnickoIme)
+        .get();
+
+      if (!predloziSnapshot.empty) {
+        finalClickAction = "/predlozeni-termini";
+      }
+    } catch (err) {
+      console.warn("⚠️ Nije moguće proveriti predloge:", err.message);
+    }
 
     // 📤 Slanje notifikacije
     await getMessaging().send({
@@ -67,7 +83,7 @@ export default async function handler(req, res) {
       },
       webpush: {
         fcmOptions: {
-          link: click_action,
+          link: `https://masaneils.vercel.app${finalClickAction}`,
         },
       },
     });

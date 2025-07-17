@@ -75,7 +75,8 @@ const AdminPanel = () => {
         if (token && !sentTokens.has(token)) {
           console.log("✅ Šaljem notifikaciju na token:", token);
 
-          await sendNotification(token, {
+         await sendNotification(korisnickoIme, {
+
             title: "📅 Podsetnik",
             body: "Imaš zakazan termin naredne nedelje. Klikni da vidiš kada!",
             click_action: "https://masaneils.vercel.app/istorija",

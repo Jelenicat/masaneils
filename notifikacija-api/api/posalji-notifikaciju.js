@@ -79,18 +79,20 @@ export default async function handler(req, res) {
     }
 
     // 📤 Slanje notifikacije
+console.log("📨 Pokušavam slanje na token:", token);
+
 await getMessaging().send({
   token,
-  notification: {
-    title,
-    body,
-  },
+  notification: { title, body },
   webpush: {
     fcmOptions: {
       link: `https://masaneils.vercel.app${finalClickAction}`,
     },
   },
 });
+
+console.log("✅ Notifikacija uspešno poslata");
+
 
 
 

@@ -79,18 +79,15 @@ export default async function handler(req, res) {
     }
 
     // 📤 Slanje notifikacije
-    await getMessaging().send({
-      token,
-      notification: {
-        title,
-        body,
-      },
-      webpush: {
-        fcmOptions: {
-          link: click_action || `https://masaneils.vercel.app${finalClickAction}`,
-        },
-      },
-    });
+ await getMessaging().send({
+  token,
+  data: {
+    title,
+    body,
+    click_action: `https://masaneils.vercel.app${click_action || finalClickAction}`,
+  },
+});
+
 
     return res.status(200).json({ success: true });
   } catch (error) {

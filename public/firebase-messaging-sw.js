@@ -17,8 +17,8 @@ const messaging = firebase.messaging();
 messaging.onBackgroundMessage(function (payload) {
   console.log('[firebase-messaging-sw.js] Primljena background poruka:', payload);
 
-const notificationTitle = payload.data.title;
-const notificationBody = payload.data.body;
+const notificationTitle = payload.notification?.title || payload.data?.title;
+const notificationBody = payload.notification?.body || payload.data?.body;
 
   const clickAction = payload?.data?.click_action || "https://masaneils.vercel.app";
 

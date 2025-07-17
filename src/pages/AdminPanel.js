@@ -61,23 +61,33 @@ const AdminPanel = () => {
       }
     });
 
+    const sentTokens = new Set();
+
     for (const [korisnickoIme, vreme] of korisniciMap.entries()) {
       console.log(`📤 Šaljem podsetnik za ${korisnickoIme} u ${vreme}`);
 
       const docRef = doc(db, "fcmTokens", korisnickoIme);
       const docSnap = await getDoc(docRef);
 
-   if (docSnap.exists()) {
-  console.log("✅ Token postoji za korisnika:", korisnickoIme);
-  await sendNotification(korisnickoIme, {
-    title: "📅 Podsetnik",
-    body: "Imaš zakazan termin naredne nedelje. Klikni da vidiš kada!",
-    click_action: `/moj-termin?vreme=${encodeURIComponent(vreme)}`,
-  });
-} else {
-  console.warn(`❌ Nema tokena za korisnika ${korisnickoIme}`);
-}
+      if (docSnap.exists()) {
+        const token = docSnap.data().token;
 
+        if (token && !sentTokens.has(token)) {
+          console.log("✅ Šaljem notifikaciju na token:", token);
+
+          await sendNotification(token, {
+            title: "📅 Podsetnik",
+            body: "Imaš zakazan termin naredne nedelje. Klikni da vidiš kada!",
+            click_action: "https://masaneils.vercel.app/istorija",
+          });
+
+          sentTokens.add(token);
+        } else {
+          console.warn("⚠️ Token već iskorišćen ili ne postoji:", token);
+        }
+      } else {
+        console.warn(`❌ Nema tokena za korisnika ${korisnickoIme}`);
+      }
     }
 
     alert("✅ Podsetnici su poslati!");

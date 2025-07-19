@@ -72,7 +72,8 @@ export default async function handler(req, res) {
           .where("korisnickoIme", "==", korisnickoIme)
           .get();
 
-        finalClickAction = !predloziSnapshot.empty ? "/predlozeni-termini" : "/";
+       finalClickAction = !predloziSnapshot.empty ? "/predlozeni-termini" : "/";
+
       } catch (err) {
         finalClickAction = "/";
       }

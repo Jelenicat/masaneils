@@ -81,18 +81,15 @@ export default async function handler(req, res) {
     // 🚀 Šaljemo notifikaciju
     console.log("📨 Šaljem na token:", token);
 
-    await getMessaging().send({
-      token,
-      notification: { title, body }, // Firebase će prikazati notifikaciju
-      webpush: {
-        fcmOptions: {
-          link: `https://masaneils.vercel.app${finalClickAction}`,
-        },
-        data: {
-          click_action: `https://masaneils.vercel.app${finalClickAction}`,
-        },
-      },
-    });
+   await getMessaging().send({
+  token,
+  data: {
+    title,
+    body,
+    click_action: `https://masaneils.vercel.app${finalClickAction}`,
+  },
+});
+
 
     console.log("✅ Notifikacija poslata");
 

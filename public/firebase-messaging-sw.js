@@ -17,7 +17,6 @@ const messaging = firebase.messaging();
 messaging.onBackgroundMessage(function (payload) {
   console.log('[firebase-messaging-sw.js] Primljena background poruka:', payload);
 
-  // ❌ Ako payload ima notification, Firebase će je sam prikazati – ne dupliraj
   if (payload.notification) return;
 
   const notificationTitle = payload.data?.title;
@@ -34,6 +33,7 @@ messaging.onBackgroundMessage(function (payload) {
 
   self.registration.showNotification(notificationTitle, notificationOptions);
 });
+
 
 
 // Kada korisnik klikne na notifikaciju

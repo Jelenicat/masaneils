@@ -35,7 +35,8 @@ function App() {
         <Route path="/kalendar" element={<Kalendar />} />
         <Route path="/admin/podsetnik" element={<Podsetnik />} />
         <Route path="/podsetnici" element={<ListaPodsetnika />} />
-        <Route path="/ponudjeni-termini" element={<PonudjeniTermini />} />
+       <Route path="/predlozeni-termini" element={<PonudjeniTermini />} />
+
         <Route path="/korisnik" element={<Korisnik />} />
         <Route path="/ponudjeni/:korisnickoIme" element={<PonudjeniTerminiWrapper />} />
 <Route path="/istorija" element={<Istorija />} />

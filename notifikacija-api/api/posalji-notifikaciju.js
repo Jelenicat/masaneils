@@ -1,7 +1,7 @@
 import { initializeApp, getApps, cert } from "firebase-admin/app";
 import { getMessaging } from "firebase-admin/messaging";
 
-// CORS headers
+// 🔒 CORS dozvole
 function applyCors(req, res) {
   res.setHeader("Access-Control-Allow-Credentials", true);
   res.setHeader("Access-Control-Allow-Origin", "https://masaneils.vercel.app");
@@ -15,7 +15,7 @@ function applyCors(req, res) {
   return true;
 }
 
-// Firebase init
+// 🚀 Inicijalizuj Firebase admin SDK (ako već nije)
 if (!getApps().length) {
   initializeApp({
     credential: cert({
@@ -34,7 +34,7 @@ if (!getApps().length) {
   });
 }
 
-// API handler
+// 📬 Glavni handler
 export default async function handler(req, res) {
   if (!applyCors(req, res)) return;
 
@@ -53,7 +53,7 @@ export default async function handler(req, res) {
     const { getFirestore } = await import("firebase-admin/firestore");
     const db = getFirestore();
 
-    // 🔍 Uzimamo FCM token iz Firestore-a
+    // 📥 Uzimamo FCM token korisnika
     const docRef = db.collection("fcmTokens").doc(korisnickoIme);
     const docSnap = await docRef.get();
 
@@ -63,53 +63,45 @@ export default async function handler(req, res) {
 
     const token = docSnap.data().token;
 
-    // 🧠 Proveri da li korisnik ima aktivne predloge termina
- let finalClickAction = click_action;
-if (!finalClickAction) {
-  try {
-    const predloziSnapshot = await db
-      .collection("ponudjeniTermini")
-      .where("korisnickoIme", "==", korisnickoIme)
-      .get();
+    // 🔁 Ako nije eksplicitno poslat `click_action`, proveri ima li korisnik aktivne predloge termina
+    let finalClickAction = click_action;
+    if (!finalClickAction) {
+      try {
+        const predloziSnapshot = await db
+          .collection("ponudjeniTermini")
+          .where("korisnickoIme", "==", korisnickoIme)
+          .get();
 
-    if (!predloziSnapshot.empty) {
-      finalClickAction = "/predlozeni-termini";
-    } else {
-      finalClickAction = "/";
+        finalClickAction = !predloziSnapshot.empty ? "/predlozeni-termini" : "/";
+      } catch (err) {
+        finalClickAction = "/";
+      }
     }
-  } catch (err) {
-    finalClickAction = "/";
-  }
-}
 
+    // 🚀 Šaljemo notifikaciju
+    console.log("📨 Šaljem na token:", token);
 
-    // 📤 Slanje notifikacije
-console.log("📨 Pokušavam slanje na token:", token);
+    await getMessaging().send({
+      token,
+      notification: { title, body }, // Firebase će prikazati notifikaciju
+      webpush: {
+        fcmOptions: {
+          link: `https://masaneils.vercel.app${finalClickAction}`,
+        },
+        data: {
+          click_action: `https://masaneils.vercel.app${finalClickAction}`,
+        },
+      },
+    });
 
-await getMessaging().send({
-  token,
-  notification: { title, body }, // Firebase prikazuje notifikaciju
-  webpush: {
-    fcmOptions: {
-      link: `https://masaneils.vercel.app${finalClickAction}`,
-    },
-    data: {
-      click_action: `https://masaneils.vercel.app${finalClickAction}`,
-    },
-  },
-});
-
-
-
-console.log("✅ Notifikacija uspešno poslata");
-
-
-
+    console.log("✅ Notifikacija poslata");
 
     return res.status(200).json({ success: true });
-  } catch (error) {
-    console.error("❌ Greška prilikom slanja notifikacije:", error);
 
+  } catch (error) {
+    console.error("❌ Greška pri slanju notifikacije:", error);
+
+    // 🗑️ Ako je token nevažeći – brišemo ga iz Firestore-a
     if (error.code === "messaging/registration-token-not-registered") {
       try {
         const { getFirestore } = await import("firebase-admin/firestore");
@@ -120,11 +112,11 @@ console.log("✅ Notifikacija uspešno poslata");
         snapshot.forEach(async (docSnap) => {
           if (docSnap.data().token === token) {
             await docSnap.ref.delete();
-            console.log("🗑️ Obrisali smo nevažeći token iz Firestore-a:", token);
+            console.log("🗑️ Obrišan token:", token);
           }
         });
       } catch (firestoreErr) {
-        console.error("❌ Greška pri brisanju tokena iz Firestore-a:", firestoreErr);
+        console.error("❌ Greška pri brisanju tokena:", firestoreErr);
       }
     }
 

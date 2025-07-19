@@ -17,10 +17,12 @@ const messaging = firebase.messaging();
 messaging.onBackgroundMessage(function (payload) {
   console.log('[firebase-messaging-sw.js] Primljena background poruka:', payload);
 
-const notificationTitle = payload.notification?.title || payload.data?.title;
-const notificationBody = payload.notification?.body || payload.data?.body;
+  // ❌ Ako payload ima notification, Firebase će je sam prikazati – ne dupliraj
+  if (payload.notification) return;
 
-  const clickAction = payload?.data?.click_action || "https://masaneils.vercel.app";
+  const notificationTitle = payload.data?.title;
+  const notificationBody = payload.data?.body;
+  const clickAction = payload.data?.click_action || "https://masaneils.vercel.app";
 
   const notificationOptions = {
     body: notificationBody,
@@ -32,6 +34,7 @@ const notificationBody = payload.notification?.body || payload.data?.body;
 
   self.registration.showNotification(notificationTitle, notificationOptions);
 });
+
 
 // Kada korisnik klikne na notifikaciju
 self.addEventListener("notificationclick", function(event) {

@@ -64,32 +64,42 @@ export default async function handler(req, res) {
     const token = docSnap.data().token;
 
     // 🧠 Proveri da li korisnik ima aktivne predloge termina
-    let finalClickAction = "/";
-    try {
-      const predloziSnapshot = await db
-        .collection("ponudjeniTermini")
-        .where("korisnickoIme", "==", korisnickoIme)
-        .get();
+ let finalClickAction = click_action;
+if (!finalClickAction) {
+  try {
+    const predloziSnapshot = await db
+      .collection("ponudjeniTermini")
+      .where("korisnickoIme", "==", korisnickoIme)
+      .get();
 
-      if (!predloziSnapshot.empty) {
-        finalClickAction = "/predlozeni-termini";
-      }
-    } catch (err) {
-      console.warn("⚠️ Nije moguće proveriti predloge:", err.message);
+    if (!predloziSnapshot.empty) {
+      finalClickAction = "/predlozeni-termini";
+    } else {
+      finalClickAction = "/";
     }
+  } catch (err) {
+    finalClickAction = "/";
+  }
+}
+
 
     // 📤 Slanje notifikacije
 console.log("📨 Pokušavam slanje na token:", token);
 
 await getMessaging().send({
   token,
-  notification: { title, body },
+  notification: { title, body }, // Firebase prikazuje notifikaciju
   webpush: {
     fcmOptions: {
       link: `https://masaneils.vercel.app${finalClickAction}`,
     },
+    data: {
+      click_action: `https://masaneils.vercel.app${finalClickAction}`,
+    },
   },
 });
+
+
 
 console.log("✅ Notifikacija uspešno poslata");
 

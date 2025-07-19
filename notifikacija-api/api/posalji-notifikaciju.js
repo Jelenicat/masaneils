@@ -86,7 +86,8 @@ export default async function handler(req, res) {
   data: {
     title,
     body,
-    click_action: `https://masaneils.vercel.app${finalClickAction}`,
+    click_action: finalClickAction
+
   },
 });
 

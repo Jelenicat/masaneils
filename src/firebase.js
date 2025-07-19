@@ -88,8 +88,10 @@ const requestPermission = async () => {
   }
 };
 // 📤 Slanje notifikacije putem backend API-ja
-const sendNotification = async (korisnickoIme, { title, body, click_action }) => {
+const sendNotification = async (korisnickoIme, { title, body, path }) => {
   try {
+    const click_action = `https://masaneils.vercel.app${path}`; // ✅ OVDE PRAVIMO PRAVILAN LINK
+
     await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -100,6 +102,7 @@ const sendNotification = async (korisnickoIme, { title, body, click_action }) =>
     console.error("❌ Greška pri slanju notifikacije:", error);
   }
 };
+
 
 
 // ✅ Exportuj sve što koristiš

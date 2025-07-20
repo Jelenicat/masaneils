@@ -36,20 +36,15 @@ const UnesiPodatke = () => {
 
     try {
       const korisnickoIme = localStorage.getItem("korisnickoIme");
-
       if (!korisnickoIme) {
         alert("Greška: korisničko ime nije pronađeno.");
         return;
       }
 
       const docRef = doc(db, "korisnici", korisnickoIme);
-
       await setDoc(
         docRef,
-        {
-          brojTelefona,
-          datumRodjenja,
-        },
+        { brojTelefona, datumRodjenja },
         { merge: true }
       );
 

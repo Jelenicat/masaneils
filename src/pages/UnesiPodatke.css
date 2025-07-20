@@ -75,3 +75,39 @@
 .unesi-form button:hover {
   background-color: #f7b79d;
 }
+/* Responsive – dodatno prilagođavanje za mobilne uređaje */
+@media (max-width: 480px) {
+  .unesi-form {
+    padding: 24px;
+    max-width: 90%;
+  }
+
+  .unesi-form h2 {
+    font-size: 24px;
+    margin-bottom: 20px;
+  }
+
+  .unesi-form label {
+    font-size: 14px;
+    margin: 10px 0 4px;
+  }
+
+  .unesi-form input {
+    padding: 10px;
+    font-size: 15px;
+    border-radius: 6px;
+  }
+
+  .unesi-form button {
+    padding: 10px;
+    font-size: 16px;
+    border-radius: 6px;
+  }
+}
+
+@media (max-height: 600px) {
+  .unesi-page {
+    align-items: flex-start;
+    padding-top: 40px;
+  }
+}

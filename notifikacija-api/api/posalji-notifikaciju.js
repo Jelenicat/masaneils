@@ -88,10 +88,7 @@ export default async function handler(req, res) {
 
     await getMessaging().send({
       token,
-      notification: {
-        title: title || "Obaveštenje",
-        body: body || "",
-      },
+ 
       data: {
         title,
         body,

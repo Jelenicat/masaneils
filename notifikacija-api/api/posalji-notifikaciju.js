@@ -64,7 +64,8 @@ export default async function handler(req, res) {
     const token = docSnap.data().token;
 
     // 🔁 Ako nije eksplicitno poslat `click_action`, proveri ima li korisnik aktivne predloge termina
-    let finalClickAction = click_action;
+   let finalClickAction = click_action || null;
+
     if (!finalClickAction) {
       try {
         const predloziSnapshot = await db

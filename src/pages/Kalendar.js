@@ -20,24 +20,22 @@ const Kalendar = () => {
   const navigate = useNavigate();
   const [dostupniTermini, setDostupniTermini] = useState([]);
   const [izabrani, setIzabrani] = useState([]);
- const [offsetNedelja, setOffsetNedelja] = useState(1);
+  const [offsetNedelja, setOffsetNedelja] = useState(1);
   const [vecIzabraniTerminiIDs, setVecIzabraniTerminiIDs] = useState([]);
 
+  useEffect(() => {
+    const fetchSve = async () => {
+      if (!korisnickoIme || !smena || !usluga) {
+        toast.error("Nedostaju korisnički podaci.");
+        return;
+      }
 
- useEffect(() => {
-  const fetchSve = async () => {
-    if (!korisnickoIme || !smena || !usluga) {
-      toast.error("Nedostaju korisnički podaci.");
-      return;
-    }
+      await fetchVecIzabraniTermini();
+      await fetchSlobodniTermini();
+    };
 
-    await fetchVecIzabraniTermini();
-    await fetchSlobodniTermini();
-  };
-
-  fetchSve();
-}, [offsetNedelja]);
-
+    fetchSve();
+  }, [offsetNedelja]);
 
   const fetchVecIzabraniTermini = async () => {
     try {
@@ -57,18 +55,15 @@ const Kalendar = () => {
       const svi = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
       const slobodni = svi.filter((t) => t.tip === "slobodan");
 
-   const sada = new Date();
-const day = sada.getDay(); // 0 = nedelja, 1 = ponedeljak...
-const daysToNextMonday = ((8 - day) % 7) || 7;
-const firstMonday = new Date(sada);
-firstMonday.setDate(sada.getDate() + daysToNextMonday);
+      const sada = new Date();
+      const day = sada.getDay();
+      const daysToNextMonday = ((8 - day) % 7) || 7;
+      const firstMonday = new Date(sada);
+      firstMonday.setDate(sada.getDate() + daysToNextMonday);
+      firstMonday.setHours(0, 0, 0, 0);
 
-// dodaj offsetNedelja kao nedelje posle tog ponedeljka
-const startOfWeek = new Date(firstMonday);
-startOfWeek.setDate(firstMonday.getDate() + (offsetNedelja - 1) * 7);
-startOfWeek.setHours(0, 0, 0, 0);
-
-
+      const startOfWeek = new Date(firstMonday);
+      startOfWeek.setDate(startOfWeek.getDate() + (offsetNedelja - 1) * 7);
       startOfWeek.setHours(0, 0, 0, 0);
 
       const endOfWeek = new Date(startOfWeek);
@@ -78,13 +73,11 @@ startOfWeek.setHours(0, 0, 0, 0);
       const terminiZaPrikaz = slobodni.filter((t) => {
         if (vecIzabraniTerminiIDs.includes(t.id)) return false;
 
-        const start = new Date(
-  t.start.toDate ? t.start.toDate().getTime() : new Date(t.start).getTime()
-);
-
+        const start = new Date(t.start.toDate ? t.start.toDate().getTime() : new Date(t.start).getTime());
         const startTime = start.getTime();
         const localHour = start.getHours();
         const localMinute = start.getMinutes();
+        const danTermina = start.getDay();
 
         if (startTime < startOfWeek.getTime() || startTime > endOfWeek.getTime()) {
           return false;
@@ -109,7 +102,7 @@ startOfWeek.setHours(0, 0, 0, 0);
           return (
             startTime >= sada.getTime() &&
             startTime <= osamNedeljaKasnije.getTime() &&
-            (localHour > 17 || (localHour === 17 && localMinute >= 0))
+            (localHour >= 17 || (danTermina === 6 && localHour < 17))
           );
         }
 
@@ -123,53 +116,50 @@ startOfWeek.setHours(0, 0, 0, 0);
   };
 
   const toggleOdabir = (termin) => {
-const toggleOdabir = (termin) => {
-  if (vecIzabraniTerminiIDs.includes(termin.id)) return;
+    if (vecIzabraniTerminiIDs.includes(termin.id)) return;
 
-  const start = new Date(termin.start.toDate ? termin.start.toDate() : termin.start);
-  const danas = new Date();
+    const start = new Date(termin.start.toDate ? termin.start.toDate() : termin.start);
+    const danas = new Date();
 
-  const day = danas.getDay();
-  const daysToNextMonday = ((8 - day) % 7) || 7;
-  const firstMonday = new Date(danas);
-  firstMonday.setDate(danas.getDate() + daysToNextMonday);
-  firstMonday.setHours(0, 0, 0, 0);
+    const day = danas.getDay();
+    const daysToNextMonday = ((8 - day) % 7) || 7;
+    const firstMonday = new Date(danas);
+    firstMonday.setDate(danas.getDate() + daysToNextMonday);
+    firstMonday.setHours(0, 0, 0, 0);
 
-  const endOfNextWeek = new Date(firstMonday);
-  endOfNextWeek.setDate(endOfNextWeek.getDate() + 6);
-  endOfNextWeek.setHours(23, 59, 59, 999);
+    const endOfNextWeek = new Date(firstMonday);
+    endOfNextWeek.setDate(endOfNextWeek.getDate() + 6);
+    endOfNextWeek.setHours(23, 59, 59, 999);
 
-  const isUNarednojNedelji = start >= firstMonday && start <= endOfNextWeek;
-  const danTermina = start.getDay(); // 0=nedelja, 6=subota
-  const sat = start.getHours();
+    const isUNarednojNedelji = start >= firstMonday && start <= endOfNextWeek;
+    const danTermina = start.getDay();
+    const sat = start.getHours();
 
-  if (smena === "jutro" && !isUNarednojNedelji) {
-    toast.warn("Možeš birati samo termine iz naredne nedelje.");
-    return;
-  }
-
-  if (smena === "popodne") {
-    const osamNedeljaKasnije = new Date();
-    osamNedeljaKasnije.setDate(danas.getDate() + 56);
-    if (
-      start < danas ||
-      start > osamNedeljaKasnije ||
-     !(sat >= 17 || (danTermina === 6 && sat < 17))
-
-    ) {
-      toast.warn("Popodnevna smena može birati samo termine posle 17h ili subotom.");
+    if (smena === "jutro" && !isUNarednojNedelji) {
+      toast.warn("Možeš birati samo termine iz naredne nedelje.");
       return;
     }
-  }
 
-  const postoji = izabrani.find((t) => t.id === termin.id);
-  if (postoji) {
-    setIzabrani(izabrani.filter((t) => t.id !== termin.id));
-  } else {
-    setIzabrani([...izabrani, termin]);
-  }
-};
+    if (smena === "popodne") {
+      const osamNedeljaKasnije = new Date();
+      osamNedeljaKasnije.setDate(danas.getDate() + 56);
+      if (
+        start < danas ||
+        start > osamNedeljaKasnije ||
+        !(sat >= 17 || (danTermina === 6 && sat < 17))
+      ) {
+        toast.warn("Popodnevna smena može birati samo termine posle 17h ili subotom.");
+        return;
+      }
+    }
 
+    const postoji = izabrani.find((t) => t.id === termin.id);
+    if (postoji) {
+      setIzabrani(izabrani.filter((t) => t.id !== termin.id));
+    } else {
+      setIzabrani([...izabrani, termin]);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!usluga || !materijal) {
@@ -179,9 +169,7 @@ const toggleOdabir = (termin) => {
 
     try {
       for (const termin of izabrani) {
-        const startDate = termin.start.toDate
-          ? termin.start.toDate()
-          : new Date(termin.start);
+        const startDate = termin.start.toDate ? termin.start.toDate() : new Date(termin.start);
 
         await addDoc(collection(db, "izboriTermina"), {
           korisnickoIme,
@@ -194,7 +182,7 @@ const toggleOdabir = (termin) => {
 
       toast.success("Termini uspešno sačuvani!");
       setIzabrani([]);
-      await fetchVecIzabraniTermini(); // 🔥 odmah osveži izbore
+      await fetchVecIzabraniTermini();
       fetchSlobodniTermini();
     } catch (err) {
       toast.error("Greška pri slanju termina.");
@@ -221,8 +209,7 @@ const toggleOdabir = (termin) => {
     <div className="kalendar">
       <div className="kalendar-inner">
         <h2>Izabrana usluga: <span>{usluga}</span></h2>
-      <h3>Dostupni termini za {offsetNedelja === 0 ? "ovu" : offsetNedelja === 1 ? "narednu" : `${offsetNedelja}. nedelju`}:</h3>
-
+        <h3>Dostupni termini za {offsetNedelja === 0 ? "ovu" : offsetNedelja === 1 ? "narednu" : `${offsetNedelja}. nedelju`}:</h3>
 
         <div className="navigation-buttons">
           <button onClick={() => setOffsetNedelja((prev) => prev - 1)}>⬅ Prethodna</button>
@@ -233,39 +220,29 @@ const toggleOdabir = (termin) => {
           {daniUNedelji.map((dan) => (
             <div key={dan} className="dan-kocka">
               <div className="naslov-dana">
-  {dan}
-  <br />
-  <span className="datum-dana">
-    {(() => {
-  const index = daniUNedelji.indexOf(dan);
-
-  const sada = new Date();
-  const day = sada.getDay();
-  const daysToNextMonday = ((8 - day) % 7) || 7;
-  const firstMonday = new Date(sada);
-  firstMonday.setDate(sada.getDate() + daysToNextMonday);
-
-  const datum = new Date(firstMonday);
-  datum.setDate(datum.getDate() + (offsetNedelja - 1) * 7 + index);
-
-  return datum.toLocaleDateString("sr-RS", {
-    day: "2-digit",
-    month: "2-digit",
-  });
-})()
-}
-  </span>
-</div>
-
+                {dan}
+                <br />
+                <span className="datum-dana">
+                  {(() => {
+                    const index = daniUNedelji.indexOf(dan);
+                    const sada = new Date();
+                    const day = sada.getDay();
+                    const daysToNextMonday = ((8 - day) % 7) || 7;
+                    const firstMonday = new Date(sada);
+                    firstMonday.setDate(sada.getDate() + daysToNextMonday);
+                    const datum = new Date(firstMonday);
+                    datum.setDate(datum.getDate() + (offsetNedelja - 1) * 7 + index);
+                    return datum.toLocaleDateString("sr-RS", { day: "2-digit", month: "2-digit" });
+                  })()}
+                </span>
+              </div>
               {grupisaniPoDanu[dan].length === 0 ? (
                 <div className="prazno">—</div>
               ) : (
                 grupisaniPoDanu[dan].map((t) => (
                   <div
                     key={t.id}
-                    className={`termin-kocka ${
-                      izabrani.find((z) => z.id === t.id) ? "selected" : ""
-                    } ${vecIzabraniTerminiIDs.includes(t.id) ? "disabled" : ""}`}
+                    className={`termin-kocka ${izabrani.find((z) => z.id === t.id) ? "selected" : ""} ${vecIzabraniTerminiIDs.includes(t.id) ? "disabled" : ""}`}
                     onClick={() => toggleOdabir(t)}
                   >
                     {t.vreme}
@@ -284,8 +261,8 @@ const toggleOdabir = (termin) => {
           Pošalji izbore
         </button>
         <button className="nazad-dugme" onClick={() => navigate("/odabir-usluge")}>
-  Nazad
-</button>
+          Nazad
+        </button>
       </div>
     </div>
   );

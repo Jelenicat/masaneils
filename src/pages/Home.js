@@ -19,15 +19,24 @@ const Home = () => {
       } else {
         const docRef = doc(db, "korisnici", korisnickoIme);
         getDoc(docRef).then((docSnap) => {
-          if (
-            docSnap.exists() &&
-            docSnap.data().brojTelefona &&
-            docSnap.data().datumRodjenja
-          ) {
-            navigate("/korisnik");
-          } else {
-            navigate("/unesi-podatke");
-          }
+      if (
+  docSnap.exists() &&
+  docSnap.data().brojTelefona &&
+  docSnap.data().datumRodjenja
+) {
+  // ➕ Ako postoji click_action u URL-u, idi tamo
+  const url = new URL(window.location.href);
+  const pathname = url.pathname;
+
+  if (pathname && pathname !== "/") {
+    navigate(pathname);
+  } else {
+    navigate("/korisnik");
+  }
+} else {
+  navigate("/unesi-podatke");
+}
+
         });
       }
     }

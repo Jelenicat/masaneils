@@ -10,7 +10,6 @@ const Home = () => {
 
   useEffect(() => {
     const korisnickoIme = localStorage.getItem("korisnickoIme");
-    const pathname = window.location.pathname;
 
     if (korisnickoIme) {
       refreshFcmToken();
@@ -25,14 +24,14 @@ const Home = () => {
             docSnap.data().brojTelefona &&
             docSnap.data().datumRodjenja
           ) {
-            // Ako korisnik ima sve podatke – idi na stranicu iz URL-a ako nije "/"
-            if (pathname && pathname !== "/") {
-              navigate(pathname);
+            // ✅ Proveri ceo URL putanju – uključujući i notifikacije koje otvaraju direktan link
+            const fullPath = window.location.pathname;
+            if (fullPath && fullPath !== "/" && fullPath !== "/home") {
+              navigate(fullPath);
             } else {
               navigate("/korisnik");
             }
           } else {
-            // Ako nema popunjene podatke
             navigate("/unesi-podatke");
           }
         });
@@ -58,7 +57,13 @@ const Home = () => {
         if (docSnap.exists()) {
           const data = docSnap.data();
           if (data.brojTelefona && data.datumRodjenja) {
-            navigate("/korisnik");
+            // ✅ Ako je korisnik kliknuo na link iz notifikacije – koristi tu putanju
+            const fullPath = window.location.pathname;
+            if (fullPath && fullPath !== "/" && fullPath !== "/home") {
+              navigate(fullPath);
+            } else {
+              navigate("/korisnik");
+            }
           } else {
             navigate("/unesi-podatke");
           }

@@ -35,7 +35,8 @@ const AdminPanel = () => {
 
   const posaljiPodsetnike = async () => {
     const danas = new Date();
-    const sledeciPonedeljak = startOfWeek(addDays(danas, 7), { weekStartsOn: 1 });
+   const sledeciPonedeljak = startOfWeek(addDays(danas, 1), { weekStartsOn: 1 });
+
     const sledecaSubota = addDays(sledeciPonedeljak, 5);
 
     console.log("📆 Podsetnici za termine od", sledeciPonedeljak, "do", sledecaSubota);

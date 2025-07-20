@@ -266,20 +266,37 @@ const MojKalendarAdmin = () => {
         }}
       />
 
-      {showModal && (
-        <DodajTerminModal
-          eventData={newEventData}
-          onClose={() => {
-            setShowModal(false);
-            setNewEventData(INITIAL_EVENT_DATA);
-            setIsEditing(false);
-          }}
-          onSave={handleSaveEvent}
-          isEditing={isEditing}
-          setEventData={setNewEventData}
-          isLoading={isLoading}
-        />
-      )}
+ {showModal && (
+  <DodajTerminModal
+    eventData={newEventData}
+    onClose={() => {
+      setShowModal(false);
+      setNewEventData(INITIAL_EVENT_DATA);
+      setIsEditing(false);
+    }}
+    onSave={handleSaveEvent}
+    isEditing={isEditing}
+    setEventData={setNewEventData}
+    isLoading={isLoading}
+    onDelete={async (id) => {
+      try {
+        setIsLoading(true);
+        await deleteDoc(doc(db, "admin_kalendar", id));
+        toast.success("Termin obrisan");
+        setShowModal(false);
+        setNewEventData(INITIAL_EVENT_DATA);
+        setIsEditing(false);
+        await fetchEvents();
+      } catch (error) {
+        toast.error("Greška pri brisanju termina");
+        console.error("Greška:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }}
+  />
+)}
+
 
       {showSuggestionModal && (
         <PonudiTermineModal

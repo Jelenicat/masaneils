@@ -43,10 +43,10 @@
 
 .dodaj-forma button {
   padding: 12px 24px;
-  background: rgba(245, 232, 199, 0.7);
-  color: #5a4032;
-  border: 2px solid #d9a68c;
-  border-radius: 4px;
+  background:  #b88c7d;
+  color: #ffffff;
+  border: 1px solid #d9a68c;
+  border-radius: 1px;
   cursor: pointer;
   font-weight: 600;
   font-size: 18px;
@@ -87,10 +87,10 @@
 }
 
 .obrisi-dugme {
-  background: rgba(245, 232, 199, 0.7);
-  color: #5a4032;
-  border: 2px solid #d9a68c;
-  border-radius: 4px;
+  background:   #b88c7d;
+  color: #ffffff;
+  border: 1px solid #d9a68c;
+  border-radius: 1px;
   padding: 6px 12px;
   font-size: 14px;
   font-weight: 600;
@@ -145,8 +145,8 @@
 .nazad-dugme {
   margin-top: 30px;
   padding: 10px 24px;
-  background: rgba(245, 232, 199, 0.7);
-  color: #5a4032;
+  background:  #b88c7d;
+  color: #ffffff;
   font-family: 'Playfair Display', serif;
   font-weight: 600;
   border: 2px solid #d9a68c;

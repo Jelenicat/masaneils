@@ -87,9 +87,8 @@
   padding: 10px 20px;
   background-color: #d7a98c;
   color: white;
-  font-weight: bold;
   border: none;
-  border-radius: 10px;
+  border-radius: 8px;
   cursor: pointer;
   transition: background-color 0.3s ease;
 }
@@ -130,7 +129,7 @@
   .nazad-dugme {
     width: 100%;
     padding: 10px;
-    font-size: 15px;
+    font-size: 14px;
   }
 }
 

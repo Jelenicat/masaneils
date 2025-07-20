@@ -1,0 +1,211 @@
+.korisnici-menadzer {
+  min-height: 100vh;
+  background-image: url("../assets/slikaHome.webp");
+  background-size: cover;
+  background-position: center;
+  padding: 60px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: 'Playfair Display', serif;
+  color: #3a2e2e;
+}
+
+.korisnici-menadzer h2 {
+  font-size: 32px;
+  margin-bottom: 30px;
+  background: rgba(255, 255, 255, 0.6);
+  padding: 12px 24px;
+  border-radius: 6px;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+}
+
+.dodaj-forma {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: center;
+  margin-bottom: 40px;
+}
+
+.dodaj-forma input,
+.dodaj-forma select {
+  padding: 10px 14px;
+  border: 2px solid #d9a68c;
+  border-radius: 6px;
+  background-color: rgba(255, 255, 255, 0.8);
+  font-size: 16px;
+  color: #3a2e2e;
+  backdrop-filter: blur(4px);
+  width: 200px;
+  font-family: 'Playfair Display', serif;
+}
+
+.dodaj-forma button {
+  padding: 12px 24px;
+  background: rgba(245, 232, 199, 0.7);
+  color: #5a4032;
+  border: 2px solid #d9a68c;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 18px;
+  backdrop-filter: blur(10px);
+  transition: background-color 0.3s ease, transform 0.2s ease, border-color 0.3s ease;
+}
+
+.dodaj-forma button:hover {
+  background: rgba(216, 179, 140, 0.7);
+  border-color: #c68e72;
+  transform: scale(1.05);
+}
+
+.lista-korisnica {
+  width: 100%;
+  max-width: 460px;
+  list-style: none;
+  padding: 0;
+}
+
+.lista-korisnica li {
+  background-color: rgba(255, 255, 255, 0.6);
+  border: 2px solid #d9a68c;
+  padding: 14px 18px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  font-size: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s ease;
+}
+
+.lista-korisnica li:hover {
+  transform: translateY(-2px);
+}
+
+.obrisi-dugme {
+  background: rgba(245, 232, 199, 0.7);
+  color: #5a4032;
+  border: 2px solid #d9a68c;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.obrisi-dugme:hover {
+  background: rgba(216, 179, 140, 0.7);
+  border-color: #c68e72;
+  transform: scale(1.05);
+}
+.uspesna-poruka {
+  margin-top: 16px;
+  background-color: rgba(200, 245, 215, 0.8);
+  color: #2e5939;
+  padding: 10px 20px;
+  border: 2px solid #81c784;
+  border-radius: 6px;
+  font-weight: bold;
+  text-align: center;
+  font-family: 'Playfair Display', serif;
+}
+
+.korisnici-dropdown {
+  width: 100%;
+  max-width: 500px;
+}
+
+.korisnica-details {
+  margin-bottom: 12px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 2px solid #d9a68c;
+  border-radius: 8px;
+  padding: 12px 16px;
+  backdrop-filter: blur(6px);
+  transition: transform 0.2s ease;
+}
+
+.korisnica-details summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 16px;
+  color: #3a2e2e;
+  list-style: none;
+}
+
+.korisnica-details[open] {
+  transform: scale(1.01);
+}
+.nazad-dugme {
+  margin-top: 30px;
+  padding: 10px 24px;
+  background: rgba(245, 232, 199, 0.7);
+  color: #5a4032;
+  font-family: 'Playfair Display', serif;
+  font-weight: 600;
+  border: 2px solid #d9a68c;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.nazad-dugme:hover {
+  background: rgba(216, 179, 140, 0.7);
+  border-color: #c68e72;
+  transform: scale(1.05);
+}
+
+.korisnica-details button {
+  margin-top: 10px;
+  background: rgba(255, 230, 230, 0.8);
+  color: #8b0000;
+  border: 2px solid #d9a68c;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.korisnica-details button:hover {
+  background-color: rgba(255, 210, 210, 0.9);
+  transform: scale(1.05);
+}
+
+
+@media (max-width: 600px) {
+  .dodaj-forma {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .dodaj-forma input,
+  .dodaj-forma select {
+    width: 100%;
+    max-width: 300px;
+  }
+
+  .dodaj-forma button {
+    width: 100%;
+    max-width: 300px;
+  }
+
+  .lista-korisnica li {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .obrisi-dugme {
+    align-self: flex-end;
+  }
+}

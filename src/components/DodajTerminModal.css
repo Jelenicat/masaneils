@@ -106,7 +106,13 @@
 .delete-button:hover {
   background-color: #c0392b;
 }
+.modal select {
+  margin-bottom: 8px;
+}
 
+.modal label {
+  margin-top: 16px;
+}
 
 /* Responsive */
 @media (max-width: 600px) {

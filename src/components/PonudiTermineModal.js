@@ -271,10 +271,11 @@ const PonudiTermineModal = ({
                     </label>
 
                     <div className="time-adjust-buttons">
-                      <button onClick={() => adjustTime(termin.id, "start", -30)}>-30 min</button>
-                      <button onClick={() => adjustTime(termin.id, "start", 30)}>+30 min</button>
-                      <button onClick={() => adjustTime(termin.id, "end", -30)}>-30 min (kraj)</button>
-                      <button onClick={() => adjustTime(termin.id, "end", 30)}>+30 min (kraj)</button>
+                     <button onClick={() => adjustTime(termin.id, "start", -15)}>-15 min</button>
+<button onClick={() => adjustTime(termin.id, "start", 15)}>+15 min</button>
+<button onClick={() => adjustTime(termin.id, "end", -15)}>-15 min (kraj)</button>
+<button onClick={() => adjustTime(termin.id, "end", 15)}>+15 min (kraj)</button>
+
                     </div>
 
                     <button

@@ -64,12 +64,7 @@ h3 {
   color: #333;
 }
 
-.time-adjust-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin: 10px 0;
-}
+
 
 .time-adjust-buttons button {
   padding: 6px 10px;
@@ -83,6 +78,30 @@ h3 {
   background-color: #ffe4ec;
   border-color: #e91e63;
 }
+.time-adjust-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.adjust-button {
+  padding: 6px 12px;
+  background-color: #f3e1d8;
+  color: #5a4c42;
+  border: 1px solid #d4b9aa;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.adjust-button:hover {
+  background-color: #e8cfc2;
+}
+
 
 button {
   padding: 10px 16px;
@@ -113,4 +132,53 @@ button:hover {
   border-radius: 6px;
   font-weight: normal;
   margin-top: 20px;
+}
+
+
+@media (max-width: 768px) {
+  .modal-content {
+    padding: 20px;
+    width: 95%;
+    max-width: 100%;
+  }
+
+  .termin-item {
+    padding: 12px;
+  }
+
+  .time-adjust-buttons {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .adjust-button {
+    width: 100%;
+    text-align: center;
+    padding: 8px;
+    font-size: 14px;
+  }
+
+  button {
+    width: 100%;
+    font-size: 15px;
+  }
+
+  .scroll-lista-korisnica {
+    gap: 8px;
+  }
+
+  .korisnica-item {
+    padding: 10px;
+    font-size: 15px;
+  }
+
+  h3 {
+    font-size: 20px;
+  }
+
+  .back-button {
+    width: 100%;
+    margin-top: 10px;
+    margin-left: 0;
+  }
 }

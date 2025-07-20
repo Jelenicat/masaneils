@@ -1,8 +1,22 @@
-// src/components/DodajTerminModal.js
-import React from "react";
+import React, { useState, useEffect } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import "./DodajTerminModal.css";
+
+const vremeOpcije = [
+  "08:00", "08:30", "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
+  "12:00", "12:30", "13:00", "13:30", "14:00", "14:30", "15:00", "15:30",
+  "16:00", "16:30", "17:00", "17:30"
+];
+
+const combineDateAndTime = (date, timeStr) => {
+  if (!date || !timeStr) return null;
+  const [h, m] = timeStr.split(":");
+  const combined = new Date(date);
+  combined.setHours(parseInt(h, 10));
+  combined.setMinutes(parseInt(m, 10));
+  return combined;
+};
 
 const DodajTerminModal = ({
   eventData,
@@ -13,10 +27,31 @@ const DodajTerminModal = ({
   isLoading,
   onDelete,
 }) => {
+  const [datum, setDatum] = useState(eventData.start ? new Date(eventData.start) : null);
+  const [vremePocetak, setVremePocetak] = useState(eventData.start ? formatTime(eventData.start) : "");
+  const [vremeKraj, setVremeKraj] = useState(eventData.end ? formatTime(eventData.end) : "");
+
+  useEffect(() => {
+    const noviStart = combineDateAndTime(datum, vremePocetak);
+    const noviEnd = combineDateAndTime(datum, vremeKraj);
+    setEventData(prev => ({
+      ...prev,
+      start: noviStart,
+      end: noviEnd
+    }));
+  }, [datum, vremePocetak, vremeKraj]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setEventData((prev) => ({ ...prev, [name]: value }));
   };
+
+  function formatTime(date) {
+    const d = new Date(date);
+    const h = d.getHours().toString().padStart(2, "0");
+    const m = d.getMinutes().toString().padStart(2, "0");
+    return `${h}:${m}`;
+  }
 
   return (
     <div className="modal-overlay">
@@ -31,37 +66,30 @@ const DodajTerminModal = ({
           <option value="edukacija">Edukacija</option>
         </select>
 
-        <label>Početak:</label>
+        <label>📆 Datum:</label>
         <DatePicker
-          selected={eventData.start ? new Date(eventData.start) : null}
-          onChange={(date) =>
-            setEventData((prev) => ({
-              ...prev,
-              start: date,
-            }))
-          }
-          showTimeSelect
-          timeFormat="HH:mm"
-          timeIntervals={15}
-          dateFormat="dd.MM.yyyy HH:mm"
-          placeholderText="Izaberi početak"
+          selected={datum}
+          onChange={(date) => setDatum(date)}
+          dateFormat="dd.MM.yyyy"
+          placeholderText="Izaberi datum"
+          minDate={new Date()}
         />
 
-        <label>Kraj:</label>
-        <DatePicker
-          selected={eventData.end ? new Date(eventData.end) : null}
-          onChange={(date) =>
-            setEventData((prev) => ({
-              ...prev,
-              end: date,
-            }))
-          }
-          showTimeSelect
-          timeFormat="HH:mm"
-          timeIntervals={15}
-          dateFormat="dd.MM.yyyy HH:mm"
-          placeholderText="Izaberi kraj"
-        />
+        <label>🕒 Početak:</label>
+        <select value={vremePocetak} onChange={(e) => setVremePocetak(e.target.value)}>
+          <option value="">-- Odaberi vreme --</option>
+          {vremeOpcije.map((v) => (
+            <option key={v} value={v}>{v}</option>
+          ))}
+        </select>
+
+        <label>🕓 Kraj:</label>
+        <select value={vremeKraj} onChange={(e) => setVremeKraj(e.target.value)}>
+          <option value="">-- Odaberi vreme --</option>
+          {vremeOpcije.map((v) => (
+            <option key={v} value={v}>{v}</option>
+          ))}
+        </select>
 
         {eventData.tip === "termin" && (
           <>
@@ -85,15 +113,13 @@ const DodajTerminModal = ({
 
         <div className="modal-buttons">
           <button onClick={onClose}>Otkaži</button>
-          <button onClick={onSave} disabled={isLoading}>
+          <button onClick={onSave} disabled={isLoading || !datum || !vremePocetak || !vremeKraj}>
             {isEditing ? "Sačuvaj izmene" : "Dodaj"}
           </button>
           {isEditing && (
             <button
               onClick={() => {
-                if (
-                  window.confirm("Da li sigurno želiš da obrišeš ovaj termin?")
-                ) {
+                if (window.confirm("Da li sigurno želiš da obrišeš ovaj termin?")) {
                   onDelete(eventData.id);
                 }
               }}

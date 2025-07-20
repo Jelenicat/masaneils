@@ -1,5 +1,5 @@
-import React, { useState, useCallback, useEffect } from "react";
-import { db } from "../firebase";
+import React, { useState, useEffect } from "react";
+import { db, requestPermission } from "../firebase";
 import {
   collection,
   getDocs,
@@ -9,22 +9,21 @@ import {
   runTransaction,
   query,
   where,
-   deleteDoc,
+  deleteDoc,
+  onSnapshot,
 } from "firebase/firestore";
 import { toast } from "react-toastify";
-import { format, startOfWeek, addDays, parse } from "date-fns";
+import { format, startOfWeek, addDays } from "date-fns";
 
 import VerticalScheduleView from "../components/VerticalScheduleView";
 import PonudiTermineModal from "../components/PonudiTermineModal";
-import { requestPermission } from "../firebase";
 import DodajTerminModal from "../components/DodajTerminModal";
 
 const EVENT_TYPES = {
   slobodan: { color: "#90ee90" },
   zauzet: { color: "#ff6347" },
   termin: { color: "#ffe4ec" },
-  edukacija: { color: "#bfa0dc" }, // Ljubičasta boja za edukacije
-
+  edukacija: { color: "#bfa0dc" },
 };
 
 const INITIAL_EVENT_DATA = {
@@ -40,15 +39,18 @@ const MojKalendarAdmin = () => {
   const [events, setEvents] = useState([]);
   const [izboriPoTerminu, setIzboriPoTerminu] = useState({});
   const [isInitialLoading, setIsInitialLoading] = useState(true);
-  const [selectedWeekStart, setSelectedWeekStart] = useState(
-    startOfWeek(new Date(), { weekStartsOn: 1 })
-  );
+  const [selectedWeekStart, setSelectedWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [showModal, setShowModal] = useState(false);
   const [newEventData, setNewEventData] = useState(INITIAL_EVENT_DATA);
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showSuggestionModal, setShowSuggestionModal] = useState(false);
   const [korisniceKojeSuBirale, setKorisniceKojeSuBirale] = useState([]);
+const pomeriNedeljuUnazad = () =>
+  setSelectedWeekStart((prev) => addDays(prev, -7));
+
+const pomeriNedeljuUnapred = () =>
+  setSelectedWeekStart((prev) => addDays(prev, 7));
 
   useEffect(() => {
     requestPermission().catch((err) => {
@@ -57,98 +59,72 @@ const MojKalendarAdmin = () => {
   }, []);
 
   useEffect(() => {
-    fetchEvents();
-  }, [selectedWeekStart]);
+    const now = new Date();
+    const weekEnd = addDays(selectedWeekStart, 7);
 
-  const pomeriNedeljuUnazad = () => setSelectedWeekStart((prev) => addDays(prev, -7));
-  const pomeriNedeljuUnapred = () => setSelectedWeekStart((prev) => addDays(prev, 7));
+    const unsubscribe = onSnapshot(
+      query(
+        collection(db, "admin_kalendar"),
+        where("start", ">=", selectedWeekStart),
+        where("start", "<", weekEnd)
+      ),
+      async (snapshot) => {
+        try {
+          const izboriSnapshot = await getDocs(query(collection(db, "izboriTermina"), where("status", "==", "izabrala")));
+          const izbori = izboriSnapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id }));
 
-  const fetchEvents = useCallback(async () => {
-    try {
-      const now = new Date();
-      const weekEnd = addDays(selectedWeekStart, 7);
-      const snapshot = await getDocs(
-        query(
-          collection(db, "admin_kalendar"),
-          where("start", ">=", selectedWeekStart),
-          where("start", "<", weekEnd)
-        )
-      );
-      const izboriSnapshot = await getDocs(
-        query(collection(db, "izboriTermina"), where("status", "==", "izabrala"))
-      );
-      const izbori = izboriSnapshot.docs.map((doc) => ({
-        ...doc.data(),
-        id: doc.id, // Include document ID if needed later
-      }));
+          const uslugeSnapshot = await getDocs(collection(db, "izbor_usluge"));
+          const usluge = uslugeSnapshot.docs.reduce((acc, doc) => {
+            const data = doc.data();
+            acc[data.korisnickoIme] = data.usluga;
+            return acc;
+          }, {});
 
-      console.log("Fetched izbori:", izbori); // Debug log
+          const izboriGrupisani = izbori.reduce((acc, izbor) => {
+            if (!acc[izbor.eventId]) acc[izbor.eventId] = [];
+            acc[izbor.eventId].push({ korisnickoIme: izbor.korisnickoIme, usluga: usluge[izbor.korisnickoIme] || "N/A" });
+            return acc;
+          }, {});
+          setIzboriPoTerminu(izboriGrupisani);
 
-      const uslugeSnapshot = await getDocs(collection(db, "izbor_usluge"));
-      const usluge = uslugeSnapshot.docs.reduce((acc, doc) => {
-        const data = doc.data();
-        acc[data.korisnickoIme] = data.usluga;
-        return acc;
-      }, {});
+          const korisnice = [...new Set(izbori.map((i) => i.korisnickoIme))];
+          setKorisniceKojeSuBirale(korisnice);
 
-      const izboriGrupisani = izbori.reduce((acc, izbor) => {
-        if (!acc[izbor.eventId]) acc[izbor.eventId] = [];
-        acc[izbor.eventId].push({
-          korisnickoIme: izbor.korisnickoIme,
-          usluga: usluge[izbor.korisnickoIme] || "N/A",
-        });
-        return acc;
-      }, {});
-      setIzboriPoTerminu(izboriGrupisani);
+          const loadedEvents = snapshot.docs.map((doc) => {
+            const data = doc.data();
+            const start = data.start?.toDate?.() || new Date(data.start);
+            const end = data.end?.toDate?.() || new Date(data.end);
+            if (start < now) return null;
 
-      const korisnice = [...new Set(izbori.map((i) => i.korisnickoIme))];
-      console.log("Korisnice koje su birale:", korisnice); // Debug log
-      setKorisniceKojeSuBirale(korisnice);
+            const vremeOd = start.toLocaleTimeString("sr-RS", { hour: "2-digit", minute: "2-digit", hour12: false });
+            const vremeDo = end.toLocaleTimeString("sr-RS", { hour: "2-digit", minute: "2-digit", hour12: false });
+            let title = `${vremeOd}–${vremeDo} — `;
+            if (data.tip === "slobodan") title += "slobodan";
+            else if (data.tip === "zauzet") title += "zauzet";
+            else if (data.tip === "termin") title += `💅 ${data.clientUsername || "Nepoznat korisnik"}`;
+            else if (data.tip === "edukacija") title += "🎓 edukacija";
 
-      const loadedEvents = snapshot.docs
-        .map((doc) => {
-          const data = doc.data();
-          const start = data.start?.toDate?.() || new Date(data.start);
-          const end = data.end?.toDate?.() || new Date(data.end);
-          if (start < now) return null;
+            return {
+              ...data,
+              id: doc.id,
+              start,
+              end,
+              title,
+              backgroundColor: EVENT_TYPES[data.tip]?.color || "#ddd",
+            };
+          }).filter(Boolean);
 
-          const izabrale = izbori
-            .filter((izbor) => izbor.eventId === doc.id)
-            .map((izbor) => `${izbor.korisnickoIme} (${usluge[izbor.korisnickoIme] || "N/A"})`);
+          setEvents(loadedEvents);
+        } catch (err) {
+          console.error("Greška u onSnapshot:", err);
+          toast.error("Greška pri učitavanju kalendara.");
+        } finally {
+          setIsInitialLoading(false);
+        }
+      }
+    );
 
-          const vremeOd = start.toLocaleTimeString("sr-RS", { hour: "2-digit", minute: "2-digit", hour12: false });
-          const vremeDo = end.toLocaleTimeString("sr-RS", { hour: "2-digit", minute: "2-digit", hour12: false });
-
-          let title = `${vremeOd}–${vremeDo} — `;
-          if (data.tip === "slobodan") {
-           title += "slobodan"; 
-          } else if (data.tip === "zauzet") {
-            title += "zauzet";
-          } else if (data.tip === "termin") {
-            title += `💅 ${data.clientUsername || "Nepoznat korisnik"}`;
-          } else if (data.tip === "edukacija") {
-  title += "🎓 edukacija";
-}
-
-          return {
-             ...data,
-  id: doc.id,
-            start,
-            end,
-            title,
-            backgroundColor: EVENT_TYPES[data.tip]?.color || "#ddd",
-          };
-        })
-        .filter(Boolean);
-
-      console.log("Loaded events:", loadedEvents); // Debug log
-      setEvents(loadedEvents);
-    } catch (error) {
-      console.error("Greška pri učitavanju kalendara:", error);
-      toast.error("Greška pri učitavanju kalendara.");
-    } finally {
-      setIsInitialLoading(false);
-    }
+    return () => unsubscribe();
   }, [selectedWeekStart]);
 
  const potvrdiTerminZaKorisnicu = async (eventId, korisnickoIme) => {
@@ -193,7 +169,7 @@ const MojKalendarAdmin = () => {
     });
 
     toast.success(`Termin potvrđen za ${korisnickoIme}`);
-    await fetchEvents();
+  
   } catch (error) {
     console.error("Greška pri potvrdi termina:", error);
     toast.error("Greška pri potvrdi termina");
@@ -273,7 +249,7 @@ const predloziTerminKorisnici = async (korisnickoIme, termini) => {
       setShowModal(false);
       setNewEventData(INITIAL_EVENT_DATA);
       setIsEditing(false);
-      await fetchEvents();
+      
     } catch (error) {
       console.error("Greška pri čuvanju termina:", error);
       toast.error("Greška pri čuvanju termina");
@@ -334,7 +310,7 @@ const predloziTerminKorisnici = async (korisnickoIme, termini) => {
         setShowModal(false);
         setNewEventData(INITIAL_EVENT_DATA);
         setIsEditing(false);
-        await fetchEvents();
+  
       } catch (error) {
         toast.error("Greška pri brisanju termina");
         console.error("Greška:", error);

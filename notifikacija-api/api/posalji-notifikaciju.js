@@ -86,15 +86,15 @@ export default async function handler(req, res) {
     // 🚀 Šaljemo notifikaciju
     console.log("📨 Šaljem na token:", token);
 
-    await getMessaging().send({
-      token,
- 
-      data: {
-        title,
-        body,
-        click_action: fullClickAction,
-      },
-    });
+await getMessaging().send({
+  token,
+  data: {
+    title: title || "Obaveštenje",
+    body: body || "",
+    click_action: fullClickAction,
+  },
+});
+
 
     console.log("✅ Notifikacija poslata");
 

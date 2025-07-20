@@ -9,6 +9,7 @@ import {
   runTransaction,
   query,
   where,
+   deleteDoc,
 } from "firebase/firestore";
 import { toast } from "react-toastify";
 import { format, startOfWeek, addDays, parse } from "date-fns";

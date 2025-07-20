@@ -55,8 +55,9 @@
 @media (max-width: 600px) {
   .login-page {
     padding: 20px;
-    align-items: flex-start;
+    align-items: center; /* centrirano i na mobilnim uređajima */
   }
+
 
   .home-form {
     padding: 25px 20px;

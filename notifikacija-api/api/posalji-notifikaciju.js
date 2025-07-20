@@ -72,29 +72,31 @@ export default async function handler(req, res) {
           .where("korisnickoIme", "==", korisnickoIme)
           .get();
 
-       finalClickAction = !predloziSnapshot.empty ? "/predlozeni-termini" : "/";
-
+        finalClickAction = !predloziSnapshot.empty ? "/predlozeni-termini" : "/";
       } catch (err) {
         finalClickAction = "/";
       }
     }
 
+    const fullClickAction = finalClickAction.startsWith("http")
+      ? finalClickAction
+      : `https://masaneils.vercel.app${finalClickAction}`;
+
     // 🚀 Šaljemo notifikaciju
     console.log("📨 Šaljem na token:", token);
 
-   await getMessaging().send({
-  token,
-  data: {
-    title,
-    body,
-   click_action: finalClickAction.startsWith("http")
-  ? finalClickAction
-  : `https://masaneils.vercel.app${finalClickAction}`,
-
-
-  },
-});
-
+    await getMessaging().send({
+      token,
+      notification: {
+        title: title || "Obaveštenje",
+        body: body || "",
+      },
+      data: {
+        title,
+        body,
+        click_action: fullClickAction,
+      },
+    });
 
     console.log("✅ Notifikacija poslata");
 

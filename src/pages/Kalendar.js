@@ -57,10 +57,17 @@ const Kalendar = () => {
       const svi = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
       const slobodni = svi.filter((t) => t.tip === "slobodan");
 
-      const sada = new Date();
-      const startOfWeek = new Date(sada);
-     const dayOfWeek = sada.getDay() === 0 ? 7 : sada.getDay();
-startOfWeek.setDate(sada.getDate() - dayOfWeek + 1 + offsetNedelja * 7);
+   const sada = new Date();
+const day = sada.getDay(); // 0 = nedelja, 1 = ponedeljak...
+const daysToNextMonday = ((8 - day) % 7) || 7;
+const firstMonday = new Date(sada);
+firstMonday.setDate(sada.getDate() + daysToNextMonday);
+
+// dodaj offsetNedelja kao nedelje posle tog ponedeljka
+const startOfWeek = new Date(firstMonday);
+startOfWeek.setDate(firstMonday.getDate() + (offsetNedelja - 1) * 7);
+startOfWeek.setHours(0, 0, 0, 0);
+
 
       startOfWeek.setHours(0, 0, 0, 0);
 
@@ -191,14 +198,23 @@ startOfWeek.setDate(sada.getDate() - dayOfWeek + 1 + offsetNedelja * 7);
   <br />
   <span className="datum-dana">
     {(() => {
-      const index = daniUNedelji.indexOf(dan);
-      const datum = new Date();
-      datum.setDate(datum.getDate() - datum.getDay() + 1 + offsetNedelja * 7 + index);
-      return datum.toLocaleDateString("sr-RS", {
-        day: "2-digit",
-        month: "2-digit",
-      });
-    })()}
+  const index = daniUNedelji.indexOf(dan);
+
+  const sada = new Date();
+  const day = sada.getDay();
+  const daysToNextMonday = ((8 - day) % 7) || 7;
+  const firstMonday = new Date(sada);
+  firstMonday.setDate(sada.getDate() + daysToNextMonday);
+
+  const datum = new Date(firstMonday);
+  datum.setDate(datum.getDate() + (offsetNedelja - 1) * 7 + index);
+
+  return datum.toLocaleDateString("sr-RS", {
+    day: "2-digit",
+    month: "2-digit",
+  });
+})()
+}
   </span>
 </div>
 

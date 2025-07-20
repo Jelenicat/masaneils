@@ -36,28 +36,29 @@ messaging.onBackgroundMessage(function (payload) {
 
 // ✅ Otvaranje stranice kada se klikne na notifikaciju
 self.addEventListener("notificationclick", function(event) {
-  const clickAction = event.notification?.data?.click_action || "https://masaneils.vercel.app";
+  let clickAction = event.notification?.data?.click_action || "/";
+  if (clickAction.startsWith("/")) {
+    clickAction = "https://masaneils.vercel.app" + clickAction;
+  }
+
   event.notification.close();
 
   event.waitUntil(
     clients.matchAll({ type: "window", includeUncontrolled: true }).then(windowClients => {
-      // Ako je tab već otvoren – fokusiraj ga
       for (const client of windowClients) {
         if (client.url === clickAction && "focus" in client) {
           return client.focus();
         }
       }
-      // Inače, otvori novi tab
-if (clients.openWindow) {
-  // Dodaj query parametar u URL da znamo odakle je došao
-  const url = new URL(clickAction);
-  if (!url.searchParams.has("fromNotifikacija")) {
-    url.searchParams.append("fromNotifikacija", "true");
-  }
-  return clients.openWindow(url.toString());
-}
 
-
+      if (clients.openWindow) {
+        const url = new URL(clickAction);
+        if (!url.searchParams.has("fromNotifikacija")) {
+          url.searchParams.append("fromNotifikacija", "true");
+        }
+        return clients.openWindow(url.toString());
+      }
     })
   );
 });
+

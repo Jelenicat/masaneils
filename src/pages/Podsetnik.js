@@ -21,12 +21,21 @@ const Podsetnik = () => {
     refreshFcmToken();
 
     // 🎧 Slušanje poruka dok je aplikacija otvorena
-    onMessageListener().then((payload) => {
-      console.log("📩 Primljena notifikacija dok je tab otvoren:", payload);
-      new Notification(payload.notification.title, {
-        body: payload.notification.body,
-      });
-    });
+onMessageListener().then((payload) => {
+  console.log("📩 Primljena notifikacija dok je tab otvoren:", payload);
+
+  // Prikazujemo nativnu notifikaciju
+  const notification = new Notification(payload.notification.title, {
+    body: payload.notification.body,
+  });
+
+  // Kada korisnik klikne na notifikaciju, preusmeri ga
+  notification.onclick = () => {
+    window.focus(); // Fokus na prozor ako je u pozadini
+    navigate("/podsetnici");
+  };
+});
+
   }, []);
 
   const handleSubmit = async (e) => {

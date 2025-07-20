@@ -45,19 +45,22 @@ export default async function handler(req, res) {
           await messaging.send({
             token: data.korisnikToken,
             notification: {
-              title: "📌 Podsetnik",
+              title: "\ud83d\udccc Podsetnik",
               body: data.tekst || "Imate novi podsetnik.",
             },
+            data: {
+              click_action: "/podsetnici"
+            }
           });
 
           batch.update(docRef, { zadnjiPutPoslato: today });
           poslato.push(`Podsetnik: ${data.tekst}`);
 
         } catch (err) {
-          console.error("❌ Greška pri slanju podsetnika:", err);
+          console.error("\u274c Gre\u0161ka pri slanju podsetnika:", err);
 
           if (err.errorInfo?.code === "messaging/registration-token-not-registered") {
-            console.warn("⚠️ Token nije validan, brišem ga iz dokumenta.");
+            console.warn("\u26a0\ufe0f Token nije validan, bri\u0161em ga iz dokumenta.");
             batch.update(docRef, { korisnikToken: "" });
           }
         }
@@ -81,16 +84,16 @@ export default async function handler(req, res) {
           await messaging.send({
             token,
             notification: {
-              title: "🎉 Rođendan danas!",
-              body: `Danas je rođendan: ${imena}`,
-            },
+              title: "\ud83c\udf89 Ro\u0111endan danas!",
+              body: `Danas je ro\u0111endan: ${imena}`,
+            }
           });
-          poslato.push(`Rođendani: ${imena}`);
+          poslato.push(`Ro\u0111endani: ${imena}`);
         } catch (err) {
-          console.error("❌ Greška pri slanju rođendanske notifikacije:", err);
+          console.error("\u274c Gre\u0161ka pri slanju ro\u0111endanske notifikacije:", err);
         }
       } else {
-        console.warn("⚠️ Masa nema FCM token za rođendane.");
+        console.warn("\u26a0\ufe0f Masa nema FCM token za ro\u0111endane.");
       }
     }
 
@@ -102,7 +105,7 @@ export default async function handler(req, res) {
     });
 
   } catch (err) {
-    console.error("❌ Greška u check-reminders + birthdays:", err);
-    res.status(500).json({ error: "Greška na serveru." });
+    console.error("\u274c Gre\u0161ka u check-reminders + birthdays:", err);
+    res.status(500).json({ error: "Gre\u0161ka na serveru." });
   }
 }

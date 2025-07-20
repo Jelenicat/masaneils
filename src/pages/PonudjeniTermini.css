@@ -10,68 +10,80 @@
 
 .ponudjeni-termini h2 {
   text-align: center;
-  font-size: 24px;
-  margin-bottom: 25px;
+  font-size: 26px;
+  margin-bottom: 30px;
   color: #c4917c;
+  font-weight: 600;
 }
 
-.loading-text,
-.empty-text {
+.nema-termina {
   text-align: center;
-  color: #8a7d73;
+  color: #9e8b7e;
   font-style: italic;
+  font-size: 16px;
+}
+
+ul {
+  list-style-type: none;
+  padding: 0;
 }
 
 .termin-card {
   background-color: #fffefc;
   border: 1px solid #ecdcd1;
-  border-left: 5px solid #caa892;
-  padding: 16px;
+  border-left: 6px solid #caa892;
+  padding: 20px;
   border-radius: 15px;
-  margin-bottom: 20px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  margin-bottom: 25px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s ease;
+}
+
+.termin-card:hover {
+  transform: scale(1.01);
 }
 
 .termin-datum {
-  font-weight: bold;
+  font-weight: 600;
   font-size: 16px;
   color: #5a4c42;
   text-align: center;
+  margin-bottom: 8px;
 }
 
 .termin-usluga,
-.termin-note {
+.termin-note,
+.termin-info {
   font-size: 14px;
   color: #7d6b5a;
   text-align: center;
   margin-top: 6px;
 }
 
-.termin-napomena {
-  font-size: 12px;
-  color: #a09489;
-  text-align: center;
+.termin-note {
+  font-style: italic;
+}
+
+.termin-info {
+  font-size: 12.5px;
+  color: #9c8e82;
   margin-top: 10px;
 }
 
-.btn-potvrdi {
+.potvrdi-dugme {
   display: block;
-  margin: 14px auto 0;
-  padding: 10px 20px;
+  margin: 18px auto 0;
+  padding: 10px 24px;
   background-color: #d9b8a7;
   color: #fff;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   font-weight: bold;
+  font-size: 15px;
   cursor: pointer;
   transition: background-color 0.3s ease;
 }
 
-.btn-potvrdi:hover {
+.potvrdi-dugme:hover {
   background-color: #cba28d;
-}
-
-.btn-potvrdi:disabled {
-  background-color: #e1cfc2;
-  cursor: not-allowed;
 }

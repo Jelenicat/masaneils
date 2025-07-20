@@ -267,6 +267,17 @@
   font-style: italic;
   padding: 10px;
 }
+.korisnica-item.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+.info-tag {
+  font-size: 12px;
+  color: #999;
+  margin-left: 6px;
+}
 
 /* Animations */
 @keyframes fadeIn {

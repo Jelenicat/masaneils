@@ -151,55 +151,102 @@ const MojKalendarAdmin = () => {
     }
   }, [selectedWeekStart]);
 
-  const potvrdiTerminZaKorisnicu = async (eventId, korisnickoIme) => {
-    try {
-      setIsLoading(true);
-      await runTransaction(db, async (transaction) => {
-        const eventRef = doc(db, "admin_kalendar", eventId);
-        transaction.update(eventRef, {
-          tip: "termin",
-          clientUsername: korisnickoIme,
-        });
+ const potvrdiTerminZaKorisnicu = async (eventId, korisnickoIme) => {
+  try {
+    setIsLoading(true);
 
-        const izboriSnapshot = await getDocs(collection(db, "izboriTermina"));
-        izboriSnapshot.docs.forEach((izborDoc) => {
-          const data = izborDoc.data();
-          if (data.korisnickoIme === korisnickoIme || (data.eventId === eventId && data.korisnickoIme !== korisnickoIme)) {
-            transaction.delete(izborDoc.ref);
-          }
-        });
+    // 🔍 Prvo proveri da li već postoji potvrđen termin za tu korisnicu u odabranoj nedelji
+    const weekStart = selectedWeekStart;
+    const weekEnd = addDays(weekStart, 7);
+
+    const existingSnapshot = await getDocs(
+      query(
+        collection(db, "admin_kalendar"),
+        where("start", ">=", weekStart),
+        where("start", "<", weekEnd),
+        where("tip", "==", "termin"),
+        where("clientUsername", "==", korisnickoIme)
+      )
+    );
+
+    if (!existingSnapshot.empty) {
+      toast.warn(`Korisnica ${korisnickoIme} već ima termin ove nedelje.`);
+      setIsLoading(false);
+      return;
+    }
+
+    // ✅ Ako nema, izvrši potvrdu
+    await runTransaction(db, async (transaction) => {
+      const eventRef = doc(db, "admin_kalendar", eventId);
+      transaction.update(eventRef, {
+        tip: "termin",
+        clientUsername: korisnickoIme,
       });
 
-      toast.success(`Termin potvrđen za ${korisnickoIme}`);
-      await fetchEvents();
-    } catch (error) {
-      console.error("Greška pri potvrdi termina:", error);
-      toast.error("Greška pri potvrdi termina");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      const izboriSnapshot = await getDocs(collection(db, "izboriTermina"));
+      izboriSnapshot.docs.forEach((izborDoc) => {
+        const data = izborDoc.data();
+        if (data.korisnickoIme === korisnickoIme || (data.eventId === eventId && data.korisnickoIme !== korisnickoIme)) {
+          transaction.delete(izborDoc.ref);
+        }
+      });
+    });
 
-  const predloziTerminKorisnici = async (korisnickoIme, termini) => {
-    try {
-      setIsLoading(true);
-      for (const termin of termini) {
-        await addDoc(collection(db, "ponudjeniTermini"), {
-          originalEventId: termin.id,
-          korisnickoIme,
-          start: termin.start,
-          end: termin.end,
-          timestamp: new Date(),
-        });
-      }
-      toast.success("Termini uspešno predloženi");
-    } catch (error) {
-      console.error("Greška pri predlogu termina:", error);
-      toast.error("Greška pri predlogu termina");
-    } finally {
+    toast.success(`Termin potvrđen za ${korisnickoIme}`);
+    await fetchEvents();
+  } catch (error) {
+    console.error("Greška pri potvrdi termina:", error);
+    toast.error("Greška pri potvrdi termina");
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+
+const predloziTerminKorisnici = async (korisnickoIme, termini) => {
+  try {
+    setIsLoading(true);
+
+    // 🔍 Prvo proveri da li korisnica već ima potvrđen termin u toj nedelji
+    const weekStart = selectedWeekStart;
+    const weekEnd = addDays(weekStart, 7);
+
+    const existingSnapshot = await getDocs(
+      query(
+        collection(db, "admin_kalendar"),
+        where("start", ">=", weekStart),
+        where("start", "<", weekEnd),
+        where("tip", "==", "termin"),
+        where("clientUsername", "==", korisnickoIme)
+      )
+    );
+
+    if (!existingSnapshot.empty) {
+      toast.warn(`Korisnica ${korisnickoIme} već ima zakazan termin ove nedelje.`);
       setIsLoading(false);
+      return;
     }
-  };
+
+    // ✅ Ako nema, pošalji predloge termina
+    for (const termin of termini) {
+      await addDoc(collection(db, "ponudjeniTermini"), {
+        originalEventId: termin.id,
+        korisnickoIme,
+        start: termin.start,
+        end: termin.end,
+        timestamp: new Date(),
+      });
+    }
+
+    toast.success("Termini uspešno predloženi");
+  } catch (error) {
+    console.error("Greška pri predlogu termina:", error);
+    toast.error("Greška pri predlogu termina");
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   const handleSaveEvent = async () => {
     try {

@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { format } from "date-fns";
+import { format, addDays } from "date-fns";
 import { srLatn } from "date-fns/locale";
 import {
   doc,
   getDoc,
   getDocs,
   collection,
-  updateDoc,
+  query,
+  where,
   setDoc,
 } from "firebase/firestore";
 import { db } from "../firebase";
@@ -21,11 +22,42 @@ const PonudiTermineModal = ({
   onConfirm,
   onSuggest,
   isLoading,
+  selectedWeekStart,
 }) => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [selektovaniTermini, setSelektovaniTermini] = useState([]);
   const [usluga, setUsluga] = useState("N/A");
   const [adjustedTimes, setAdjustedTimes] = useState({});
+  const [korisniceSaTerminima, setKorisniceSaTerminima] = useState([]);
+
+  // 🔄 Učitaj korisnice koje već imaju potvrđen termin
+  useEffect(() => {
+    const fetchTerminirane = async () => {
+      if (!selectedWeekStart) return;
+      const weekEnd = addDays(selectedWeekStart, 7);
+
+      const snapshot = await getDocs(
+        query(
+          collection(db, "admin_kalendar"),
+          where("start", ">=", selectedWeekStart),
+          where("start", "<", weekEnd),
+          where("tip", "==", "termin")
+        )
+      );
+
+      const saTerminima = new Set();
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        if (data.clientUsername) {
+          saTerminima.add(data.clientUsername);
+        }
+      });
+
+      setKorisniceSaTerminima([...saTerminima]);
+    };
+
+    fetchTerminirane();
+  }, [selectedWeekStart]);
 
   useEffect(() => {
     const fetchUsluga = async () => {
@@ -47,9 +79,7 @@ const PonudiTermineModal = ({
       .filter(
         (e) =>
           e.tip === "slobodan" &&
-          izboriPoTerminu[e.id ?? e._id ?? e.originalEventId]?.some(
-            (i) => i.korisnickoIme === selectedUser
-          )
+          izboriPoTerminu[e.id]?.some((i) => i.korisnickoIme === selectedUser)
       )
       .sort((a, b) => a.start.getTime() - b.start.getTime());
   };
@@ -114,22 +144,6 @@ const PonudiTermineModal = ({
         }))
         .filter((t) => t.start >= now);
 
-      const allEvents = await getDocs(collection(db, "admin_kalendar"));
-      const overlaps = odabrani.some((t1) =>
-        allEvents.docs.some((doc) => {
-          const event = doc.data();
-          if (!["termin", "zauzet"].includes(event.tip)) return false;
-          const start = new Date(event.start?.toDate?.() || event.start);
-          const end = new Date(event.end?.toDate?.() || event.end);
-          return t1.id !== doc.id && t1.start < end && t1.end > start;
-        })
-      );
-
-      if (overlaps) {
-        toast.error("Neki od termina se preklapaju sa postojećim.");
-        return;
-      }
-
       await sendSuggestion(selectedUser, odabrani);
 
       const notificationBody = odabrani
@@ -138,32 +152,16 @@ const PonudiTermineModal = ({
         )
         .join(", ");
 
-      for (let attempt = 0; attempt < 3; attempt++) {
-        console.log("📨 Šaljemo notifikaciju za:", selectedUser);
-console.log("Predloženi termini:", notificationBody);
-
-        try {
-          await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              korisnickoIme: selectedUser,
-              title: "Novi predlozi termina 💅",
-              body: `Predloženi termini: ${notificationBody}`,
-              click_action: `https://masaneils.vercel.app/ponudjeni/${selectedUser}`,
-
-
-            }),
-          });
-          break;
-        } catch (err) {
-          if (attempt === 2) {
-            console.error("Neuspešno slanje notifikacije:", err);
-            toast.warn("Predlozi poslati, ali notifikacija nije poslata.");
-          }
-          await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)));
-        }
-      }
+      await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          korisnickoIme: selectedUser,
+          title: "Novi predlozi termina 💅",
+          body: `Predloženi termini: ${notificationBody}`,
+          click_action: `https://masaneils.vercel.app/ponudjeni/${selectedUser}`,
+        }),
+      });
 
       toast.success("Predlozi uspešno poslati!");
       onClose();
@@ -205,19 +203,27 @@ console.log("Predloženi termini:", notificationBody);
           <div className="user-list-container">
             <div className="scroll-lista-korisnica" aria-live="polite">
               {korisnice.length > 0 ? (
-                korisnice.map((korisnica, index) => (
-                  <div
-                    key={korisnica + index}
-                    className="korisnica-item"
-                    onClick={() => setSelectedUser(korisnica)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => e.key === "Enter" && setSelectedUser(korisnica)}
-                    aria-label={`Izaberi korisnicu ${korisnica}`}
-                  >
-                    {korisnica}
-                  </div>
-                ))
+                korisnice.map((korisnica, index) => {
+                  const imaTermin = korisniceSaTerminima.includes(korisnica);
+                  return (
+                    <div
+                      key={korisnica + index}
+                      className={`korisnica-item ${imaTermin ? "disabled" : ""}`}
+                      onClick={() => !imaTermin && setSelectedUser(korisnica)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) =>
+                        e.key === "Enter" && !imaTermin && setSelectedUser(korisnica)
+                      }
+                      aria-label={`Izaberi korisnicu ${korisnica}`}
+                    >
+                      {korisnica}
+                      {imaTermin && (
+                        <span className="info-tag">• već ima termin ove nedelje</span>
+                      )}
+                    </div>
+                  );
+                })
               ) : (
                 <p className="no-users-message">Nema korisnica koje su izabrale termine.</p>
               )}
@@ -248,19 +254,14 @@ console.log("Predloženi termini:", notificationBody);
                         type="checkbox"
                         checked={selektovaniTermini.includes(termin.id)}
                         onChange={() => toggleTermin(termin.id)}
-                        aria-label={`Izaberi termin ${format(
-                          adjustedTimes[termin.id]?.start || new Date(termin.start),
-                          "dd.MM.yyyy HH:mm",
-                          { locale: srLatn }
-                        )}`}
                       />
                       <span className="time-range">
                         {format(
                           adjustedTimes[termin.id]?.start || new Date(termin.start),
                           "dd.MM.yyyy HH:mm",
                           { locale: srLatn }
-                        )}
-                        {" – "}
+                        )}{" "}
+                        –{" "}
                         {format(
                           adjustedTimes[termin.id]?.end || new Date(termin.end),
                           "HH:mm",
@@ -270,45 +271,16 @@ console.log("Predloženi termini:", notificationBody);
                     </label>
 
                     <div className="time-adjust-buttons">
-                      <button
-                        onClick={() => adjustTime(termin.id, "start", -30)}
-                        className="adjust-button"
-                        aria-label="Pomeri početak 30 minuta ranije"
-                      >
-                        -30 min
-                      </button>
-                      <button
-                        onClick={() => adjustTime(termin.id, "start", 30)}
-                        className="adjust-button"
-                        aria-label="Pomeri početak 30 minuta kasnije"
-                      >
-                        +30 min
-                      </button>
-                      <button
-                        onClick={() => adjustTime(termin.id, "end", -30)}
-                        className="adjust-button"
-                        aria-label="Pomeri kraj 30 minuta ranije"
-                      >
-                        -30 min (kraj)
-                      </button>
-                      <button
-                        onClick={() => adjustTime(termin.id, "end", 30)}
-                        className="adjust-button"
-                        aria-label="Pomeri kraj 30 minuta kasnije"
-                      >
-                        +30 min (kraj)
-                      </button>
+                      <button onClick={() => adjustTime(termin.id, "start", -30)}>-30 min</button>
+                      <button onClick={() => adjustTime(termin.id, "start", 30)}>+30 min</button>
+                      <button onClick={() => adjustTime(termin.id, "end", -30)}>-30 min (kraj)</button>
+                      <button onClick={() => adjustTime(termin.id, "end", 30)}>+30 min (kraj)</button>
                     </div>
 
                     <button
                       onClick={() => handleConfirm(termin.id)}
                       className="confirm-button"
                       disabled={isLoading}
-                      aria-label={`Potvrdi termin za ${format(
-                        adjustedTimes[termin.id]?.start || new Date(termin.start),
-                        "dd.MM.yyyy HH:mm",
-                        { locale: srLatn }
-                      )}`}
                     >
                       ✅ Potvrdi
                     </button>
@@ -324,7 +296,6 @@ console.log("Predloženi termini:", notificationBody);
                 onClick={handleSuggest}
                 className="suggest-button"
                 disabled={isLoading || selektovaniTermini.length === 0}
-                aria-label="Pošalji predložene termine"
               >
                 📤 Pošalji predloge
               </button>

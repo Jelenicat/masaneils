@@ -2,7 +2,7 @@
 
 .korisnik-page {
   min-height: 100vh;
-  background-image: url('../assets/slikaHome.webp'); /* prilagodi putanju ako je drugačija */
+  background-image: url('../assets/slikaHome.webp');
   background-size: cover;
   background-position: center;
   display: flex;
@@ -13,15 +13,16 @@
 }
 
 .korisnik-box {
-  background: rgba(255, 255, 255, 0.5); /* providno belo */
+  background: rgba(255, 255, 255, 0.5);
   padding: 40px;
-  border-radius: 0; /* oštre ivice kao u home-form */
+  border-radius: 0;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(5px); /* efekat stakla */
+  backdrop-filter: blur(5px);
   -webkit-backdrop-filter: blur(5px);
   text-align: center;
-  max-width: 400px;
-  width: 90%;
+  max-width: 90vw;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .korisnik-box h2 {
@@ -66,6 +67,7 @@
 .odjava-dugme:hover {
   background-color: #d32f2f !important;
 }
+
 .termin-kocka.disabled {
   background-color: #ddd;
   cursor: not-allowed;
@@ -74,9 +76,15 @@
 }
 
 @media (max-width: 600px) {
+  .korisnik-page {
+    align-items: flex-start;
+    padding: 30px 10px;
+  }
+
   .korisnik-box {
     padding: 30px 20px;
     border-radius: 0;
+    max-width: 100%;
   }
 
   .korisnik-box h2 {

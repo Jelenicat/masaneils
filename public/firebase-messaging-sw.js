@@ -48,9 +48,16 @@ self.addEventListener("notificationclick", function(event) {
         }
       }
       // Inače, otvori novi tab
-      if (clients.openWindow) {
-        return clients.openWindow(clickAction);
-      }
+if (clients.openWindow) {
+  // Dodaj query parametar u URL da znamo odakle je došao
+  const url = new URL(clickAction);
+  if (!url.searchParams.has("fromNotifikacija")) {
+    url.searchParams.append("fromNotifikacija", "true");
+  }
+  return clients.openWindow(url.toString());
+}
+
+
     })
   );
 });

@@ -11,6 +11,7 @@ const DodajTerminModal = ({
   setEventData,
   isEditing,
   isLoading,
+  onDelete,
 }) => {
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -87,6 +88,20 @@ const DodajTerminModal = ({
           <button onClick={onSave} disabled={isLoading}>
             {isEditing ? "Sačuvaj izmene" : "Dodaj"}
           </button>
+          {isEditing && (
+            <button
+              onClick={() => {
+                if (
+                  window.confirm("Da li sigurno želiš da obrišeš ovaj termin?")
+                ) {
+                  onDelete(eventData.id);
+                }
+              }}
+              className="delete-button"
+            >
+              Obriši termin
+            </button>
+          )}
         </div>
       </div>
     </div>

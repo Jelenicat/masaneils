@@ -93,6 +93,20 @@
   background-color: #c68e72; /* Darker light brown on hover */
   border-color: #c68e72; /* Matching border */
 }
+.delete-button {
+  background-color: #e74c3c;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  margin-left: 8px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.delete-button:hover {
+  background-color: #c0392b;
+}
+
 
 /* Responsive */
 @media (max-width: 600px) {

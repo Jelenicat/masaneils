@@ -63,20 +63,32 @@ const UnesiPodatke = () => {
 
   return (
     <div className="unesi-page">
-      <form className="unesi-form" onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
-        <h2>Unesi dodatne podatke</h2>
+      <form
+        className="unesi-form"
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleSubmit();
+        }}
+      >
+        <h2>📱 Unesi dodatne podatke</h2>
+
+        <label htmlFor="telefon">Broj telefona</label>
         <input
+          id="telefon"
           type="text"
-          placeholder="Broj telefona"
+          placeholder="Na primer: 0612345678"
           value={brojTelefona}
           onChange={(e) => setBrojTelefona(e.target.value)}
         />
+
+        <label htmlFor="datum">Datum rođenja</label>
         <input
+          id="datum"
           type="date"
-          placeholder="Datum rođenja"
           value={datumRodjenja}
           onChange={(e) => setDatumRodjenja(e.target.value)}
         />
+
         <button type="submit">Sačuvaj</button>
       </form>
     </div>

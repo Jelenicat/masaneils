@@ -1,6 +1,6 @@
 .unesi-page {
   min-height: 100vh;
-  background-image: url('../assets/slikaHome.webp'); /* prilagodi ako treba */
+  background-image: url('../assets/slikaHome.webp'); /* možeš promeniti sliku po želji */
   background-size: cover;
   background-position: center;
   display: flex;
@@ -10,42 +10,66 @@
 }
 
 .unesi-form {
-  background: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.6);
   padding: 40px;
-  border-radius: 0;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
   text-align: center;
-  max-width: 400px;
+  max-width: 420px;
   width: 90%;
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .unesi-form h2 {
-  font-size: 32px;
-  color: #2e2e2e;
-  margin-bottom: 20px;
+  font-size: 30px;
+  color: #3a2e2e;
+  margin-bottom: 24px;
+}
+
+.unesi-form label {
+  display: block;
+  text-align: left;
+  font-weight: 600;
+  margin: 12px 0 6px;
+  color: #4b3a3a;
+  font-size: 15px;
 }
 
 .unesi-form input {
   width: 100%;
   padding: 12px;
   font-size: 16px;
-  margin-bottom: 20px;
-  border: 2px solid #ccc;
+  margin-bottom: 12px;
+  border: 2px solid #d9b9a8;
   border-radius: 8px;
+  background-color: rgba(255, 255, 255, 0.9);
+  transition: all 0.3s ease;
   box-sizing: border-box;
+}
+
+.unesi-form input:focus {
+  border-color: #b88c7d;
+  box-shadow: 0 0 8px rgba(184, 140, 125, 0.4);
+  outline: none;
+}
+
+.unesi-form input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.6);
+  cursor: pointer;
 }
 
 .unesi-form button {
   width: 100%;
   padding: 12px;
-  font-size: 16px;
+  font-size: 17px;
   background-color: #b88c7d;
   color: white;
   border: none;
   border-radius: 8px;
   cursor: pointer;
+  margin-top: 16px;
+  transition: background-color 0.3s ease;
 }
 
 .unesi-form button:hover {

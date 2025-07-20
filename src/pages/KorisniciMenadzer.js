@@ -76,7 +76,7 @@ const KorisniciMenadzer = () => {
 
   return (
     <div className="korisnici-menadzer">
-      <h2>👩‍💼 Upravljanje korisnicama</h2>
+   
 
       <div className="dodaj-forma">
         <input

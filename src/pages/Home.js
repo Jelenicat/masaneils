@@ -8,11 +8,12 @@ const Home = () => {
   const [username, setUsername] = useState("");
   const navigate = useNavigate();
 
-  // 🔁 Ako postoji korisničko ime u localStorage – automatski loguj
   useEffect(() => {
     const korisnickoIme = localStorage.getItem("korisnickoIme");
+    const pathname = window.location.pathname;
+
     if (korisnickoIme) {
-      refreshFcmToken(); // 🔄 Zatraži novi FCM token ako nema
+      refreshFcmToken();
 
       if (korisnickoIme === "masa") {
         navigate("/admin");
@@ -24,14 +25,14 @@ const Home = () => {
             docSnap.data().brojTelefona &&
             docSnap.data().datumRodjenja
           ) {
-            // ➕ Ako postoji click_action u URL-u, idi tamo
-            const url = new URL(window.location.href);
-            const pathname = url.pathname;
-
-            console.log("🔁 Navigiram na:", pathname); // Za debag
-
-            navigate(pathname || "/korisnik");
+            // Ako korisnik ima sve podatke – idi na stranicu iz URL-a ako nije "/"
+            if (pathname && pathname !== "/") {
+              navigate(pathname);
+            } else {
+              navigate("/korisnik");
+            }
           } else {
+            // Ako nema popunjene podatke
             navigate("/unesi-podatke");
           }
         });
@@ -39,14 +40,13 @@ const Home = () => {
     }
   }, [navigate]);
 
-  // 👤 Ručno logovanje
   const handleLogin = async (e) => {
     e.preventDefault();
     const trimmedUsername = username.trim();
     if (!trimmedUsername) return;
 
     localStorage.setItem("korisnickoIme", trimmedUsername);
-    await refreshFcmToken(); // 🔄 Zatraži novi FCM token pri logovanju
+    await refreshFcmToken();
 
     if (trimmedUsername === "masa") {
       navigate("/admin");

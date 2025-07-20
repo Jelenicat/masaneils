@@ -123,14 +123,53 @@ startOfWeek.setHours(0, 0, 0, 0);
   };
 
   const toggleOdabir = (termin) => {
-    if (vecIzabraniTerminiIDs.includes(termin.id)) return;
-    const postoji = izabrani.find((t) => t.id === termin.id);
-    if (postoji) {
-      setIzabrani(izabrani.filter((t) => t.id !== termin.id));
-    } else {
-      setIzabrani([...izabrani, termin]);
+const toggleOdabir = (termin) => {
+  if (vecIzabraniTerminiIDs.includes(termin.id)) return;
+
+  const start = new Date(termin.start.toDate ? termin.start.toDate() : termin.start);
+  const danas = new Date();
+
+  const day = danas.getDay();
+  const daysToNextMonday = ((8 - day) % 7) || 7;
+  const firstMonday = new Date(danas);
+  firstMonday.setDate(danas.getDate() + daysToNextMonday);
+  firstMonday.setHours(0, 0, 0, 0);
+
+  const endOfNextWeek = new Date(firstMonday);
+  endOfNextWeek.setDate(endOfNextWeek.getDate() + 6);
+  endOfNextWeek.setHours(23, 59, 59, 999);
+
+  const isUNarednojNedelji = start >= firstMonday && start <= endOfNextWeek;
+  const danTermina = start.getDay(); // 0=nedelja, 6=subota
+  const sat = start.getHours();
+
+  if (smena === "jutro" && !isUNarednojNedelji) {
+    toast.warn("Možeš birati samo termine iz naredne nedelje.");
+    return;
+  }
+
+  if (smena === "popodne") {
+    const osamNedeljaKasnije = new Date();
+    osamNedeljaKasnije.setDate(danas.getDate() + 56);
+    if (
+      start < danas ||
+      start > osamNedeljaKasnije ||
+     !(sat >= 17 || (danTermina === 6 && sat < 17))
+
+    ) {
+      toast.warn("Popodnevna smena može birati samo termine posle 17h ili subotom.");
+      return;
     }
-  };
+  }
+
+  const postoji = izabrani.find((t) => t.id === termin.id);
+  if (postoji) {
+    setIzabrani(izabrani.filter((t) => t.id !== termin.id));
+  } else {
+    setIzabrani([...izabrani, termin]);
+  }
+};
+
 
   const handleSubmit = async () => {
     if (!usluga || !materijal) {

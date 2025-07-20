@@ -34,7 +34,6 @@ if (!getApps().length) {
   });
 }
 
-// 📬 Glavni handler
 export default async function handler(req, res) {
   if (!applyCors(req, res)) return;
 
@@ -53,7 +52,7 @@ export default async function handler(req, res) {
     const { getFirestore } = await import("firebase-admin/firestore");
     const db = getFirestore();
 
-    // 📥 Uzimamo FCM token korisnika
+    // 🔑 Token za korisnika
     const docRef = db.collection("fcmTokens").doc(korisnickoIme);
     const docSnap = await docRef.get();
 
@@ -63,8 +62,8 @@ export default async function handler(req, res) {
 
     const token = docSnap.data().token;
 
-    // 🔁 Ako nije eksplicitno poslat `click_action`, proveri ima li korisnik aktivne predloge termina
-   let finalClickAction = click_action || null;
+    // 🧭 Odredi gde da vodi notifikacija
+    let finalClickAction = click_action?.trim() || null;
 
     if (!finalClickAction) {
       try {
@@ -73,9 +72,9 @@ export default async function handler(req, res) {
           .where("korisnickoIme", "==", korisnickoIme)
           .get();
 
-        finalClickAction = !predloziSnapshot.empty ? "/predlozeni-termini" : "/";
+        finalClickAction = !predloziSnapshot.empty ? "/predlozeni-termini" : "/korisnik";
       } catch (err) {
-        finalClickAction = "/";
+        finalClickAction = "/korisnik";
       }
     }
 
@@ -83,27 +82,23 @@ export default async function handler(req, res) {
       ? finalClickAction
       : `https://masaneils.vercel.app${finalClickAction}`;
 
-    // 🚀 Šaljemo notifikaciju
-    console.log("📨 Šaljem na token:", token);
+    // 📩 Pošalji poruku
+    await getMessaging().send({
+      token,
+      data: {
+        title: title || "Obaveštenje",
+        body: body || "",
+        click_action: fullClickAction,
+      },
+    });
 
-await getMessaging().send({
-  token,
-  data: {
-    title: title || "Obaveštenje",
-    body: body || "",
-    click_action: fullClickAction,
-  },
-});
-
-
-    console.log("✅ Notifikacija poslata");
-
+    console.log("✅ Notifikacija poslata korisniku:", korisnickoIme);
     return res.status(200).json({ success: true });
 
   } catch (error) {
     console.error("❌ Greška pri slanju notifikacije:", error);
 
-    // 🗑️ Ako je token nevažeći – brišemo ga iz Firestore-a
+    // 🧹 Očisti nevažeći token
     if (error.code === "messaging/registration-token-not-registered") {
       try {
         const { getFirestore } = await import("firebase-admin/firestore");

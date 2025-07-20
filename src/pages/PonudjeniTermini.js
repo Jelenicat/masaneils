@@ -23,9 +23,8 @@ const safeDate = (d) => {
 
 const PonudjeniTermini = ({ korisnickoIme: propIme }) => {
   const { korisnickoIme: urlIme } = useParams();
-  const [korisnickoIme, setKorisnickoIme] = useState(
-    propIme || urlIme || localStorage.getItem("korisnickoIme")
-  );
+const [korisnickoIme, setKorisnickoIme] = useState(urlIme || propIme || localStorage.getItem("korisnickoIme"));
+
   const [ponudjeni, setPonudjeni] = useState([]);
 
   const fetchPonudjeniTermini = async () => {
@@ -52,6 +51,7 @@ const PonudjeniTermini = ({ korisnickoIme: propIme }) => {
   };
 
   useEffect(() => {
+    console.log("🔎 Korisničko ime:", korisnickoIme); // Dodaj ovo
     if (!korisnickoIme) {
       toast.error("Korisničko ime nije definisano.");
       return;

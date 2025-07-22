@@ -4,11 +4,22 @@ import "react-datepicker/dist/react-datepicker.css";
 import "./DodajTerminModal.css";
 
 const vremeOpcije = [
-  "08:00", "08:30", "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
-  "12:00", "12:30", "13:00", "13:30", "14:00", "14:30", "15:00", "15:30",
-  "16:00", "16:30", "17:00", "17:30", "18:00", "18:30", "19:00", "19:30",
-  "20:00", "20:30", "21:00"
+  "08:00", "08:15", "08:30", "08:45",
+  "09:00", "09:15", "09:30", "09:45",
+  "10:00", "10:15", "10:30", "10:45",
+  "11:00", "11:15", "11:30", "11:45",
+  "12:00", "12:15", "12:30", "12:45",
+  "13:00", "13:15", "13:30", "13:45",
+  "14:00", "14:15", "14:30", "14:45",
+  "15:00", "15:15", "15:30", "15:45",
+  "16:00", "16:15", "16:30", "16:45",
+  "17:00", "17:15", "17:30", "17:45",
+  "18:00", "18:15", "18:30", "18:45",
+  "19:00", "19:15", "19:30", "19:45",
+  "20:00", "20:15", "20:30", "20:45",
+  "21:00"
 ];
+
 
 const combineDateAndTime = (date, timeStr) => {
   if (!date || !timeStr) return null;
@@ -28,23 +39,36 @@ const DodajTerminModal = ({
   isLoading,
   onDelete,
 }) => {
-  const [datum, setDatum] = useState(eventData.start ? new Date(eventData.start) : null);
-  const [vremePocetak, setVremePocetak] = useState(eventData.start ? formatTime(eventData.start) : "");
-  const [vremeKraj, setVremeKraj] = useState(eventData.end ? formatTime(eventData.end) : "");
+  const [datumi, setDatumi] = useState(
+    eventData.start ? [new Date(eventData.start)] : []
+  );
+  const [vremePocetak, setVremePocetak] = useState(
+    eventData.start ? formatTime(eventData.start) : ""
+  );
+  const [vremeKraj, setVremeKraj] = useState(
+    eventData.end ? formatTime(eventData.end) : ""
+  );
 
   useEffect(() => {
-    const noviStart = combineDateAndTime(datum, vremePocetak);
-    const noviEnd = combineDateAndTime(datum, vremeKraj);
-    setEventData(prev => ({
-      ...prev,
-      start: noviStart,
-      end: noviEnd
-    }));
-  }, [datum, vremePocetak, vremeKraj]);
+    const events = datumi.map((datum) => {
+      const noviStart = combineDateAndTime(datum, vremePocetak);
+      const noviEnd = combineDateAndTime(datum, vremeKraj);
+      return {
+        ...eventData,
+        start: noviStart,
+        end: noviEnd,
+      };
+    });
+    setEventData(events.length > 0 ? events : [eventData]);
+  }, [datumi, vremePocetak, vremeKraj, setEventData, eventData]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setEventData((prev) => ({ ...prev, [name]: value }));
+    setEventData((prev) =>
+      Array.isArray(prev)
+        ? prev.map((event) => ({ ...event, [name]: value }))
+        : { ...prev, [name]: value }
+    );
   };
 
   function formatTime(date) {
@@ -57,23 +81,25 @@ const DodajTerminModal = ({
   return (
     <div className="modal-overlay">
       <div className="modal">
-        <h2>{isEditing ? "Izmeni termin" : "Dodaj novi termin"}</h2>
+        <h2>{isEditing ? "Izmeni termin" : "Dodaj nove termine"}</h2>
 
         <label>Tip termina:</label>
-        <select name="tip" value={eventData.tip} onChange={handleChange}>
+        <select name="tip" value={eventData.tip || "slobodan"} onChange={handleChange}>
           <option value="slobodan">Slobodan</option>
           <option value="zauzet">Zauzet</option>
           <option value="termin">Termin</option>
           <option value="edukacija">Edukacija</option>
         </select>
 
-        <label>📆 Datum:</label>
+        <label>📆 Datumi:</label>
         <DatePicker
-          selected={datum}
-          onChange={(date) => setDatum(date)}
+          selected={null}
+          onChange={(dates) => setDatumi(dates || [])}
+          selectsMultiple
           dateFormat="dd.MM.yyyy"
-          placeholderText="Izaberi datum"
+          placeholderText="Izaberi datume"
           minDate={new Date()}
+          value={datumi.map((d) => d.toLocaleDateString("sr-RS")).join(", ")}
         />
 
         <label>🕒 Početak:</label>
@@ -114,7 +140,10 @@ const DodajTerminModal = ({
 
         <div className="modal-buttons">
           <button onClick={onClose}>Otkaži</button>
-          <button onClick={onSave} disabled={isLoading || !datum || !vremePocetak || !vremeKraj}>
+          <button
+            onClick={() => onSave(datumi.length > 0 ? eventData : [])}
+            disabled={isLoading || datumi.length === 0 || !vremePocetak || !vremeKraj}
+          >
             {isEditing ? "Sačuvaj izmene" : "Dodaj"}
           </button>
           {isEditing && (

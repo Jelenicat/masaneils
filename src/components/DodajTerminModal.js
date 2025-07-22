@@ -21,6 +21,7 @@ const vremeOpcije = [
 ];
 
 
+
 const combineDateAndTime = (date, timeStr) => {
   if (!date || !timeStr) return null;
   const [h, m] = timeStr.split(":");
@@ -39,36 +40,23 @@ const DodajTerminModal = ({
   isLoading,
   onDelete,
 }) => {
-  const [datumi, setDatumi] = useState(
-    eventData.start ? [new Date(eventData.start)] : []
-  );
-  const [vremePocetak, setVremePocetak] = useState(
-    eventData.start ? formatTime(eventData.start) : ""
-  );
-  const [vremeKraj, setVremeKraj] = useState(
-    eventData.end ? formatTime(eventData.end) : ""
-  );
+  const [datum, setDatum] = useState(eventData.start ? new Date(eventData.start) : null);
+  const [vremePocetak, setVremePocetak] = useState(eventData.start ? formatTime(eventData.start) : "");
+  const [vremeKraj, setVremeKraj] = useState(eventData.end ? formatTime(eventData.end) : "");
 
   useEffect(() => {
-    const events = datumi.map((datum) => {
-      const noviStart = combineDateAndTime(datum, vremePocetak);
-      const noviEnd = combineDateAndTime(datum, vremeKraj);
-      return {
-        ...eventData,
-        start: noviStart,
-        end: noviEnd,
-      };
-    });
-    setEventData(events.length > 0 ? events : [eventData]);
-  }, [datumi, vremePocetak, vremeKraj, setEventData, eventData]);
+    const noviStart = combineDateAndTime(datum, vremePocetak);
+    const noviEnd = combineDateAndTime(datum, vremeKraj);
+    setEventData(prev => ({
+      ...prev,
+      start: noviStart,
+      end: noviEnd
+    }));
+  }, [datum, vremePocetak, vremeKraj]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setEventData((prev) =>
-      Array.isArray(prev)
-        ? prev.map((event) => ({ ...event, [name]: value }))
-        : { ...prev, [name]: value }
-    );
+    setEventData((prev) => ({ ...prev, [name]: value }));
   };
 
   function formatTime(date) {
@@ -81,25 +69,23 @@ const DodajTerminModal = ({
   return (
     <div className="modal-overlay">
       <div className="modal">
-        <h2>{isEditing ? "Izmeni termin" : "Dodaj nove termine"}</h2>
+        <h2>{isEditing ? "Izmeni termin" : "Dodaj novi termin"}</h2>
 
         <label>Tip termina:</label>
-        <select name="tip" value={eventData.tip || "slobodan"} onChange={handleChange}>
+        <select name="tip" value={eventData.tip} onChange={handleChange}>
           <option value="slobodan">Slobodan</option>
           <option value="zauzet">Zauzet</option>
           <option value="termin">Termin</option>
           <option value="edukacija">Edukacija</option>
         </select>
 
-        <label>📆 Datumi:</label>
+        <label>📆 Datum:</label>
         <DatePicker
-          selected={null}
-          onChange={(dates) => setDatumi(dates || [])}
-          selectsMultiple
+          selected={datum}
+          onChange={(date) => setDatum(date)}
           dateFormat="dd.MM.yyyy"
-          placeholderText="Izaberi datume"
+          placeholderText="Izaberi datum"
           minDate={new Date()}
-          value={datumi.map((d) => d.toLocaleDateString("sr-RS")).join(", ")}
         />
 
         <label>🕒 Početak:</label>
@@ -140,10 +126,7 @@ const DodajTerminModal = ({
 
         <div className="modal-buttons">
           <button onClick={onClose}>Otkaži</button>
-          <button
-            onClick={() => onSave(datumi.length > 0 ? eventData : [])}
-            disabled={isLoading || datumi.length === 0 || !vremePocetak || !vremeKraj}
-          >
+          <button onClick={onSave} disabled={isLoading || !datum || !vremePocetak || !vremeKraj}>
             {isEditing ? "Sačuvaj izmene" : "Dodaj"}
           </button>
           {isEditing && (

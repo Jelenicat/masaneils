@@ -9,6 +9,16 @@ const vremeOpcije = [
   "16:00", "16:30", "17:00", "17:30", "18:00", "18:30", "19:00", "19:30",
   "20:00", "20:30", "21:00"
 ];
+const daniUNedelji = [
+  { label: "Ponedeljak", value: 1 },
+  { label: "Utorak", value: 2 },
+  { label: "Sreda", value: 3 },
+  { label: "Četvrtak", value: 4 },
+  { label: "Petak", value: 5 },
+  { label: "Subota", value: 6 },
+];
+
+
 
 const combineDateAndTime = (date, timeStr) => {
   if (!date || !timeStr) return null;
@@ -31,7 +41,9 @@ const DodajTerminModal = ({
   const [datum, setDatum] = useState(eventData.start ? new Date(eventData.start) : null);
   const [vremePocetak, setVremePocetak] = useState(eventData.start ? formatTime(eventData.start) : "");
   const [vremeKraj, setVremeKraj] = useState(eventData.end ? formatTime(eventData.end) : "");
-
+const [pocetniDatum, setPocetniDatum] = useState(new Date());
+const [odabraniDani, setOdabraniDani] = useState([]);
+const [brojDana, setBrojDana] = useState(10);
   useEffect(() => {
     const noviStart = combineDateAndTime(datum, vremePocetak);
     const noviEnd = combineDateAndTime(datum, vremeKraj);
@@ -46,6 +58,38 @@ const DodajTerminModal = ({
     const { name, value } = e.target;
     setEventData((prev) => ({ ...prev, [name]: value }));
   };
+  const handleMultiSave = () => {
+  const terminiZaDodavanje = [];
+
+  for (let i = 0; i < brojDana; i++) {
+    const datum = new Date(pocetniDatum);
+    datum.setDate(datum.getDate() + i);
+
+    if (odabraniDani.includes(datum.getDay())) {
+      const noviStart = combineDateAndTime(datum, vremePocetak);
+      const noviEnd = combineDateAndTime(datum, vremeKraj);
+
+      terminiZaDodavanje.push({
+        ...eventData,
+        start: noviStart,
+        end: noviEnd,
+      });
+    }
+  }
+
+  if (terminiZaDodavanje.length === 0) {
+    alert("Nema termina za odabrane dane.");
+    return;
+  }
+
+  // Ako želiš da sačuvaš sve termine jedan po jedan
+  for (const termin of terminiZaDodavanje) {
+    onSave(termin);
+  }
+
+  onClose(); // Zatvori modal
+};
+
 
   function formatTime(date) {
     const d = new Date(date);
@@ -75,6 +119,43 @@ const DodajTerminModal = ({
           placeholderText="Izaberi datum"
           minDate={new Date()}
         />
+        <label>📆 Početni datum:</label>
+<DatePicker
+  selected={pocetniDatum}
+  onChange={(date) => setPocetniDatum(date)}
+  dateFormat="dd.MM.yyyy"
+  minDate={new Date()}
+/>
+
+<label>📅 Dani u nedelji:</label>
+<div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+  {daniUNedelji.map((dan) => (
+    <label key={dan.value}>
+      <input
+        type="checkbox"
+        checked={odabraniDani.includes(dan.value)}
+        onChange={() => {
+          setOdabraniDani((prev) =>
+            prev.includes(dan.value)
+              ? prev.filter((d) => d !== dan.value)
+              : [...prev, dan.value]
+          );
+        }}
+      />
+      {dan.label}
+    </label>
+  ))}
+</div>
+
+<label>📆 Broj dana unapred:</label>
+<input
+  type="number"
+  min="1"
+  max="30"
+  value={brojDana}
+  onChange={(e) => setBrojDana(parseInt(e.target.value))}
+/>
+
 
         <label>🕒 Početak:</label>
         <select value={vremePocetak} onChange={(e) => setVremePocetak(e.target.value)}>
@@ -114,9 +195,10 @@ const DodajTerminModal = ({
 
         <div className="modal-buttons">
           <button onClick={onClose}>Otkaži</button>
-          <button onClick={onSave} disabled={isLoading || !datum || !vremePocetak || !vremeKraj}>
-            {isEditing ? "Sačuvaj izmene" : "Dodaj"}
-          </button>
+         <button onClick={handleMultiSave} disabled={isLoading || !vremePocetak || !vremeKraj || odabraniDani.length === 0}>
+  {isEditing ? "Sačuvaj izmene" : "Dodaj više termina"}
+</button>
+
           {isEditing && (
             <button
               onClick={() => {

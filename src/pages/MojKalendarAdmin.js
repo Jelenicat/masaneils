@@ -159,10 +159,13 @@ const pomeriNedeljuUnapred = () =>
     // ✅ Ako nema, izvrši potvrdu
     await runTransaction(db, async (transaction) => {
       const eventRef = doc(db, "admin_kalendar", eventId);
-      transaction.update(eventRef, {
-        tip: "termin",
-        clientUsername: korisnickoIme,
-      });
+     transaction.update(eventRef, {
+  tip: "termin",
+  clientUsername: korisnickoIme,
+  title: `💅 ${korisnickoIme}`,
+  backgroundColor: EVENT_TYPES["termin"]?.color || "#ddd",
+});
+
 
       const izboriSnapshot = await getDocs(collection(db, "izboriTermina"));
       izboriSnapshot.docs.forEach((izborDoc) => {

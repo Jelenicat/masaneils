@@ -24,6 +24,7 @@ const EVENT_TYPES = {
   zauzet: { color: "#ff6347" },
   termin: { color: "#ffe4ec" },
   edukacija: { color: "#bfa0dc" },
+  odmor: { color: "#a0c4ff" },
 };
 
 const INITIAL_EVENT_DATA = {
@@ -103,6 +104,7 @@ const pomeriNedeljuUnapred = () =>
             else if (data.tip === "zauzet") title += "zauzet";
             else if (data.tip === "termin") title += `💅 ${data.clientUsername || "Nepoznat korisnik"}`;
             else if (data.tip === "edukacija") title += "🎓 edukacija";
+            else if (data.tip === "odmor") title += "odmor";
 
             return {
               ...data,

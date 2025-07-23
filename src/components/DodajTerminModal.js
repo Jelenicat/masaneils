@@ -77,6 +77,7 @@ const DodajTerminModal = ({
           <option value="zauzet">Zauzet</option>
           <option value="termin">Termin</option>
           <option value="edukacija">Edukacija</option>
+          <option value="odmor">Odmor</option>
         </select>
 
         <label>📆 Datum:</label>

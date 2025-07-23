@@ -96,6 +96,29 @@
 .nazad-dugme:hover {
   background-color: #b87f60;
 }
+.circle-button {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  padding: 0;
+  font-size: 16px;
+  font-weight: bold;
+  border: 2px solid #b88c7d;
+  background-color: transparent;
+  color: #333;
+  cursor: pointer;
+  transition: 0.3s ease;
+}
+
+.circle-button:hover {
+  background-color: #e9d6cc;
+}
+
+.circle-button.active {
+  background-color: #b88c7d;
+  color: white;
+}
+
 @media (max-width: 768px) {
   .unesi-form {
     padding: 30px 20px;
@@ -131,6 +154,12 @@
     padding: 10px;
     font-size: 14px;
   }
+  .circle-button {
+  width: 44px;
+  height: 44px;
+  font-size: 14px;
+}
+
 }
 
 @media (max-width: 480px) {
@@ -149,4 +178,5 @@
   .button-group button {
     font-size: 13px;
   }
+  
 }

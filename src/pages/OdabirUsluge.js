@@ -11,6 +11,8 @@ const OdabirUsluge = () => {
   const [materijal, setMaterijal] = useState("");
   const navigate = useNavigate();
   const korisnickoIme = localStorage.getItem("korisnickoIme");
+  const [velicina, setVelicina] = useState("");
+
 
   useEffect(() => {
     // Provera prijave i notifikacije
@@ -51,6 +53,12 @@ const OdabirUsluge = () => {
       alert("Izaberi da li imaš materijal.");
       return;
     }
+ 
+if (usluga === "Izlivanje" && !velicina) {
+  alert("Izaberi veličinu (S, M, L, XL).");
+  return;
+}
+
 
     try {
       const docRef = doc(db, "izbor_usluge", korisnickoIme);
@@ -58,10 +66,13 @@ const OdabirUsluge = () => {
         korisnickoIme,
         usluga,
         materijal: usluga === "Izlivanje" ? materijal : "nije_bitno",
-        timestamp: new Date(),
+        velicina: usluga === "Izlivanje" ? velicina : "nije_bitno",
+        timestamp: new Date(),      
       });
       localStorage.setItem("usluga", usluga);
       localStorage.setItem("materijal", materijal || "nije_bitno");
+      localStorage.setItem("velicina", velicina || "nije_bitno");
+
       navigate("/kalendar");
     } catch (err) {
       console.error("Greška pri čuvanju u Firestore:", err);
@@ -110,6 +121,24 @@ const OdabirUsluge = () => {
                 Ne
               </button>
             </div>
+            {usluga === "Izlivanje" && (materijal === "Da" || materijal === "Ne") && (
+  <div className="radio-group">
+    <p>Izaberi veličinu</p>
+    <div className="button-group">
+    {["S", "M", "L", "XL"].map((v) => (
+  <button
+    key={v}
+    className={`circle-button ${velicina === v ? "active" : ""}`}
+    onClick={() => setVelicina(v)}
+  >
+    {v}
+  </button>
+))}
+
+    </div>
+  </div>
+)}
+
           </div>
         )}
         <button className="submit-button" onClick={handleSubmit}>

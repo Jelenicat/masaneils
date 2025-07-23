@@ -17,6 +17,7 @@ const Kalendar = () => {
   const smena = localStorage.getItem("smena");
   const usluga = localStorage.getItem("usluga") || "";
   const materijal = localStorage.getItem("materijal") || "nije_bitno";
+  const velicina = localStorage.getItem("velicina") || "nije_bitno";
   const navigate = useNavigate();
   const [dostupniTermini, setDostupniTermini] = useState([]);
   const [izabrani, setIzabrani] = useState([]);
@@ -36,6 +37,17 @@ const Kalendar = () => {
 
     fetchSve();
   }, [offsetNedelja]);
+const isDozvoljenoVremeZaJutro = () => {
+  const sada = new Date();
+  const dan = sada.getDay(); // 6 = subota, 0 = nedelja
+  const sat = sada.getHours();
+  const minut = sada.getMinutes();
+
+  return (
+    (dan === 6 && (sat > 12 || (sat === 12 && minut >= 0))) ||
+    (dan === 0 && sat <= 23)
+  );
+};
 
   const fetchVecIzabraniTermini = async () => {
     try {
@@ -135,23 +147,41 @@ const Kalendar = () => {
     const danTermina = start.getDay();
     const sat = start.getHours();
 
-    if (smena === "jutro" && !isUNarednojNedelji) {
-      toast.warn("Možeš birati samo termine iz naredne nedelje.");
-      return;
-    }
+ if (smena === "jutro") {
+  if (!isUNarednojNedelji) {
+    toast.warn("Možeš birati samo termine iz naredne nedelje.");
+    return;
+  }
 
-    if (smena === "popodne") {
-      const osamNedeljaKasnije = new Date();
-      osamNedeljaKasnije.setDate(danas.getDate() + 56);
-      if (
-        start < danas ||
-        start > osamNedeljaKasnije ||
-        !(sat >= 17 || (danTermina === 6 && sat < 17))
-      ) {
-        toast.warn("Popodnevna smena može birati samo termine posle 17h ili subotom.");
-        return;
-      }
-    }
+  if (!isDozvoljenoVremeZaJutro()) {
+    toast.warn("Možeš birati samo subotom od 12h do nedelje do 23h.");
+    return;
+  }
+
+  if (!(sat < 15 || (sat === 15 && start.getMinutes() === 0))) {
+    toast.warn("Jutarnja smena može birati samo termine pre 15h.");
+    return;
+  }
+}
+
+
+   if (smena === "popodne") {
+  const osamNedeljaKasnije = new Date();
+  osamNedeljaKasnije.setDate(danas.getDate() + 56);
+
+  if (start < danas || start > osamNedeljaKasnije) {
+    toast.warn("Možeš birati samo termine u narednih 8 nedelja.");
+    return;
+  }
+
+  const danJeSubota = start.getDay() === 6;
+
+  if (!(danJeSubota || sat >= 17)) {
+    toast.warn("Možeš birati samo termine posle 17h, osim subotom.");
+    return;
+  }
+}
+
 
     const postoji = izabrani.find((t) => t.id === termin.id);
     if (postoji) {
@@ -208,7 +238,16 @@ const Kalendar = () => {
   return (
     <div className="kalendar">
       <div className="kalendar-inner">
-        <h2>Izabrana usluga: <span>{usluga}</span></h2>
+        <h2>
+  Izabrana usluga: <span>{usluga}</span>
+  {usluga === "Izlivanje" && (
+    <span>
+      {" "}
+      – {materijal === "Da" ? "Ima materijal" : "Nema materijal"} – Veličina: {velicina}
+    </span>
+  )}
+</h2>
+
         <h3>Dostupni termini za {offsetNedelja === 0 ? "ovu" : offsetNedelja === 1 ? "narednu" : `${offsetNedelja}. nedelju`}:</h3>
 
         <div className="navigation-buttons">

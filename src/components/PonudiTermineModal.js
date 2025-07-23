@@ -187,16 +187,17 @@ const handleConfirm = async (terminId) => {
     // 🔔 Pošalji notifikaciju o potvrdi
     const termin = events.find((e) => e.id === terminId);
     if (termin) {
-    await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
+await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
     korisnickoIme: selectedUser,
     title: "Termin je potvrđen ✅",
-    body: `Vaš termin je zakazan za ${format(startTime, "dd.MM. yyyy HH:mm", { locale: srLatn })}`,
+    body: `Vaš termin je zakazan za ${format(termin.start, "dd.MM.yyyy HH:mm", { locale: srLatn })}`,
     click_action: "/istorija",
   }),
 });
+
 
     }
 

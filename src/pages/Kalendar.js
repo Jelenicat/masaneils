@@ -1,3 +1,4 @@
+// Izmenjeni Kalendar.js
 import React, { useEffect, useState } from "react";
 import { db } from "../firebase";
 import {
@@ -30,24 +31,11 @@ const Kalendar = () => {
         toast.error("Nedostaju korisnički podaci.");
         return;
       }
-
       await fetchVecIzabraniTermini();
-      await fetchSlobodniTermini();
+      await fetchTermini();
     };
-
     fetchSve();
   }, [offsetNedelja]);
-const isDozvoljenoVremeZaJutro = () => {
-  const sada = new Date();
-  const dan = sada.getDay(); // 6 = subota, 0 = nedelja
-  const sat = sada.getHours();
-  const minut = sada.getMinutes();
-
-  return (
-    (dan === 6 && (sat > 12 || (sat === 12 && minut >= 0))) ||
-    (dan === 0 && sat <= 23)
-  );
-};
 
   const fetchVecIzabraniTermini = async () => {
     try {
@@ -61,11 +49,12 @@ const isDozvoljenoVremeZaJutro = () => {
     }
   };
 
-  const fetchSlobodniTermini = async () => {
+  const fetchTermini = async () => {
     try {
+      
       const snapshot = await getDocs(collection(db, "admin_kalendar"));
       const svi = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-      const slobodni = svi.filter((t) => t.tip === "slobodan");
+      const sviRelevantni = svi.filter((t) => ["slobodan", "edukacija", "odmor"].includes(t.tip));
 
       const sada = new Date();
       const day = sada.getDay();
@@ -76,146 +65,43 @@ const isDozvoljenoVremeZaJutro = () => {
 
       const startOfWeek = new Date(firstMonday);
       startOfWeek.setDate(startOfWeek.getDate() + (offsetNedelja - 1) * 7);
-      startOfWeek.setHours(0, 0, 0, 0);
 
       const endOfWeek = new Date(startOfWeek);
       endOfWeek.setDate(endOfWeek.getDate() + 5);
       endOfWeek.setHours(23, 59, 59, 999);
 
-      const terminiZaPrikaz = slobodni.filter((t) => {
-        if (vecIzabraniTerminiIDs.includes(t.id)) return false;
+const filtrirani = sviRelevantni.filter((t) => {
+  const start = new Date(t.start.toDate ? t.start.toDate().getTime() : new Date(t.start).getTime());
+  const startTime = start.getTime();
+  const localHour = start.getHours();
+  const danTermina = start.getDay(); // 0 = nedelja, 6 = subota
 
-        const start = new Date(t.start.toDate ? t.start.toDate().getTime() : new Date(t.start).getTime());
-        const startTime = start.getTime();
-        const localHour = start.getHours();
-        const localMinute = start.getMinutes();
-        const danTermina = start.getDay();
+  if (startTime < startOfWeek.getTime() || startTime > endOfWeek.getTime()) return false;
 
-        if (startTime < startOfWeek.getTime() || startTime > endOfWeek.getTime()) {
-          return false;
-        }
+  // Uvek prikazuj edukaciju i odmor
+  if (t.tip === "edukacija" || t.tip === "odmor") return true;
 
-        if (smena === "jutro") {
-          const dan = sada.getDay();
-          const satNow = sada.getHours();
-          const minutNow = sada.getMinutes();
-          const dozvoljenoVreme =
-            (dan === 6 && (satNow > 12 || (satNow === 12 && minutNow >= 0))) ||
-            (dan === 0 && satNow < 15);
+  if (t.tip === "slobodan") {
+    if (vecIzabraniTerminiIDs.includes(t.id)) return false;
 
-          if (!dozvoljenoVreme) return false;
+    if (smena === "jutro") {
+      // jutro vidi samo termine pre 15h
+      return localHour < 15;
+    }
 
-          return localHour < 15 || (localHour === 15 && localMinute === 0);
-        }
+    if (smena === "popodne") {
+      // popodne vidi samo termine posle 17h ili bilo kad subotom
+      return localHour >= 17 || danTermina === 6;
+    }
+  }
 
-        if (smena === "popodne") {
-          const osamNedeljaKasnije = new Date();
-          osamNedeljaKasnije.setDate(osamNedeljaKasnije.getDate() + 56);
-          return (
-            startTime >= sada.getTime() &&
-            startTime <= osamNedeljaKasnije.getTime() &&
-            (localHour >= 17 || (danTermina === 6 && localHour < 17))
-          );
-        }
+  return false;
+});
 
-        return false;
-      });
 
-      setDostupniTermini(terminiZaPrikaz);
+      setDostupniTermini(filtrirani);
     } catch (err) {
       toast.error("Greška pri učitavanju termina.");
-    }
-  };
-
-  const toggleOdabir = (termin) => {
-    if (vecIzabraniTerminiIDs.includes(termin.id)) return;
-
-    const start = new Date(termin.start.toDate ? termin.start.toDate() : termin.start);
-    const danas = new Date();
-
-    const day = danas.getDay();
-    const daysToNextMonday = ((8 - day) % 7) || 7;
-    const firstMonday = new Date(danas);
-    firstMonday.setDate(danas.getDate() + daysToNextMonday);
-    firstMonday.setHours(0, 0, 0, 0);
-
-    const endOfNextWeek = new Date(firstMonday);
-    endOfNextWeek.setDate(endOfNextWeek.getDate() + 6);
-    endOfNextWeek.setHours(23, 59, 59, 999);
-
-    const isUNarednojNedelji = start >= firstMonday && start <= endOfNextWeek;
-    const danTermina = start.getDay();
-    const sat = start.getHours();
-
- if (smena === "jutro") {
-  if (!isUNarednojNedelji) {
-    toast.warn("Možeš birati samo termine iz naredne nedelje.");
-    return;
-  }
-
-  if (!isDozvoljenoVremeZaJutro()) {
-    toast.warn("Možeš birati samo subotom od 12h do nedelje do 23h.");
-    return;
-  }
-
-  if (!(sat < 15 || (sat === 15 && start.getMinutes() === 0))) {
-    toast.warn("Jutarnja smena može birati samo termine pre 15h.");
-    return;
-  }
-}
-
-
-   if (smena === "popodne") {
-  const osamNedeljaKasnije = new Date();
-  osamNedeljaKasnije.setDate(danas.getDate() + 56);
-
-  if (start < danas || start > osamNedeljaKasnije) {
-    toast.warn("Možeš birati samo termine u narednih 8 nedelja.");
-    return;
-  }
-
-  const danJeSubota = start.getDay() === 6;
-
-  if (!(danJeSubota || sat >= 17)) {
-    toast.warn("Možeš birati samo termine posle 17h, osim subotom.");
-    return;
-  }
-}
-
-
-    const postoji = izabrani.find((t) => t.id === termin.id);
-    if (postoji) {
-      setIzabrani(izabrani.filter((t) => t.id !== termin.id));
-    } else {
-      setIzabrani([...izabrani, termin]);
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (!usluga || !materijal) {
-      toast.error("Nedostaju podaci o usluzi.");
-      return;
-    }
-
-    try {
-      for (const termin of izabrani) {
-        const startDate = termin.start.toDate ? termin.start.toDate() : new Date(termin.start);
-
-        await addDoc(collection(db, "izboriTermina"), {
-          korisnickoIme,
-          eventId: termin.id,
-          datum: startDate.toISOString().split("T")[0],
-          timestamp: serverTimestamp(),
-          status: "izabrala",
-        });
-      }
-
-      toast.success("Termini uspešno sačuvani!");
-      setIzabrani([]);
-      await fetchVecIzabraniTermini();
-      fetchSlobodniTermini();
-    } catch (err) {
-      toast.error("Greška pri slanju termina.");
     }
   };
 
@@ -235,73 +121,158 @@ const isDozvoljenoVremeZaJutro = () => {
     }
   });
 
+const toggleOdabir = (termin) => {
+  if (termin.tip !== "slobodan" || vecIzabraniTerminiIDs.includes(termin.id)) return;
+
+  const sada = new Date();
+  const start = new Date(termin.start.toDate ? termin.start.toDate() : termin.start);
+
+  const danUNedelji = sada.getDay(); // 0 - nedelja, 6 - subota
+  const sat = sada.getHours();
+  const minut = sada.getMinutes();
+
+  const daysToNextMonday = ((8 - danUNedelji) % 7) || 7;
+  const firstMonday = new Date(sada);
+  firstMonday.setDate(sada.getDate() + daysToNextMonday);
+  firstMonday.setHours(0, 0, 0, 0);
+
+  const startOfNextWeek = new Date(firstMonday);
+  const endOfNextWeek = new Date(firstMonday);
+  endOfNextWeek.setDate(endOfNextWeek.getDate() + 5);
+  endOfNextWeek.setHours(23, 59, 59, 999);
+
+  if (smena === "jutro") {
+    const isUNarednojNedelji = start >= startOfNextWeek && start <= endOfNextWeek;
+    const isDozvoljenoVreme =
+      (danUNedelji === 6 && (sat > 12 || (sat === 12 && minut >= 0))) || // subota od 12h
+      (danUNedelji === 0 && sat <= 23); // nedelja do 23h
+
+    if (!isUNarednojNedelji) {
+      toast.warn("Možeš birati samo termine iz naredne nedelje.");
+      return;
+    }
+
+    if (!isDozvoljenoVreme) {
+      toast.warn("Možeš birati samo subotom od 12h do nedelje u 23h.");
+      return;
+    }
+
+    if (start.getHours() >= 15) {
+      toast.warn("Jutarnja smena može birati samo termine pre 15h.");
+      return;
+    }
+  }
+
+  if (smena === "popodne") {
+    const osamNedeljaKasnije = new Date();
+    osamNedeljaKasnije.setDate(sada.getDate() + 56);
+
+    if (start < sada || start > osamNedeljaKasnije) {
+      toast.warn("Možeš birati samo termine u narednih 8 nedelja.");
+      return;
+    }
+
+    const hour = start.getHours();
+    const dan = start.getDay(); // 6 = subota
+    if (!(hour >= 17 || dan === 6)) {
+      toast.warn("Možeš birati samo termine posle 17h, osim subotom.");
+      return;
+    }
+  }
+
+  const postoji = izabrani.find((t) => t.id === termin.id);
+  if (postoji) {
+    setIzabrani(izabrani.filter((t) => t.id !== termin.id));
+  } else {
+    setIzabrani([...izabrani, termin]);
+  }
+};
+
+
+  const handleSubmit = async () => {
+    if (!usluga || !materijal) {
+      toast.error("Nedostaju podaci o usluzi.");
+      return;
+    }
+    try {
+      for (const termin of izabrani) {
+        const startDate = termin.start.toDate ? termin.start.toDate() : new Date(termin.start);
+        await addDoc(collection(db, "izboriTermina"), {
+          korisnickoIme,
+          eventId: termin.id,
+          datum: startDate.toISOString().split("T")[0],
+          timestamp: serverTimestamp(),
+          status: "izabrala",
+        });
+      }
+      toast.success("Termini uspesno sacuvani!");
+      setIzabrani([]);
+      await fetchVecIzabraniTermini();
+      fetchTermini();
+    } catch (err) {
+      toast.error("Greska pri slanju termina.");
+    }
+  };
+
   return (
     <div className="kalendar">
       <div className="kalendar-inner">
         <h2>
-  Izabrana usluga: <span>{usluga}</span>
-  {usluga === "Izlivanje" && (
-    <span>
-      {" "}
-      – {materijal === "Da" ? "Ima materijal" : "Nema materijal"} – Veličina: {velicina}
-    </span>
-  )}
-</h2>
-
-        <h3>Dostupni termini za {offsetNedelja === 0 ? "ovu" : offsetNedelja === 1 ? "narednu" : `${offsetNedelja}. nedelju`}:</h3>
-
+          Izabrana usluga: <span>{usluga}</span>
+          {usluga === "Izlivanje" && (
+            <span> – {materijal === "Da" ? "Ima materijal" : "Nema materijal"} – Veličina: {velicina}</span>
+          )}
+        </h2>
         <div className="navigation-buttons">
-          <button onClick={() => setOffsetNedelja((prev) => prev - 1)}>⬅ Prethodna</button>
-          <button onClick={() => setOffsetNedelja((prev) => prev + 1)}>Sledeća ➡</button>
-        </div>
+  <button className="nedelja-dugme" onClick={() => setOffsetNedelja((prev) => prev - 1)}>⬅ Prethodna</button>
+  <button className="nedelja-dugme" onClick={() => setOffsetNedelja((prev) => prev + 1)}>Sledeća ➡</button>
+</div>
 
         <div className="nedelja-grid">
           {daniUNedelji.map((dan) => (
             <div key={dan} className="dan-kocka">
-              <div className="naslov-dana">
-                {dan}
-                <br />
-                <span className="datum-dana">
-                  {(() => {
-                    const index = daniUNedelji.indexOf(dan);
-                    const sada = new Date();
-                    const day = sada.getDay();
-                    const daysToNextMonday = ((8 - day) % 7) || 7;
-                    const firstMonday = new Date(sada);
-                    firstMonday.setDate(sada.getDate() + daysToNextMonday);
-                    const datum = new Date(firstMonday);
-                    datum.setDate(datum.getDate() + (offsetNedelja - 1) * 7 + index);
-                    return datum.toLocaleDateString("sr-RS", { day: "2-digit", month: "2-digit" });
-                  })()}
-                </span>
-              </div>
+             <div className="naslov-dana">
+  {dan}
+  <br />
+  <span className="datum-dana">
+    {(() => {
+      const index = daniUNedelji.indexOf(dan);
+      const danas = new Date();
+      const day = danas.getDay();
+      const daysToNextMonday = ((8 - day) % 7) || 7;
+      const firstMonday = new Date(danas);
+      firstMonday.setDate(danas.getDate() + daysToNextMonday);
+      const datum = new Date(firstMonday);
+      datum.setDate(datum.getDate() + (offsetNedelja - 1) * 7 + index);
+      return datum.toLocaleDateString("sr-RS", { day: "2-digit", month: "2-digit" });
+    })()}
+  </span>
+</div>
+
               {grupisaniPoDanu[dan].length === 0 ? (
                 <div className="prazno">—</div>
               ) : (
                 grupisaniPoDanu[dan].map((t) => (
                   <div
                     key={t.id}
-                    className={`termin-kocka ${izabrani.find((z) => z.id === t.id) ? "selected" : ""} ${vecIzabraniTerminiIDs.includes(t.id) ? "disabled" : ""}`}
-                    onClick={() => toggleOdabir(t)}
+                   className={`termin-kocka ${t.tip} ${izabrani.find((z) => z.id === t.id) ? "selected" : ""} ${vecIzabraniTerminiIDs.includes(t.id) ? "disabled" : ""}`}
+
+                   onClick={() => {
+  if (!vecIzabraniTerminiIDs.includes(t.id)) {
+    toggleOdabir(t);
+  }
+}}
+
                   >
-                    {t.vreme}
+                    {t.tip === "slobodan" ? t.vreme : t.tip.toUpperCase()}
                   </div>
                 ))
               )}
             </div>
           ))}
         </div>
-
-        <button
-          className="submit"
-          disabled={izabrani.length === 0}
-          onClick={handleSubmit}
-        >
-          Pošalji izbore
-        </button>
-        <button className="nazad-dugme" onClick={() => navigate("/odabir-usluge")}>
-          Nazad
-        </button>
+        <button className="submit" disabled={izabrani.length === 0} onClick={handleSubmit}>Pošalji izbore</button>
+        <button className="nazad-dugme" onClick={() => navigate("/odabir-usluge")}>Nazad</button>
       </div>
     </div>
   );

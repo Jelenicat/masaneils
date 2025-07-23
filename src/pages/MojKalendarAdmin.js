@@ -34,6 +34,7 @@ const INITIAL_EVENT_DATA = {
   end: null,
   note: "",
   clientUsername: "",
+   cena: "",
 };
 
 const MojKalendarAdmin = () => {
@@ -103,7 +104,9 @@ const pomeriNedeljuUnapred = () =>
             if (data.tip === "slobodan") title += "slobodan";
             else if (data.tip === "zauzet") title += "zauzet";
             else if (data.tip === "termin") title += `💅 ${data.clientUsername || "Nepoznat korisnik"}`;
+            if (data.cena) title += ` — ${data.cena} RSD`;
             else if (data.tip === "edukacija") title += "🎓 edukacija";
+             if (data.cena) title += ` — ${data.cena} RSD`;
             else if (data.tip === "odmor") title += "odmor";
 
             return {
@@ -238,6 +241,7 @@ const predloziTerminKorisnici = async (korisnickoIme, termini) => {
         end: newEventData.end,
         note: newEventData.note || "",
         clientUsername: newEventData.clientUsername || "",
+        cena: newEventData.cena || "",
         backgroundColor: EVENT_TYPES[newEventData.tip]?.color || "#ddd",
       };
 

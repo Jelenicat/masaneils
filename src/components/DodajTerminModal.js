@@ -20,8 +20,6 @@ const vremeOpcije = [
   "21:00"
 ];
 
-
-
 const combineDateAndTime = (date, timeStr) => {
   if (!date || !timeStr) return null;
   const [h, m] = timeStr.split(":");
@@ -113,6 +111,20 @@ const DodajTerminModal = ({
               name="clientUsername"
               value={eventData.clientUsername || ""}
               onChange={handleChange}
+            />
+          </>
+        )}
+
+        {(eventData.tip === "termin" || eventData.tip === "edukacija") && (
+          <>
+            <label>Cena (RSD):</label>
+            <input
+              type="number"
+              name="cena"
+              value={eventData.cena || ""}
+              onChange={handleChange}
+              placeholder="Unesi iznos (npr. 2000)"
+              min="0"
             />
           </>
         )}

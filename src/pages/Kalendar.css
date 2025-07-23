@@ -154,6 +154,41 @@
   color: #666;
   font-weight: 400;
 }
+/* ... tvoj postojeći kod ostaje isti ... */
+
+.termin-kocka.edukacija {
+  background-color: #dcd0f4;
+  border: 1px solid #bca6e0;
+  color: #4b3f61;
+  font-weight: bold;
+  cursor: default;
+  pointer-events: none;
+}
+
+.termin-kocka.odmor {
+  background-color: #cde5fa;
+  border: 1px solid #a0c4ff;
+  color: #2e4a63;
+  font-weight: bold;
+  cursor: default;
+  pointer-events: none;
+}
+
+/* Hover efekat samo za slobodne */
+.termin-kocka.slobodan:hover {
+  background-color: #f5e5e0;
+}
+
+/* Već izabrani termin (disable) */
+
+.termin-kocka.disabled {
+  background-color: #dddddd;
+  color: #777;
+  cursor: not-allowed;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
 
 
 @media (max-width: 1024px) {

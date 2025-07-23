@@ -62,10 +62,10 @@ const Troskovi = () => {
     const edukacije = filtrirani.filter((e) => e.tip === "edukacija");
 
     setBrojNokti(nokti.length);
-    setUkupnoNokti(nokti.reduce((acc, curr) => acc + parseInt(curr.note || 0), 0));
+    setUkupnoNokti(nokti.reduce((acc, curr) => acc + parseInt(curr.cena || 0), 0));
 
     setBrojEdukacija(edukacije.length);
-    setUkupnoEdukacija(edukacije.reduce((acc, curr) => acc + parseInt(curr.note || 0), 0));
+    setUkupnoEdukacija(edukacije.reduce((acc, curr) => acc + parseInt(curr.cena || 0), 0));
   };
 const fetchGodisnjaZarada = async () => {
   try {
@@ -84,10 +84,11 @@ const fetchGodisnjaZarada = async () => {
       );
     });
 
-    const ukupnaZarada = godisnjiTermini.reduce(
-      (acc, e) => acc + (parseInt(e.note) || 0),
-      0
-    );
+   const ukupnaZarada = godisnjiTermini.reduce(
+  (acc, e) => acc + (parseInt(e.cena) || 0),
+  0
+);
+
 
     setUkupnaGodisnjaZarada(ukupnaZarada);
 

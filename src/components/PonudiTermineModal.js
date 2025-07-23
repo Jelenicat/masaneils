@@ -92,19 +92,24 @@ const PonudiTermineModal = ({
     );
   };
 
-  const adjustTime = (terminId, field, minutes) => {
-    const termin = events.find((t) => t.id === terminId);
-    if (!termin) return;
-    const original = new Date(field === "start" ? termin.start : termin.end);
-    const newTime = new Date(original.getTime() + minutes * 60000);
-    setAdjustedTimes((prev) => ({
-      ...prev,
-      [terminId]: {
-        ...prev[terminId],
-        [field]: newTime,
-      },
-    }));
-  };
+const adjustTime = (terminId, field, minutes) => {
+  const termin = events.find((t) => t.id === terminId);
+  if (!termin) return;
+
+  const original = new Date(
+    adjustedTimes[terminId]?.[field] || (field === "start" ? termin.start : termin.end)
+  );
+
+  const newTime = new Date(original.getTime() + minutes * 60000);
+  setAdjustedTimes((prev) => ({
+    ...prev,
+    [terminId]: {
+      ...prev[terminId],
+      [field]: newTime,
+    },
+  }));
+};
+
 
   const sendSuggestion = async (korisnickoIme, termini) => {
     try {
@@ -171,19 +176,38 @@ const PonudiTermineModal = ({
     }
   };
 
-  const handleConfirm = async (terminId) => {
-    if (!selectedUser) {
-      toast.error("Izaberite korisnicu.");
-      return;
+const handleConfirm = async (terminId) => {
+  if (!selectedUser) {
+    toast.error("Izaberite korisnicu.");
+    return;
+  }
+  try {
+    await onConfirm(terminId, selectedUser);
+
+    // 🔔 Pošalji notifikaciju o potvrdi
+    const termin = events.find((e) => e.id === terminId);
+    if (termin) {
+    await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    korisnickoIme: selectedUser,
+    title: "Termin je potvrđen ✅",
+    body: `Vaš termin je zakazan za ${format(startTime, "dd.MM. yyyy HH:mm", { locale: srLatn })}`,
+    click_action: "/istorija",
+  }),
+});
+
     }
-    try {
-      await onConfirm(terminId, selectedUser);
-      onClose();
-    } catch (error) {
-      console.error("Greška pri potvrdi termina:", error);
-      toast.error("Greška pri potvrdi termina.");
-    }
-  };
+
+    toast.success("Termin potvrđen i poslata notifikacija!");
+    onClose();
+  } catch (error) {
+    console.error("Greška pri potvrdi termina:", error);
+    toast.error("Greška pri potvrdi termina.");
+  }
+};
+
 
   return (
     <div className="modal-overlay" role="dialog" aria-modal="true">

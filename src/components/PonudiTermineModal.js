@@ -299,10 +299,10 @@ await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
                     </label>
 
                     <div className="time-adjust-buttons">
-                     <button onClick={() => adjustTime(termin.id, "start", -15)}>-15 min</button>
-<button onClick={() => adjustTime(termin.id, "start", 15)}>+15 min</button>
-<button onClick={() => adjustTime(termin.id, "end", -15)}>-15 min (kraj)</button>
-<button onClick={() => adjustTime(termin.id, "end", 15)}>+15 min (kraj)</button>
+                     <button onClick={() => adjustTime(termin.id, "start", -15)}>-</button>
+<button onClick={() => adjustTime(termin.id, "start", 15)}>+</button>
+<button onClick={() => adjustTime(termin.id, "end", -15)}>-</button>
+<button onClick={() => adjustTime(termin.id, "end", 15)}>+</button>
 
                     </div>
 

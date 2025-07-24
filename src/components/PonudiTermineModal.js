@@ -193,7 +193,8 @@ await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
   body: JSON.stringify({
     korisnickoIme: selectedUser,
     title: "Termin je potvrđen ✅",
-    body: 'Vaš termin je zakazan za ${format(termin.start, "dd.MM.yyyy HH:mm", { locale: srLatn })}',
+    body: `Vaš termin je zakazan za ${format(termin.start, "dd.MM.yyyy HH:mm", { locale: srLatn })}`,
+
     click_action: "/istorija",
   }),
 });

@@ -193,7 +193,7 @@ await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
   body: JSON.stringify({
     korisnickoIme: selectedUser,
     title: "Termin je potvrđen ✅",
-    body: `Vaš termin je zakazan za ${format(termin.start, "dd.MM.yyyy HH:mm", { locale: srLatn })}`,
+    body: 'Vaš termin je zakazan za ${format(termin.start, "dd.MM.yyyy HH:mm", { locale: srLatn })}',
     click_action: "/istorija",
   }),
 });
@@ -214,6 +214,7 @@ await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
     <div className="modal-overlay" role="dialog" aria-modal="true">
       <div className="modal-content">
         <div className="modal-header">
+          {isLoading && <p className="loading-text">⏳ Obrada u toku...</p>}
           <h3 id="modal-title">Predloži ili potvrdi termin</h3>
           <button
             className="close-button"
@@ -241,6 +242,7 @@ await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
                         e.key === "Enter" && !imaTermin && setSelectedUser(korisnica)
                       }
                       aria-label={`Izaberi korisnicu ${korisnica}`}
+
                     >
                       {korisnica}
                       {imaTermin && (

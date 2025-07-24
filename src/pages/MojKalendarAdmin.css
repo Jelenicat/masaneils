@@ -278,6 +278,13 @@
   color: #999;
   margin-left: 6px;
 }
+.korisnica-item.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+  cursor: not-allowed;
+  background-color: #ddd; /* ili neka siva boja po tvom dizajnu */
+  color: #666;
+}
 
 /* Animations */
 @keyframes fadeIn {

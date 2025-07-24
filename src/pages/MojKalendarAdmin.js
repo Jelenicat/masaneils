@@ -101,14 +101,13 @@ const pomeriNedeljuUnapred = () =>
             const vremeOd = start.toLocaleTimeString("sr-RS", { hour: "2-digit", minute: "2-digit", hour12: false });
             const vremeDo = end.toLocaleTimeString("sr-RS", { hour: "2-digit", minute: "2-digit", hour12: false });
             let title = `${vremeOd}–${vremeDo} — `;
-            if (data.tip === "slobodan") title += "slobodan";
-            else if (data.tip === "zauzet") title += "zauzet";
-            else if (data.tip === "termin") title += `💅 ${data.clientUsername || "Nepoznat korisnik"}`;
-            if (data.cena) title += ` — ${data.cena} RSD`;
-            else if (data.tip === "edukacija") title += "🎓 edukacija";
-             if (data.cena) title += ` — ${data.cena} RSD`;
-            else if (data.tip === "odmor") title += "odmor";
-
+  if (data.tip === "slobodan") title += "slobodan";
+  else if (data.tip === "zauzet") title += "zauzet";
+  else if (data.tip === "termin") {
+    title += `💅 ${data.clientUsername || "Nepoznat korisnik"}`;
+    if (data.cena) title += ` — ${data.cena} RSD`;
+  } else if (data.tip === "edukacija") title += "🎓 edukacija";
+  else if (data.tip === "odmor") title += "odmor";
             return {
               ...data,
               id: doc.id,

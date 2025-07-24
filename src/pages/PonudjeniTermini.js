@@ -65,75 +65,75 @@ const [korisnickoIme, setKorisnickoIme] = useState(urlIme || propIme || localSto
     fetchPonudjeniTermini();
   }, [korisnickoIme]);
 
-  const potvrdiTermin = async (termin) => {
-    try {
-      console.log("✅ Potvrđen termin za:", termin.originalEventId || termin.id);
+const potvrdiTermin = async (termin) => {
+  try {
+    await runTransaction(db, async (transaction) => {
+      const praviId = termin.originalEventId || termin.id;
+      const eventRef = doc(db, "admin_kalendar", praviId);
 
-      await runTransaction(db, async (transaction) => {
-        const praviId = termin.originalEventId || termin.id;
-        const eventRef = doc(db, "admin_kalendar", praviId);
+      const eventSnapshot = await transaction.get(eventRef);
+      if (!eventSnapshot.exists()) {
+        throw new Error("Termin ne postoji.");
+      }
 
-        const eventSnapshot = await transaction.get(eventRef);
-        if (!eventSnapshot.exists()) {
-          throw new Error("Termin ne postoji.");
-        }
-
-        transaction.update(eventRef, {
-         start: termin.start.toDate ? termin.start.toDate() : new Date(termin.start),
-          end: termin.end.toDate ? termin.end.toDate() : new Date(termin.end),
-          note: termin.note || "",
-          tip: "termin",
-          title: `💅 ${korisnickoIme}`,
-          status: "potvrđen",
-          clientUsername: korisnickoIme,
-          backgroundColor: "#fdf2e9",
-        });
-
-        const izboriSnap = await getDocs(
-          query(
-            collection(db, "izboriTermina"),
-            where("korisnickoIme", "==", korisnickoIme)
-          )
-        );
-        izboriSnap.docs.forEach((docSnap) => {
-          transaction.delete(docSnap.ref);
-        });
-
-        const predloziSnap = await getDocs(
-          query(
-            collection(db, "ponudjeniTermini"),
-            where("korisnickoIme", "==", korisnickoIme)
-          )
-        );
-        predloziSnap.docs.forEach((docSnap) => {
-          transaction.delete(docSnap.ref);
-        });
+      transaction.update(eventRef, {
+        start: termin.start.toDate ? termin.start.toDate() : new Date(termin.start),
+        end: termin.end.toDate ? termin.end.toDate() : new Date(termin.end),
+        note: termin.note || "",
+        tip: "termin",
+        title: `💅 ${korisnickoIme}`,
+        status: "potvrđen",
+        clientUsername: korisnickoIme,
+        backgroundColor: "#fdf2e9",
       });
 
-      await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          korisnickoIme: "masa",
-          title: "Potvrđen termin",
-          body: `Korisnica ${korisnickoIme} je potvrdila termin: ${format(
-            new Date(termin.start),
-            "dd.MM.yyyy HH:mm",
-            { locale: sr }
-          )} (${termin.usluga})`,
-          click_action: `https://masaneils.vercel.app/ponudjeni/${korisnickoIme}`,
-        }),
+      const izboriSnap = await getDocs(
+        query(
+          collection(db, "izboriTermina"),
+          where("korisnickoIme", "==", korisnickoIme)
+        )
+      );
+      izboriSnap.docs.forEach((docSnap) => {
+        transaction.delete(docSnap.ref);
       });
 
-      toast.success("Uspešno si potvrdila termin!");
-      setPonudjeni([]);
-      await fetchPonudjeniTermini();
+      const predloziSnap = await getDocs(
+        query(
+          collection(db, "ponudjeniTermini"),
+          where("korisnickoIme", "==", korisnickoIme)
+        )
+      );
+      predloziSnap.docs.forEach((docSnap) => {
+        transaction.delete(docSnap.ref);
+      });
+    });
 
-    } catch (err) {
-      console.error("Greška pri potvrdi termina:", err);
-      toast.error("Greška pri potvrdi termina.");
-    }
-  };
+    // Obavesti admina
+    await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        korisnickoIme: "masa",
+        title: "Potvrđen termin",
+        body: `Korisnica ${korisnickoIme} je potvrdila termin: ${format(
+          new Date(termin.start),
+          "dd.MM.yyyy HH:mm",
+          { locale: sr }
+        )} (${termin.usluga})`,
+        click_action: `https://masaneils.vercel.app/ponudjeni/${korisnickoIme}`,
+      }),
+    });
+
+    // ✅ Pokaži poruku i ukloni prikaz termina
+    toast.success("Uspešno ste izabrali termin! ✅");
+    setPonudjeni([]);
+
+  } catch (err) {
+    console.error("Greška pri potvrdi termina:", err);
+    toast.error("Greška pri potvrdi termina.");
+  }
+};
+
 
   return (
     <div className="ponudjeni-termini">

@@ -139,7 +139,8 @@ const potvrdiTermin = async (termin) => {
     <div className="ponudjeni-termini">
       <h2>Predloženi termini</h2>
       {ponudjeni.length === 0 ? (
-        <p className="nema-termina">Nema aktivnih predloga u ovom trenutku.</p>
+        <p className="nema-termina">Hvala! Uspešno ste izabrali termin. 🎉</p>
+
       ) : (
         <ul>
           {ponudjeni.map((termin) => (

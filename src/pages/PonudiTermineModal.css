@@ -12,16 +12,16 @@
 }
 
 .modal-content {
-  background-color: rgba(255, 250, 240, 0.3); /* skoro bela ali providna */
+  background-color: transparent; /* Fully transparent background */
   border-radius: 12px;
   padding: 20px;
   width: 90%;
   max-width: 500px;
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(8px); /* za staklasti efekat */
-  -webkit-backdrop-filter: blur(8px); /* za Safari */
+  backdrop-filter: blur(10px); /* Enhanced glass effect */
+  -webkit-backdrop-filter: blur(10px); /* For Safari */
+  border: 1px solid rgba(255, 255, 255, 0.2); /* Subtle border for definition */
 }
-
 
 h3 {
   text-align: center;
@@ -64,26 +64,30 @@ h3 {
   color: #333;
 }
 
-
-
-.time-adjust-buttons button {
-  padding: 6px 10px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  background-color: #f8f8f8;
-  cursor: pointer;
-}
-
-.time-adjust-buttons button:hover {
-  background-color: #ffe4ec;
-  border-color: #e91e63;
-}
 .time-adjust-buttons {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   justify-content: center;
   margin-top: 10px;
+}
+
+.time-adjust-buttons button {
+  width: 40px; /* Fixed size for circular buttons */
+  height: 40px;
+  border: 1px solid #ccc;
+  border-radius: 50%; /* Circular shape */
+  background-color: #f8f8f8;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+
+.time-adjust-buttons button:hover {
+  background-color: #ffe4ec;
+  border-color: #e91e63;
 }
 
 .adjust-button {
@@ -101,7 +105,6 @@ h3 {
 .adjust-button:hover {
   background-color: #e8cfc2;
 }
-
 
 button {
   padding: 10px 16px;
@@ -133,11 +136,13 @@ button:hover {
   font-weight: normal;
   margin-top: 20px;
 }
+
 .loading-text {
   color: #555;
   font-style: italic;
   margin: 10px 0;
 }
+
 .korisnica-item.disabled {
   color: #999;
   background-color: #f5f5f5;
@@ -145,7 +150,6 @@ button:hover {
   pointer-events: none;
   opacity: 0.6;
 }
-
 
 @media (max-width: 768px) {
   .modal-content {
@@ -159,8 +163,16 @@ button:hover {
   }
 
   .time-adjust-buttons {
-    flex-direction: column;
-    align-items: center;
+    flex-direction: row; /* Buttons in one row on mobile */
+    justify-content: space-between;
+    gap: 6px;
+  }
+
+  .time-adjust-buttons button {
+    width: 36px; /* Slightly smaller for mobile */
+    height: 36px;
+    font-size: 11px;
+    border-radius: 50%; /* Ensure circular shape */
   }
 
   .adjust-button {

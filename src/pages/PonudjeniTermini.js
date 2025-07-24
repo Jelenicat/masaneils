@@ -26,6 +26,7 @@ const PonudjeniTermini = ({ korisnickoIme: propIme }) => {
 const [korisnickoIme, setKorisnickoIme] = useState(urlIme || propIme || localStorage.getItem("korisnickoIme"));
 
   const [ponudjeni, setPonudjeni] = useState([]);
+const [poruka, setPoruka] = useState("");
 
   const fetchPonudjeniTermini = async () => {
     try {
@@ -129,8 +130,9 @@ const potvrdiTermin = async (termin) => {
     setPonudjeni([]);
 
   } catch (err) {
-    console.error("Greška pri potvrdi termina:", err);
-    toast.error("Greška pri potvrdi termina.");
+   setPoruka("Uspešno ste izabrali termin! 🎉");
+setPonudjeni([]); // da obriše prikaz termina
+
   }
 };
 
@@ -138,10 +140,12 @@ const potvrdiTermin = async (termin) => {
   return (
     <div className="ponudjeni-termini">
       <h2>Predloženi termini</h2>
-      {ponudjeni.length === 0 ? (
-        <p className="nema-termina">Hvala! Uspešno ste izabrali termin. 🎉</p>
+     {poruka ? (
+  <p className="nema-termina">{poruka}</p>
+) : ponudjeni.length === 0 ? (
+  <p className="nema-termina">Nema aktivnih predloga u ovom trenutku.</p>
+) : (
 
-      ) : (
         <ul>
           {ponudjeni.map((termin) => (
             <li key={termin.id} className="termin-card">

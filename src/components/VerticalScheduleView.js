@@ -75,7 +75,7 @@ const VerticalScheduleView = ({
 
       {event.tip === "slobodan" && izbori.length > 0 && (
         <div className="izbori-lista">
-          {izbori.map(({ korisnickoIme, usluga }) => (
+         {izbori.map(({ korisnickoIme, usluga, materijal, velicina }) => (
             <div
               key={`${event.id}-${korisnickoIme}`}
               className="izbor-red"

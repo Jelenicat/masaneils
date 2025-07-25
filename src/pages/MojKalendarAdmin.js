@@ -92,11 +92,18 @@ const izboriSnapshot = await getDocs(
             return acc;
           }, {});
 
-          const izboriGrupisani = izbori.reduce((acc, izbor) => {
-            if (!acc[izbor.eventId]) acc[izbor.eventId] = [];
-            acc[izbor.eventId].push({ korisnickoIme: izbor.korisnickoIme, usluga: usluge[izbor.korisnickoIme] || "N/A" });
-            return acc;
-          }, {});
+         const izboriGrupisani = izbori.reduce((acc, izbor) => {
+  if (!acc[izbor.eventId]) acc[izbor.eventId] = [];
+  const u = usluge[izbor.korisnickoIme] || {};
+  acc[izbor.eventId].push({
+    korisnickoIme: izbor.korisnickoIme,
+    usluga: u.usluga || "N/A",
+    materijal: u.materijal || "",
+    velicina: u.velicina || ""
+  });
+  return acc;
+}, {});
+
           setIzboriPoTerminu(izboriGrupisani);
 
           const korisnice = [...new Set(izbori.map((i) => i.korisnickoIme))];

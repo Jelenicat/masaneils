@@ -72,14 +72,16 @@ const pomeriNedeljuUnapred = () =>
       ),
       async (snapshot) => {
         try {
-          const izboriSnapshot = await getDocs(
+         
+const izboriSnapshot = await getDocs(
   query(
     collection(db, "izboriTermina"),
     where("status", "==", "izabrala"),
-    where("start", ">=", selectedWeekStart),
-    where("start", "<", weekEnd)
+    where("datum", ">=", format(selectedWeekStart, "yyyy-MM-dd")),
+    where("datum", "<", format(weekEnd, "yyyy-MM-dd"))
   )
 );
+
 
           const izbori = izboriSnapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id }));
 

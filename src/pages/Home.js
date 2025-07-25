@@ -23,7 +23,8 @@ const Home = () => {
             docSnap.exists() &&
             docSnap.data().brojTelefona &&
             docSnap.data().datumRodjenja
-          ) {
+          )
+           {
             // ✅ Proveri ceo URL putanju – uključujući i notifikacije koje otvaraju direktan link
             const fullPath = window.location.pathname;
             if (fullPath && fullPath !== "/" && fullPath !== "/home") {
@@ -56,6 +57,9 @@ const Home = () => {
 
         if (docSnap.exists()) {
           const data = docSnap.data();
+            if (data.smena) {
+    localStorage.setItem("smena", data.smena);
+  }
           if (data.brojTelefona && data.datumRodjenja) {
             // ✅ Ako je korisnik kliknuo na link iz notifikacije – koristi tu putanju
             const fullPath = window.location.pathname;

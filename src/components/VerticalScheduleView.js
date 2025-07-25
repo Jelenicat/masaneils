@@ -80,9 +80,11 @@ const VerticalScheduleView = ({
               key={`${event.id}-${korisnickoIme}`}
               className="izbor-red"
             >
-               ✅ {korisnickoIme} ({usluga}
-    {materijal ? ` – ${materijal}` : ""}
-    {velicina ? ` – ${velicina}` : ""})
+               ✅ {korisnickoIme} (
+    {usluga}
+    {usluga !== "Korekcija" && materijal ? ` – ${materijal}` : ""}
+    {usluga !== "Korekcija" && velicina ? ` – ${velicina}` : ""}
+    )
             </div>
           ))}
         </div>

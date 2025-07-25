@@ -97,7 +97,7 @@ const usluge = uslugeSnapshot.docs.reduce((acc, doc) => {
 }, {});
 
 
-         const izboriGrupisani = izbori.reduce((acc, izbor) => {
+const izboriGrupisani = izbori.reduce((acc, izbor) => {
   if (!acc[izbor.eventId]) acc[izbor.eventId] = [];
   const u = usluge[izbor.korisnickoIme] || {};
   acc[izbor.eventId].push({
@@ -108,6 +108,7 @@ const usluge = uslugeSnapshot.docs.reduce((acc, doc) => {
   });
   return acc;
 }, {});
+
 
           setIzboriPoTerminu(izboriGrupisani);
 

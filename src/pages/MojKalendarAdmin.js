@@ -85,12 +85,17 @@ const izboriSnapshot = await getDocs(
 
           const izbori = izboriSnapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id }));
 
-          const uslugeSnapshot = await getDocs(collection(db, "izbor_usluge"));
-          const usluge = uslugeSnapshot.docs.reduce((acc, doc) => {
-            const data = doc.data();
-            acc[data.korisnickoIme] = data.usluga;
-            return acc;
-          }, {});
+       const uslugeSnapshot = await getDocs(collection(db, "izbor_usluge"));
+const usluge = uslugeSnapshot.docs.reduce((acc, doc) => {
+  const data = doc.data();
+  acc[data.korisnickoIme] = {
+    usluga: data.usluga || "N/A",
+    materijal: data.materijal || "nije_bitno",
+    velicina: data.velicina || "nije_bitno",
+  };
+  return acc;
+}, {});
+
 
          const izboriGrupisani = izbori.reduce((acc, izbor) => {
   if (!acc[izbor.eventId]) acc[izbor.eventId] = [];

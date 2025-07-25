@@ -29,6 +29,8 @@ const PonudiTermineModal = ({
   const [usluga, setUsluga] = useState("N/A");
   const [adjustedTimes, setAdjustedTimes] = useState({});
   const [korisniceSaTerminima, setKorisniceSaTerminima] = useState([]);
+  const [poruka, setPoruka] = useState("");
+
 
   // 🔄 Učitaj korisnice koje već imaju potvrđen termin
   useEffect(() => {
@@ -168,8 +170,12 @@ const adjustTime = (terminId, field, minutes) => {
         }),
       });
 
-      toast.success("Predlozi uspešno poslati!");
-      onClose();
+     // ✅ OVO DODAJ
+setPoruka("✅ Predlozi su poslati!");
+setTimeout(() => setPoruka(""), 3000);
+
+toast.success("Predlozi uspešno poslati!");
+onClose();
     } catch (error) {
       console.error("Greška pri slanju predloga:", error);
       toast.error("Greška pri slanju predloga termina.");
@@ -215,6 +221,7 @@ await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
     <div className="modal-overlay" role="dialog" aria-modal="true">
       <div className="modal-content">
         <div className="modal-header">
+          {poruka && <p className="uspesna-poruka">{poruka}</p>}
           {isLoading && <p className="loading-text">⏳ Obrada u toku...</p>}
           <h3 id="modal-title">Predloži ili potvrdi termin</h3>
           <button

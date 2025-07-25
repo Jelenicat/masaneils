@@ -24,6 +24,8 @@ const db = getFirestore();
 const messaging = getMessaging();
 
 export default async function handler(req, res) {
+  console.log("🚀 check-reminders pokrenut u", new Date().toISOString());
+
   try {
     const today = new Date().toISOString().split("T")[0];
     const todayMonthDay = `${String(new Date().getMonth() + 1).padStart(2, "0")}-${String(new Date().getDate()).padStart(2, "0")}`;
@@ -37,9 +39,11 @@ export default async function handler(req, res) {
     const batch = db.batch();
 
     for (const doc of remindersSnapshot.docs) {
+      
+
       const data = doc.data();
       const docRef = doc.ref;
-
+console.log(`📨 Šaljem podsetnik za: ${data.tekst}`);
       if (data.zadnjiPutPoslato !== today && data.korisnikToken) {
         try {
           await messaging.send({

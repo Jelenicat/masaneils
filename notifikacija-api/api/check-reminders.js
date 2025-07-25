@@ -39,23 +39,27 @@ export default async function handler(req, res) {
     const batch = db.batch();
 
     for (const doc of remindersSnapshot.docs) {
-      
+  const data = doc.data();
+  const docRef = doc.ref;
 
-      const data = doc.data();
-      const docRef = doc.ref;
-console.log(`📨 Šaljem podsetnik za: ${data.tekst}`);
-      if (data.zadnjiPutPoslato !== today && data.korisnikToken) {
-        try {
-          await messaging.send({
-            token: data.korisnikToken,
-            notification: {
-              title: "\ud83d\udccc Podsetnik",
-              body: data.tekst || "Imate novi podsetnik.",
-            },
-            data: {
-              click_action: "/podsetnici"
-            }
-          });
+  // Uzimamo najnoviji token za masu
+  const tokenDoc = await db.collection("fcmTokens").doc("masa").get();
+  const currentToken = tokenDoc.exists ? tokenDoc.data().token : null;
+
+  console.log(`📨 Šaljem podsetnik za: ${data.tekst}`);
+
+  if (data.zadnjiPutPoslato !== today && currentToken) {
+    try {
+      await messaging.send({
+        token: currentToken, // 📌 sada se koristi poslednji token
+        notification: {
+          title: "📌 Podsetnik",
+          body: data.tekst || "Imate novi podsetnik.",
+        },
+        data: {
+          click_action: "/podsetnici"
+        }
+      });
 
           batch.update(docRef, { zadnjiPutPoslato: today });
           poslato.push(`Podsetnik: ${data.tekst}`);

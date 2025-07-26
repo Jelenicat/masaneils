@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import "./DodajTerminModal.css";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "../firebase";
 
 const vremeOpcije = [
   "08:00", "08:15", "08:30", "08:45",
@@ -41,6 +43,19 @@ const DodajTerminModal = ({
   const [datum, setDatum] = useState(eventData.start ? new Date(eventData.start) : null);
   const [vremePocetak, setVremePocetak] = useState(eventData.start ? formatTime(eventData.start) : "");
   const [vremeKraj, setVremeKraj] = useState(eventData.end ? formatTime(eventData.end) : "");
+const [korisnici, setKorisnici] = useState([]);
+useEffect(() => {
+  const fetchKorisnici = async () => {
+    const snapshot = await getDocs(collection(db, "korisnici"));
+    const lista = snapshot.docs
+      .map((doc) => doc.id)
+      .filter((id) => id !== "masa"); // ❌ Ukloni admina
+    setKorisnici(lista);
+  };
+  fetchKorisnici();
+}, []);
+
+
 
   useEffect(() => {
     const noviStart = combineDateAndTime(datum, vremePocetak);
@@ -103,17 +118,24 @@ const DodajTerminModal = ({
           ))}
         </select>
 
-        {eventData.tip === "termin" && (
-          <>
-            <label>Korisničko ime klijenta:</label>
-            <input
-              type="text"
-              name="clientUsername"
-              value={eventData.clientUsername || ""}
-              onChange={handleChange}
-            />
-          </>
-        )}
+{eventData.tip === "termin" && (
+  <>
+    <label>Izaberi klijenta:</label>
+    <select
+      name="clientUsername"
+      value={eventData.clientUsername || ""}
+      onChange={handleChange}
+    >
+      <option value="">-- Odaberi klijenta --</option>
+      {korisnici.map((korisnik) => (
+        <option key={korisnik} value={korisnik}>
+          {korisnik}
+        </option>
+      ))}
+    </select>
+  </>
+)}
+
 
         {(eventData.tip === "termin" || eventData.tip === "edukacija") && (
           <>

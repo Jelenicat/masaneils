@@ -113,6 +113,11 @@
 .modal label {
   margin-top: 16px;
 }
+.modal select option {
+  background-color: #fffaf0; /* Svetla pozadina za opcije */
+  color: #5a4032; /* Tamniji tekst */
+  font-size: 14px;
+}
 
 /* Responsive */
 @media (max-width: 600px) {

@@ -46,10 +46,11 @@ const AllProfiles = () => {
     fetchEvents();
   }, [selectedUser]);
 
-  const ukupnoZarada = userEvents.reduce(
-    (acc, curr) => acc + parseInt(curr.note || 0),
-    0
-  );
+ const ukupnoZarada = userEvents.reduce(
+  (acc, curr) => acc + parseInt(curr.cena || 0),
+  0
+);
+
 
   return (
     <div className="all-profiles-page">
@@ -85,7 +86,8 @@ const AllProfiles = () => {
                     <td>{event.start?.slice(0, 10)}</td>
                     <td>{new Date(event.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
                     <td>{new Date(event.end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
-                    <td>{event.note || "0"}</td>
+                   <td>{event.cena || "0"}</td>
+
                   </tr>
                 ))}
               </tbody>

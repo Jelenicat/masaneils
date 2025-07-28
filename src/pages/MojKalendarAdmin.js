@@ -119,8 +119,6 @@ const izboriGrupisani = izbori.reduce((acc, izbor) => {
             const data = doc.data();
             const start = data.start?.toDate?.() || new Date(data.start);
             const end = data.end?.toDate?.() || new Date(data.end);
-            if (start < now) return null;
-
             const vremeOd = start.toLocaleTimeString("sr-RS", { hour: "2-digit", minute: "2-digit", hour12: false });
             const vremeDo = end.toLocaleTimeString("sr-RS", { hour: "2-digit", minute: "2-digit", hour12: false });
             let title = `${vremeOd}–${vremeDo} — `;

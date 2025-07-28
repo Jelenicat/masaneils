@@ -46,10 +46,11 @@ const AllProfiles = () => {
     fetchEvents();
   }, [selectedUser]);
 
- const ukupnoZarada = userEvents.reduce(
-  (acc, curr) => acc + parseInt(curr.cena || 0),
+const ukupnoZarada = userEvents.reduce(
+  (acc, curr) => acc + (parseInt(curr.cena) || 0),
   0
 );
+
 
 
   return (
@@ -80,17 +81,22 @@ const AllProfiles = () => {
                   <th>Zarada (RSD)</th>
                 </tr>
               </thead>
-              <tbody>
-                {userEvents.map((event, i) => (
-                  <tr key={i}>
-                    <td>{event.start?.slice(0, 10)}</td>
-                    <td>{new Date(event.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
-                    <td>{new Date(event.end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
-                   <td>{event.cena || "0"}</td>
+      <tbody>
+  {userEvents.map((event, i) => {
+    const start = event.start?.toDate?.() || new Date(event.start);
+    const end = event.end?.toDate?.() || new Date(event.end);
 
-                  </tr>
-                ))}
-              </tbody>
+    return (
+      <tr key={i}>
+        <td>{start.toLocaleDateString("sr-RS")}</td>
+        <td>{start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</td>
+        <td>{end.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</td>
+        <td>{parseInt(event.cena) || 0}</td>
+      </tr>
+    );
+  })}
+</tbody>
+
               <tfoot>
                 <tr>
                   <td colSpan="3"><strong>Ukupno</strong></td>

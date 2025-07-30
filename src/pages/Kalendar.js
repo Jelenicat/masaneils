@@ -213,7 +213,7 @@ const handleSubmit = async () => {
         korisnickoIme: "masa",
         title: "📅 Novi izbor termina",
         body: `${korisnickoIme} je poslala predloge termina.`,
-        click_action: "/admin/kalendar",
+        click_action: `/admin/kalendar?weekOffset=${offsetNedelja}`,
       }),
     });
 

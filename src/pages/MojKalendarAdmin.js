@@ -18,6 +18,8 @@ import { format, startOfWeek, addDays } from "date-fns";
 import VerticalScheduleView from "../components/VerticalScheduleView";
 import PonudiTermineModal from "../components/PonudiTermineModal";
 import DodajTerminModal from "../components/DodajTerminModal";
+import { useSearchParams } from "react-router-dom";
+
 
 const EVENT_TYPES = {
   slobodan: { color: "#90ee90" },
@@ -38,10 +40,15 @@ const INITIAL_EVENT_DATA = {
 };
 
 const MojKalendarAdmin = () => {
+    const [searchParams] = useSearchParams();
+  const initialOffset = parseInt(searchParams.get("weekOffset") || "0", 10);
+  const [selectedWeekStart, setSelectedWeekStart] = useState(
+    addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), initialOffset * 7)
+  );
   const [events, setEvents] = useState([]);
   const [izboriPoTerminu, setIzboriPoTerminu] = useState({});
   const [isInitialLoading, setIsInitialLoading] = useState(true);
-  const [selectedWeekStart, setSelectedWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
+
   const [showModal, setShowModal] = useState(false);
   const [newEventData, setNewEventData] = useState(INITIAL_EVENT_DATA);
   const [isEditing, setIsEditing] = useState(false);

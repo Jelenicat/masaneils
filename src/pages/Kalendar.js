@@ -89,10 +89,9 @@ const filtrirani = sviRelevantni.filter((t) => {
       return localHour < 15;
     }
 
-    if (smena === "popodne") {
-      // popodne vidi samo termine posle 17h ili bilo kad subotom
-      return localHour >= 17 || danTermina === 6;
-    }
+   if (smena === "popodne") {
+  return true;
+}
   }
 
   return false;
@@ -172,12 +171,7 @@ const toggleOdabir = (termin) => {
       return;
     }
 
-    const hour = start.getHours();
-    const dan = start.getDay(); // 6 = subota
-    if (!(hour >= 17 || dan === 6)) {
-      toast.warn("Možeš birati samo termine posle 17h, osim subotom.");
-      return;
-    }
+   
   }
 
   const postoji = izabrani.find((t) => t.id === termin.id);

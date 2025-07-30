@@ -32,7 +32,7 @@ const navigate = useNavigate();
           id: doc.id,
           datum: start.toLocaleDateString("sr-RS"),
           vreme: start.toLocaleTimeString("sr-RS", { hour: "2-digit", minute: "2-digit" }),
-          note: data.note || "",
+          
         };
       });
 
@@ -52,7 +52,7 @@ const navigate = useNavigate();
           <ul>
             {termini.map((t) => (
               <li key={t.id}>
-                📅 {t.datum} u {t.vreme} {t.note && `– ${t.note}`}
+                📅 {t.datum} u {t.vreme} 
               </li>
             ))}
           </ul>

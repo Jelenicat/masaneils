@@ -24,6 +24,9 @@ const Kalendar = () => {
   const [izabrani, setIzabrani] = useState([]);
   const [offsetNedelja, setOffsetNedelja] = useState(1);
   const [vecIzabraniTerminiIDs, setVecIzabraniTerminiIDs] = useState([]);
+  const [loading, setLoading] = useState(false);
+const [poruka, setPoruka] = useState("");
+
 
   useEffect(() => {
     const fetchSve = async () => {
@@ -182,31 +185,50 @@ const toggleOdabir = (termin) => {
   }
 };
 
+const handleSubmit = async () => {
+  if (!usluga || !materijal) {
+    toast.error("Nedostaju podaci o usluzi.");
+    return;
+  }
 
-  const handleSubmit = async () => {
-    if (!usluga || !materijal) {
-      toast.error("Nedostaju podaci o usluzi.");
-      return;
+  setLoading(true);
+  setPoruka(""); // očisti poruku pre slanja
+
+  try {
+    for (const termin of izabrani) {
+      const startDate = termin.start.toDate ? termin.start.toDate() : new Date(termin.start);
+      await addDoc(collection(db, "izboriTermina"), {
+        korisnickoIme,
+        eventId: termin.id,
+        datum: startDate.toISOString().split("T")[0],
+        timestamp: serverTimestamp(),
+        status: "izabrala",
+      });
     }
-    try {
-      for (const termin of izabrani) {
-        const startDate = termin.start.toDate ? termin.start.toDate() : new Date(termin.start);
-        await addDoc(collection(db, "izboriTermina"), {
-          korisnickoIme,
-          eventId: termin.id,
-          datum: startDate.toISOString().split("T")[0],
-          timestamp: serverTimestamp(),
-          status: "izabrala",
-        });
-      }
-      toast.success("Termini uspesno sacuvani!");
-      setIzabrani([]);
-      await fetchVecIzabraniTermini();
-      fetchTermini();
-    } catch (err) {
-      toast.error("Greska pri slanju termina.");
-    }
-  };
+
+    await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        korisnickoIme: "masa",
+        title: "📅 Novi izbor termina",
+        body: `${korisnickoIme} je poslala predloge termina.`,
+        click_action: "/admin/kalendar",
+      }),
+    });
+
+    setPoruka("✅ Uspešno ste poslali predloge!");
+    setIzabrani([]);
+    await fetchVecIzabraniTermini();
+    fetchTermini();
+  } catch (err) {
+    setPoruka("❌ Greška pri slanju termina.");
+  } finally {
+    setLoading(false);
+    setTimeout(() => setPoruka(""), 3000); // automatski nestaje posle 3s
+  }
+};
+
 
   return (
     <div className="kalendar">
@@ -265,8 +287,13 @@ const toggleOdabir = (termin) => {
             </div>
           ))}
         </div>
-        <button className="submit" disabled={izabrani.length === 0} onClick={handleSubmit}>Pošalji izbore</button>
-        <button className="nazad-dugme" onClick={() => navigate("/odabir-usluge")}>Nazad</button>
+       
+        <button className="submit" disabled={izabrani.length === 0 || loading} onClick={handleSubmit}>{loading ? "⏳ Slanje..." : "Pošalji izbore"}</button>
+ <button className="nazad-dugme" onClick={() => navigate("/odabir-usluge")}>Nazad</button>
+{poruka && <p className="uspesna-poruka">{poruka}</p>}
+
+       
+
       </div>
     </div>
   );

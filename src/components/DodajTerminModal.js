@@ -151,13 +151,16 @@ useEffect(() => {
           </>
         )}
 
-        <label>Napomena (opciono):</label>
-        <input
-          type="text"
-          name="note"
-          value={eventData.note || ""}
-          onChange={handleChange}
-        />
+    <label>Napomena (opciono):</label>
+<textarea
+  name="note"
+  value={eventData.note || ""}
+  onChange={handleChange}
+  rows={3}
+  placeholder="Unesi napomenu... (Enter za novi red)"
+  style={{ width: "100%", resize: "vertical" }}
+/>
+
 
         <div className="modal-buttons">
           <button onClick={onClose}>Otkaži</button>

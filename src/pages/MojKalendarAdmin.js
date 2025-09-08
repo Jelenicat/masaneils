@@ -284,28 +284,34 @@ if (isEditing) {
   noviDocRef = await addDoc(eventRef, eventData);
   toast.success("Termin uspešno dodat");
 }
+// Pošalji notifikaciju SAMO prilikom kreiranja novog termina
 if (
+  !isEditing &&                                  // ⟵ OVO JE NOVO
   eventData.tip === "termin" &&
   eventData.clientUsername &&
   eventData.start instanceof Date &&
   !isNaN(eventData.start.getTime())
 ) {
-  console.log("Slanje notifikacije za termin:", eventData);
-  await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      korisnickoIme: eventData.clientUsername,
-      title: "💅 Novi termin zakazan",
-      body: `Vaš termin je zakazan za ${eventData.start.toLocaleDateString(
-        "sr-RS"
-      )} u ${eventData.start.toLocaleTimeString("sr-RS", {
-        hour: "2-digit",
-        minute: "2-digit",
-      })}.`,
-      click_action: "/istorija",
-    }),
-  });
+  console.log("Slanje notifikacije za termin (novo kreiranje):", eventData);
+await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    korisnickoIme: eventData.clientUsername,
+    title: "💅 Novi termin zakazan",
+    body: `Vaš termin je zakazan za ${eventData.start.toLocaleDateString("sr-RS", {
+      weekday: "long",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric"
+    })} u ${eventData.start.toLocaleTimeString("sr-RS", {
+      hour: "2-digit",
+      minute: "2-digit",
+    })}.`,
+  }),
+});
+
+
 }
 
 

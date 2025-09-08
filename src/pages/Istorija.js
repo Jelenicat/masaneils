@@ -6,16 +6,16 @@ import {
   query,
   where,
   getDocs,
-  doc,
-  getDoc,
 } from "firebase/firestore";
 import "./Istorija.css";
 import { useNavigate } from "react-router-dom";
 
 const Istorija = () => {
   const korisnickoIme = localStorage.getItem("korisnickoIme");
-  const [termini, setTermini] = useState([]);
-const navigate = useNavigate();
+  const [sledeci, setSledeci] = useState(null);
+  const [prosli, setProsli] = useState(null);
+  const navigate = useNavigate();
+
   useEffect(() => {
     const fetchTermini = async () => {
       const q = query(
@@ -25,43 +25,57 @@ const navigate = useNavigate();
       );
 
       const snapshot = await getDocs(q);
-      const podaci = snapshot.docs.map((doc) => {
+      const svi = snapshot.docs.map((doc) => {
         const data = doc.data();
         const start = data.start.toDate ? data.start.toDate() : new Date(data.start);
         return {
           id: doc.id,
-          datum: start.toLocaleDateString("sr-RS"),
-          vreme: start.toLocaleTimeString("sr-RS", { hour: "2-digit", minute: "2-digit" }),
-          
+          start,
         };
       });
 
-      setTermini(podaci);
+      // sortiraj po vremenu
+      const sortirani = svi.sort((a, b) => a.start - b.start);
+
+      const sada = new Date();
+      const prosliTermini = sortirani.filter(t => t.start < sada);
+      const buduciTermini = sortirani.filter(t => t.start >= sada);
+
+      setProsli(prosliTermini.length > 0 ? prosliTermini[prosliTermini.length - 1] : null);
+      setSledeci(buduciTermini.length > 0 ? buduciTermini[0] : null);
     };
 
     fetchTermini();
   }, [korisnickoIme]);
 
+  const formatiraj = (date) => {
+    return date.toLocaleDateString("sr-RS", {
+      weekday: "long",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    }) + " u " + date.toLocaleTimeString("sr-RS", { hour: "2-digit", minute: "2-digit" });
+  };
+
   return (
     <div className="istorija-stranica">
       <div className="istorija-box">
-        <h2>Tvoji prethodni termini</h2>
-        {termini.length === 0 ? (
-          <p>Nemate zakazanih termina.</p>
-        ) : (
-          <ul>
-            {termini.map((t) => (
-              <li key={t.id}>
-                📅 {t.datum} u {t.vreme} 
-              </li>
-            ))}
-          </ul>
-          
-        )}
+        <h2>Tvoji termini</h2>
+        <ul>
+          {prosli && (
+            <li>
+              📅 {formatiraj(prosli.start)}
+            </li>
+          )}
+          {sledeci && (
+            <li>
+              📅 {formatiraj(sledeci.start)}
+            </li>
+          )}
+        </ul>
         <button className="nazad-dugme" onClick={() => navigate("/korisnik")}>
-             Nazad
-</button>
-
+          Nazad
+        </button>
       </div>
     </div>
   );

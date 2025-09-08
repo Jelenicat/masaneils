@@ -20,6 +20,14 @@
   box-shadow: 0 6px 15px rgba(217, 166, 140, 0.4); /* Darker nude shadow */
   outline: none;
 }
+.korisnica-item { position: relative; padding-right: 32px; }
+.korisnica-item .close-x {
+  position: absolute; right: 8px; top: 6px;
+  border: none; background: transparent; cursor: pointer;
+  font-size: 18px; line-height: 1; opacity: .6;
+}
+.korisnica-item .close-x:hover { opacity: 1; }
+
 
 /* Modal styles */
 .modal-overlay {

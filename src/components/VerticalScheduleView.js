@@ -4,7 +4,8 @@ import { addDays, format, isSameDay } from "date-fns";
 import { srLatn } from "date-fns/locale";
 import "./VerticalScheduleView.css";
 
-const dani = ["Ponedeljak", "Utorak", "Sreda", "Četvrtak", "Petak", "Subota"];
+const dani = ["Ponedeljak", "Utorak", "Sreda", "Četvrtak", "Petak", "Subota", "Nedelja"];
+
 
 const VerticalScheduleView = ({
   selectedWeekStart,
@@ -27,7 +28,7 @@ const VerticalScheduleView = ({
         <span>
           {selectedWeekStart
             ? `${format(selectedWeekStart, "dd.MM")}–${format(
-                addDays(selectedWeekStart, 5),
+                addDays(selectedWeekStart, 6),
                 "dd.MM.yyyy"
               )}`
             : "Nedeljni prikaz"}

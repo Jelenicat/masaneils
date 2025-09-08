@@ -14,9 +14,13 @@ import { db } from "../firebase";
 import { toast } from "react-toastify";
 import "../pages/MojKalendarAdmin.css";
 
+// helper – npr. "petak 12.09.2025 14:00"
+const formatSaDanom = (d) =>
+  format(new Date(d), "EEEE dd.MM.yyyy HH:mm", { locale: srLatn });
+
 const PonudiTermineModal = ({
   korisnice,
-  izboriPoTerminu,
+  izboriPoTerminu, // { eventId: [ { korisnickoIme, timestamp/createdAt/... }, ... ] }
   events,
   onClose,
   onConfirm,
@@ -31,8 +35,14 @@ const PonudiTermineModal = ({
   const [korisniceSaTerminima, setKorisniceSaTerminima] = useState([]);
   const [poruka, setPoruka] = useState("");
 
+  // lokalna lista za prikaz (da uklanjamo samo pojedine korisnice)
+  const [visibleKorisnice, setVisibleKorisnice] = useState(korisnice || []);
+  useEffect(() => setVisibleKorisnice(korisnice || []), [korisnice]);
 
-  // 🔄 Učitaj korisnice koje već imaju potvrđen termin
+  // 🆕 sortirana lista po tome ko je PRVA poslala (najraniji "timestamp"/"createdAt")
+  const [orderedKorisnice, setOrderedKorisnice] = useState([]);
+
+  // Učitaj ko već ima potvrđen termin u ovoj nedelji
   useEffect(() => {
     const fetchTerminirane = async () => {
       if (!selectedWeekStart) return;
@@ -61,6 +71,7 @@ const PonudiTermineModal = ({
     fetchTerminirane();
   }, [selectedWeekStart]);
 
+  // Usluga za selektovanu korisnicu
   useEffect(() => {
     const fetchUsluga = async () => {
       if (!selectedUser) return;
@@ -74,6 +85,52 @@ const PonudiTermineModal = ({
     };
     fetchUsluga();
   }, [selectedUser]);
+
+  // 🆕 Izračunaj redosled korisnica po NAJRANIJEM slanju u tekućoj nedelji
+  useEffect(() => {
+    // Ako nemamo podatke, ostavi postojeći poredak
+    if (!visibleKorisnice?.length) {
+      setOrderedKorisnice([]);
+      return;
+    }
+
+    // mapiraj korisnicu na najraniji timestamp
+    const firstTs = new Map();
+
+    // izboriPoTerminu: prolazimo kroz sve evente i njihove izbore
+    Object.values(izboriPoTerminu || {}).forEach((arr) => {
+      (arr || []).forEach((i, idx) => {
+        const name = i?.korisnickoIme || i?.username || i?.user;
+        if (!name) return;
+
+        // podrži više formata vremena: Firestore Timestamp, ISO string, ms, fallback na redni broj
+        let t =
+          i?.timestamp?.toDate?.() instanceof Date
+            ? i.timestamp.toDate().getTime()
+            : i?.timestamp !== undefined
+            ? new Date(i.timestamp).getTime()
+            : i?.createdAt?.toDate?.() instanceof Date
+            ? i.createdAt.toDate().getTime()
+            : i?.createdAt !== undefined
+            ? new Date(i.createdAt).getTime()
+            : Number.POSITIVE_INFINITY - idx; // ako baš ništa nema, stavi na kraj ali stabilno
+
+        const prev = firstTs.get(name);
+        if (prev == null || t < prev) firstTs.set(name, t);
+      });
+    });
+
+    // Sortiraj samo korisnice koje su trenutno vidljive
+    const sorted = [...visibleKorisnice].sort((a, b) => {
+      const ta = firstTs.has(a) ? firstTs.get(a) : Number.POSITIVE_INFINITY;
+      const tb = firstTs.has(b) ? firstTs.get(b) : Number.POSITIVE_INFINITY;
+      if (ta !== tb) return ta - tb;
+      // stabilan tie-breaker po imenu da lista ne "skače"
+      return a.localeCompare(b);
+    });
+
+    setOrderedKorisnice(sorted);
+  }, [visibleKorisnice, izboriPoTerminu]);
 
   const getSlobodniTermini = () => {
     if (!selectedUser) return [];
@@ -94,34 +151,33 @@ const PonudiTermineModal = ({
     );
   };
 
-const adjustTime = (terminId, field, minutes) => {
-  const termin = events.find((t) => t.id === terminId);
-  if (!termin) return;
+  const adjustTime = (terminId, field, minutes) => {
+    const termin = events.find((t) => t.id === terminId);
+    if (!termin) return;
 
-  const original = new Date(
-    adjustedTimes[terminId]?.[field] || (field === "start" ? termin.start : termin.end)
-  );
+    const original = new Date(
+      adjustedTimes[terminId]?.[field] || (field === "start" ? termin.start : termin.end)
+    );
 
-  const newTime = new Date(original.getTime() + minutes * 60000);
-  setAdjustedTimes((prev) => ({
-    ...prev,
-    [terminId]: {
-      ...prev[terminId],
-      [field]: newTime,
-    },
-  }));
-};
-
+    const newTime = new Date(original.getTime() + minutes * 60000);
+    setAdjustedTimes((prev) => ({
+      ...prev,
+      [terminId]: {
+        ...prev[terminId],
+        [field]: newTime,
+      },
+    }));
+  };
 
   const sendSuggestion = async (korisnickoIme, termini) => {
     try {
       for (const t of termini) {
+        // note NE šaljemo korisnicima u "ponudjeniTermini"
         await setDoc(doc(db, "ponudjeniTermini", t.id), {
           korisnickoIme,
           start: t.start,
           end: t.end,
           usluga: t.usluga,
-          note: t.note,
           timestamp: new Date(),
           originalEventId: t.id,
         });
@@ -129,6 +185,28 @@ const adjustTime = (terminId, field, minutes) => {
     } catch (error) {
       console.error("Greška prilikom upisa predloga termina u Firestore:", error);
       toast.error("Greška pri snimanju predloga termina.");
+    }
+  };
+
+  // pošalji "nema termina" i ukloni samo tu korisnicu iz liste
+  const sendNoSlots = async (korisnickoIme) => {
+    try {
+      await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          korisnickoIme,
+          title: "Obaveštenje",
+          body: "Žao mi je, nema slobodnih termina za ovu nedelju",
+          click_action: "/ponudjeni",
+        }),
+      });
+      setVisibleKorisnice((prev) => prev.filter((k) => k !== korisnickoIme));
+      if (selectedUser === korisnickoIme) setSelectedUser(null);
+      toast.info(`Poslata poruka za ${korisnickoIme}.`);
+    } catch (e) {
+      console.error("Greška pri slanju obaveštenja:", e);
+      toast.error("Greška pri slanju obaveštenja.");
     }
   };
 
@@ -154,9 +232,7 @@ const adjustTime = (terminId, field, minutes) => {
       await sendSuggestion(selectedUser, odabrani);
 
       const notificationBody = odabrani
-        .map((t) =>
-          `${format(t.start, "dd.MM.yyyy HH:mm", { locale: srLatn })} (${usluga})`
-        )
+        .map((t) => `${formatSaDanom(t.start)} (${usluga})`)
         .join(", ");
 
       await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
@@ -170,52 +246,49 @@ const adjustTime = (terminId, field, minutes) => {
         }),
       });
 
-     // ✅ OVO DODAJ
-setPoruka("✅ Predlozi su poslati!");
-setTimeout(() => setPoruka(""), 3000);
-
-toast.success("Predlozi uspešno poslati!");
-onClose();
+      setPoruka("✅ Predlozi su poslati!");
+      setTimeout(() => setPoruka(""), 3000);
+      toast.success("Predlozi uspešno poslati!");
+      onClose(); // ostaje kao pre
     } catch (error) {
       console.error("Greška pri slanju predloga:", error);
-      toast.error("Greška pri slanju predloga termina.");
+      toast.error("Greška pri slanju predloga terminiа.");
     }
   };
 
-const handleConfirm = async (terminId) => {
-  if (!selectedUser) {
-    toast.error("Izaberite korisnicu.");
-    return;
-  }
-  try {
-    await onConfirm(terminId, selectedUser);
-
-    // 🔔 Pošalji notifikaciju o potvrdi
-    const termin = events.find((e) => e.id === terminId);
-    if (termin) {
-await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    korisnickoIme: selectedUser,
-    title: "Termin je potvrđen ✅",
-    body: `Vaš termin je zakazan za ${format(termin.start, "dd.MM.yyyy HH:mm", { locale: srLatn })}`,
-
-    click_action: "/istorija",
-  }),
-});
-
-
+  const handleConfirm = async (terminId) => {
+    if (!selectedUser) {
+      toast.error("Izaberite korisnicu.");
+      return;
     }
+    try {
+      await onConfirm(terminId, selectedUser);
 
-    toast.success("Termin potvrđen i poslata notifikacija!");
-    onClose();
-  } catch (error) {
-    console.error("Greška pri potvrdi termina:", error);
-    toast.error("Greška pri potvrdi termina.");
-  }
-};
+      // notifikacija o potvrdi (sa danom)
+      const termin = events.find((e) => e.id === terminId);
+      if (termin) {
+        await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            korisnickoIme: selectedUser,
+            title: "Termin je potvrđen ✅",
+            body: `Vaš termin je zakazan za ${formatSaDanom(termin.start)}`,
+            click_action: "/istorija",
+          }),
+        });
+      }
 
+      // ukloni SAMO tu korisnicu iz prikaza
+      setVisibleKorisnice((prev) => prev.filter((k) => k !== selectedUser));
+
+      toast.success("Termin potvrđen i poslata notifikacija!");
+      onClose(); // ostaje kao pre
+    } catch (error) {
+      console.error("Greška pri potvrdi termina:", error);
+      toast.error("Greška pri potvrdi termina.");
+    }
+  };
 
   return (
     <div className="modal-overlay" role="dialog" aria-modal="true">
@@ -224,11 +297,7 @@ await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
           {poruka && <p className="uspesna-poruka">{poruka}</p>}
           {isLoading && <p className="loading-text">⏳ Obrada u toku...</p>}
           <h3 id="modal-title">Predloži ili potvrdi termin</h3>
-          <button
-            className="close-button"
-            onClick={onClose}
-            aria-label="Zatvori modal"
-          >
+          <button className="close-button" onClick={onClose} aria-label="Zatvori modal">
             &times;
           </button>
         </div>
@@ -236,8 +305,8 @@ await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
         {!selectedUser ? (
           <div className="user-list-container">
             <div className="scroll-lista-korisnica" aria-live="polite">
-              {korisnice.length > 0 ? (
-                korisnice.map((korisnica, index) => {
+              { (orderedKorisnice.length ? orderedKorisnice : visibleKorisnice).length > 0 ? (
+                (orderedKorisnice.length ? orderedKorisnice : visibleKorisnice).map((korisnica, index) => {
                   const imaTermin = korisniceSaTerminima.includes(korisnica);
                   return (
                     <div
@@ -250,12 +319,23 @@ await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
                         e.key === "Enter" && !imaTermin && setSelectedUser(korisnica)
                       }
                       aria-label={`Izaberi korisnicu ${korisnica}`}
-
                     >
                       {korisnica}
                       {imaTermin && (
                         <span className="info-tag">• već ima termin ove nedelje</span>
                       )}
+
+                      {/* X – šalje poruku i uklanja samo tu korisnicu */}
+                      <button
+                        className="close-x"
+                        title="Nema slobodnih termina"
+                        onClick={(ev) => {
+                          ev.stopPropagation();
+                          sendNoSlots(korisnica);
+                        }}
+                      >
+                        ×
+                      </button>
                     </div>
                   );
                 })
@@ -268,8 +348,7 @@ await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
           <>
             <div className="user-info">
               <h4>
-                Termini za: <span className="user-name">{selectedUser}</span> (
-                {usluga})
+                Termini za: <span className="user-name">{selectedUser}</span> ({usluga})
               </h4>
               <button
                 className="back-button"
@@ -291,11 +370,7 @@ await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
                         onChange={() => toggleTermin(termin.id)}
                       />
                       <span className="time-range">
-                        {format(
-                          adjustedTimes[termin.id]?.start || new Date(termin.start),
-                          "dd.MM.yyyy HH:mm",
-                          { locale: srLatn }
-                        )}{" "}
+                        {formatSaDanom(adjustedTimes[termin.id]?.start || new Date(termin.start))}{" "}
                         –{" "}
                         {format(
                           adjustedTimes[termin.id]?.end || new Date(termin.end),
@@ -306,11 +381,10 @@ await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
                     </label>
 
                     <div className="time-adjust-buttons">
-                     <button onClick={() => adjustTime(termin.id, "start", -15)}>-</button>
-<button onClick={() => adjustTime(termin.id, "start", 15)}>+</button>
-<button onClick={() => adjustTime(termin.id, "end", -15)}>-</button>
-<button onClick={() => adjustTime(termin.id, "end", 15)}>+</button>
-
+                      <button onClick={() => adjustTime(termin.id, "start", -15)}>-</button>
+                      <button onClick={() => adjustTime(termin.id, "start", 15)}>+</button>
+                      <button onClick={() => adjustTime(termin.id, "end", -15)}>-</button>
+                      <button onClick={() => adjustTime(termin.id, "end", 15)}>+</button>
                     </div>
 
                     <button

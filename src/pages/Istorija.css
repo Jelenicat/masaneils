@@ -1,8 +1,7 @@
 /* src/pages/Istorija.css */
-
 .istorija-stranica {
   min-height: 100vh;
-  background-image: url('../assets/slikaHome.webp');/* stavi svoju sliku ili zadrži krem stil */
+  background-image: url('../assets/slikaHome.webp');
   background-size: cover;
   display: flex;
   justify-content: center;
@@ -20,9 +19,32 @@
 }
 
 .istorija-box h2 {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
   font-size: 24px;
   color: #333;
+}
+
+/* TABOVI */
+.tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.tab {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #e6d2c5;
+  background: #fff3f7;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.tab.active {
+  background: #ffeef4;
+  border-color: #d7a98c;
+  box-shadow: 0 2px 6px rgba(215, 169, 140, 0.25);
 }
 
 .istorija-box ul {
@@ -36,6 +58,14 @@
   background-color: #ffeef4;
   border-radius: 8px;
 }
+
+.istorija-box li.prazno {
+  background: #faf6f4;
+  color: #666;
+  text-align: center;
+  font-style: italic;
+}
+
 .nazad-dugme {
   margin-top: 20px;
   padding: 10px 20px;
@@ -57,12 +87,10 @@
     padding: 20px;
     max-width: 90%;
   }
-
   .istorija-box h2 {
     font-size: 20px;
     text-align: center;
   }
-
   .istorija-box li {
     font-size: 16px;
     padding: 8px;
@@ -73,11 +101,9 @@
   .istorija-box {
     padding: 16px;
   }
-
   .istorija-box h2 {
     font-size: 18px;
   }
-
   .istorija-box li {
     font-size: 14px;
     padding: 6px;

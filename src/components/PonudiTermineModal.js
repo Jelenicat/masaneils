@@ -9,6 +9,8 @@ import {
   query,
   where,
   setDoc,
+  // 🆕
+  deleteDoc,
 } from "firebase/firestore";
 import { db } from "../firebase";
 import { toast } from "react-toastify";
@@ -103,7 +105,7 @@ const PonudiTermineModal = ({
         const name = i?.korisnickoIme || i?.username || i?.user;
         if (!name) return;
 
-        // podrži više formata vremena: Firestore Timestamp, ISO string, ms, fallback na redni broj
+        // podrži više formata vremena
         let t =
           i?.timestamp?.toDate?.() instanceof Date
             ? i.timestamp.toDate().getTime()
@@ -113,7 +115,7 @@ const PonudiTermineModal = ({
             ? i.createdAt.toDate().getTime()
             : i?.createdAt !== undefined
             ? new Date(i.createdAt).getTime()
-            : Number.POSITIVE_INFINITY - idx; // ako baš ništa nema, stavi na kraj ali stabilno
+            : Number.POSITIVE_INFINITY - idx;
 
         const prev = firstTs.get(name);
         if (prev == null || t < prev) firstTs.set(name, t);
@@ -125,7 +127,6 @@ const PonudiTermineModal = ({
       const ta = firstTs.has(a) ? firstTs.get(a) : Number.POSITIVE_INFINITY;
       const tb = firstTs.has(b) ? firstTs.get(b) : Number.POSITIVE_INFINITY;
       if (ta !== tb) return ta - tb;
-      // stabilan tie-breaker po imenu da lista ne "skače"
       return a.localeCompare(b);
     });
 
@@ -188,9 +189,10 @@ const PonudiTermineModal = ({
     }
   };
 
-  // pošalji "nema termina" i ukloni samo tu korisnicu iz liste
+  // ✖ pošalji "nema termina" i očisti korisnika
   const sendNoSlots = async (korisnickoIme) => {
     try {
+      // 1) notifikacija
       await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -201,12 +203,33 @@ const PonudiTermineModal = ({
           click_action: "/ponudjeni",
         }),
       });
+
+      // 2) Firestore čišćenje: izboriTermina + ponudjeniTermini + izbor_usluge
+      const izboriSnap = await getDocs(
+        query(collection(db, "izboriTermina"), where("korisnickoIme", "==", korisnickoIme))
+      );
+      for (const d of izboriSnap.docs) {
+        await deleteDoc(d.ref);
+      }
+
+      const ponudjeniSnap = await getDocs(
+        query(collection(db, "ponudjeniTermini"), where("korisnickoIme", "==", korisnickoIme))
+      );
+      for (const d of ponudjeniSnap.docs) {
+        await deleteDoc(d.ref);
+      }
+
+      // dokument u izbor_usluge kod tebe je po ID = korisničko ime
+      await deleteDoc(doc(db, "izbor_usluge", korisnickoIme));
+
+      // 3) UI: ukloni iz lokalnog prikaza
       setVisibleKorisnice((prev) => prev.filter((k) => k !== korisnickoIme));
       if (selectedUser === korisnickoIme) setSelectedUser(null);
-      toast.info(`Poslata poruka za ${korisnickoIme}.`);
+
+      toast.info(`Poslata poruka i uklonjena korisnica ${korisnickoIme}.`);
     } catch (e) {
-      console.error("Greška pri slanju obaveštenja:", e);
-      toast.error("Greška pri slanju obaveštenja.");
+      console.error("Greška pri slanju/čišćenju:", e);
+      toast.error("Greška pri slanju obaveštenja ili čišćenju podataka.");
     }
   };
 
@@ -305,7 +328,7 @@ const PonudiTermineModal = ({
         {!selectedUser ? (
           <div className="user-list-container">
             <div className="scroll-lista-korisnica" aria-live="polite">
-              { (orderedKorisnice.length ? orderedKorisnice : visibleKorisnice).length > 0 ? (
+              {(orderedKorisnice.length ? orderedKorisnice : visibleKorisnice).length > 0 ? (
                 (orderedKorisnice.length ? orderedKorisnice : visibleKorisnice).map((korisnica, index) => {
                   const imaTermin = korisniceSaTerminima.includes(korisnica);
                   return (
@@ -325,13 +348,13 @@ const PonudiTermineModal = ({
                         <span className="info-tag">• već ima termin ove nedelje</span>
                       )}
 
-                      {/* X – šalje poruku i uklanja samo tu korisnicu */}
+                      {/* X – šalje poruku i uklanja korisnicu + briše izbore/predloge u bazi */}
                       <button
                         className="close-x"
                         title="Nema slobodnih termina"
                         onClick={(ev) => {
                           ev.stopPropagation();
-                          sendNoSlots(korisnica);
+                          sendNoSlots(korisnica); // 🔔 + Firestore čišćenje + UI update
                         }}
                       >
                         ×

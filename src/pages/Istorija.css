@@ -39,13 +39,25 @@
   background: #fff3f7;
   cursor: pointer;
   font-weight: 600;
+  color: #333;            /* ✅ tamni tekst */
+  text-align: center;     /* lepši raspored teksta */
+  font-size: 16px;
+
+  /* reset za mobilne */
+  appearance: none;       /* iOS Safari */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  border: none;           /* reset default ivice */
+  outline: none;          /* uklanja plavi fokus */
 }
 
 .tab.active {
   background: #ffeef4;
-  border-color: #d7a98c;
+  border: 1px solid #d7a98c;
+  color: #000;            /* malo jača boja za aktivan */
   box-shadow: 0 2px 6px rgba(215, 169, 140, 0.25);
 }
+
 
 .istorija-box ul {
   list-style: none;

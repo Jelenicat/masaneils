@@ -19,41 +19,26 @@ const serviceAccount = {
 };
 if (!getApps().length) initializeApp({ credential: cert(serviceAccount) });
 
-// ---------- TZ helpers (Europe/Belgrade) ----------
+// ---------- Timezone / window helpers ----------
 const TZ = "Europe/Belgrade";
 
-function asZoned(date, timeZone = TZ) {
-  return new Date(date.toLocaleString("en-GB", { timeZone }));
-}
-function makeUtcFromLocalParts(y, m, d, hh = 0, mm = 0, ss = 0, ms = 0) {
-  return new Date(Date.UTC(y, m, d, hh, mm, ss, ms));
-}
-// start sledeće nedelje (pon 00:00) i kraj (ned 23:59:59.999) — po Beogradu
-function nextWeekWindowInUTC(nowUtc = new Date()) {
-  const nowLocal = asZoned(nowUtc, TZ);
-  const dow = nowLocal.getDay(); // 0=ned, 1=pon, ...
-  const daysUntilNextMonday = (8 - dow) % 7; // pon->0, ned->1
-  const nextMonLocal = new Date(nowLocal);
-  nextMonLocal.setDate(nowLocal.getDate() + daysUntilNextMonday);
-  nextMonLocal.setHours(0, 0, 0, 0);
-
-  const nextSunLocal = new Date(nextMonLocal);
-  nextSunLocal.setDate(nextMonLocal.getDate() + 6);
-  nextSunLocal.setHours(23, 59, 59, 999);
-
-  const fromUTC = makeUtcFromLocalParts(
-    nextMonLocal.getFullYear(),
-    nextMonLocal.getMonth(),
-    nextMonLocal.getDate(),
+// Sledeća nedelja: ponedeljak 00:00:00.000 UTC do nedelja 23:59:59.999 UTC
+function nextWeekWindowInUTC(now = new Date()) {
+  const day = now.getUTCDay();             // 0=Sun, 1=Mon, ...
+  const diffToNextMonday = (8 - day) % 7;  // Mon->0, Sun->1
+  const monday = new Date(Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate() + diffToNextMonday,
     0, 0, 0, 0
-  );
-  const toUTC = makeUtcFromLocalParts(
-    nextSunLocal.getFullYear(),
-    nextSunLocal.getMonth(),
-    nextSunLocal.getDate(),
+  ));
+  const sunday = new Date(Date.UTC(
+    monday.getUTCFullYear(),
+    monday.getUTCMonth(),
+    monday.getUTCDate() + 6,
     23, 59, 59, 999
-  );
-  return { fromUTC, toUTC };
+  ));
+  return { fromUTC: monday, toUTC: sunday };
 }
 
 // formatiranje teksta poruke striktno u Europe/Belgrade
@@ -88,7 +73,7 @@ function parseStartToDate(start) {
         const ms = secNum * 1000 + (Number.isFinite(nsNum) ? Math.trunc(nsNum / 1e6) : 0);
         return new Date(ms);
       }
-      if (typeof secRaw === "string") {          // ako je neko ubacio ISO string u "seconds"
+      if (typeof secRaw === "string") {
         const tryIso = new Date(secRaw);
         if (!Number.isNaN(tryIso.getTime())) return tryIso;
       }
@@ -116,7 +101,7 @@ export default async function handler(req, res) {
     const previewMode = q(req.query?.preview) === "1" || q(req.query?.preview) === "true";
     const debugMode   = q(req.query?.debug)   === "1" || q(req.query?.debug)   === "true";
 
-    // PROZOR: sledeća nedelja po Beogradu (upit u UTC)
+    // PROZOR: sledeća nedelja (UTC granice)
     const { fromUTC, toUTC } = nextWeekWindowInUTC(new Date());
 
     // HOTFIX: bez range where-a; sve filterišemo u kodu
@@ -135,12 +120,12 @@ export default async function handler(req, res) {
 
       // vreme termina (robustan parser)
       const startDate = parseStartToDate(t.start);
-      if (!startDate) continue;
+      if (!startDate || Number.isNaN(startDate.getTime())) continue;
 
-      // filtriraj vremenski opseg ovde (UTC window)
+      // vremenski opseg (UTC)
       if (startDate < fromUTC || startDate > toUTC) continue;
 
-      // preuzmi FCM token korisnika
+      // FCM token korisnika
       const tokDoc = await db.collection("fcmTokens").doc(t.clientUsername).get();
       const token = tokDoc.exists ? tokDoc.data().token : null;
       if (!token) continue;

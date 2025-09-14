@@ -3,7 +3,7 @@ import { getApps, initializeApp, cert } from "firebase-admin/app";
 import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import { getMessaging } from "firebase-admin/messaging";
 
-// 🔑 Service account iz ENV varijabli (kao i u cron-send-reminders.js)
+// --- Admin init (ENV iz Vercel-a)
 const serviceAccount = {
   type: process.env.FIREBASE_TYPE,
   project_id: process.env.FIREBASE_PROJECT_ID,
@@ -17,9 +17,58 @@ const serviceAccount = {
   client_x509_cert_url: process.env.FIREBASE_CLIENT_X509,
   universe_domain: process.env.FIREBASE_UNIVERSE_DOMAIN,
 };
+if (!getApps().length) initializeApp({ credential: cert(serviceAccount) });
 
-if (!getApps().length) {
-  initializeApp({ credential: cert(serviceAccount) });
+// ---------- TZ helpers (Europe/Belgrade) ----------
+const TZ = "Europe/Belgrade";
+
+function asZoned(date, timeZone = TZ) {
+  return new Date(date.toLocaleString("en-GB", { timeZone }));
+}
+function makeUtcFromLocalParts(y, m, d, hh = 0, mm = 0, ss = 0, ms = 0) {
+  return new Date(Date.UTC(y, m, d, hh, mm, ss, ms));
+}
+function tomorrowWindowInUTC(nowUtc = new Date()) {
+  const nowLocal = asZoned(nowUtc, TZ);
+
+  const startLocal = new Date(nowLocal);
+  startLocal.setDate(nowLocal.getDate() + 1);
+  startLocal.setHours(0, 0, 0, 0);
+
+  const endLocal = new Date(startLocal);
+  endLocal.setHours(23, 59, 59, 999);
+
+  const fromUTC = makeUtcFromLocalParts(
+    startLocal.getFullYear(),
+    startLocal.getMonth(),
+    startLocal.getDate(),
+    0, 0, 0, 0
+  );
+  const toUTC = makeUtcFromLocalParts(
+    endLocal.getFullYear(),
+    endLocal.getMonth(),
+    endLocal.getDate(),
+    23, 59, 59, 999
+  );
+
+  return { fromUTC, toUTC };
+}
+
+const fmtDate = new Intl.DateTimeFormat("sr-RS", {
+  timeZone: TZ,
+  weekday: "long",
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+});
+const fmtTime = new Intl.DateTimeFormat("sr-RS", {
+  timeZone: TZ,
+  hour: "2-digit",
+  minute: "2-digit",
+});
+function formatInBelgrade(d) {
+  const dd = d instanceof Date ? d : new Date(d);
+  return `${fmtDate.format(dd)} u ${fmtTime.format(dd)}`;
 }
 
 export default async function handler(req, res) {
@@ -30,23 +79,24 @@ export default async function handler(req, res) {
   try {
     const db = getFirestore();
 
-    // 📅 Sutrašnji dan (00:00 → 23:59)
-    const now = new Date();
-    const tomorrowStart = new Date(now);
-    tomorrowStart.setDate(now.getDate() + 1);
-    tomorrowStart.setHours(0, 0, 0, 0);
+    // 👇 PREVIEW mod (dry-run): /api/cron-daily-reminders?preview=1
+    const previewMode =
+      (req.query?.preview ?? "").toString().toLowerCase() === "1" ||
+      (req.query?.preview ?? "").toString().toLowerCase() === "true";
 
-    const tomorrowEnd = new Date(tomorrowStart);
-    tomorrowEnd.setHours(23, 59, 59, 999);
+    // ---- PROZOR: sutra po Beogradu (upit u UTC)
+    const { fromUTC, toUTC } = tomorrowWindowInUTC(new Date());
 
     const snap = await db
       .collection("admin_kalendar")
       .where("tip", "==", "termin")
-      .where("start", ">=", Timestamp.fromDate(tomorrowStart))
-      .where("start", "<=", Timestamp.fromDate(tomorrowEnd))
+      .where("start", ">=", Timestamp.fromDate(fromUTC))
+      .where("start", "<=", Timestamp.fromDate(toUTC))
       .get();
 
     let sent = 0;
+    const tasks = [];
+    const results = []; // 👈 za pregled kome bi se poslalo
 
     for (const docSnap of snap.docs) {
       const t = docSnap.data();
@@ -56,35 +106,43 @@ export default async function handler(req, res) {
       const token = tokDoc.exists ? tokDoc.data().token : null;
       if (!token) continue;
 
-      const d = t.start?.toDate ? t.start.toDate() : new Date(t.start);
-      const datum = d.toLocaleDateString("sr-RS", {
-        weekday: "long",
-        day: "2-digit",
-        month: "2-digit",
-      });
-      const vreme = d.toLocaleTimeString("sr-RS", {
-        hour: "2-digit",
-        minute: "2-digit",
+      const startDate = t.start?.toDate ? t.start.toDate() : new Date(t.start);
+      const bodyText = `Imate termin sutra (${formatInBelgrade(startDate)}).`;
+
+      results.push({
+        user: t.clientUsername,
+        eventId: docSnap.id,
+        service: t.serviceName || t.usluga || null,
+        startUTC: startDate.toISOString(),
+        preview: bodyText,
       });
 
-      await getMessaging().send({
-        token,
-        notification: {
-          title: "Podsetnik za sutra 📅",
-          body: `Imate termin sutra (${datum}) u ${vreme}`,
-        },
-        data: {
-          click_action: "https://masaneils.vercel.app/istorija",
-        },
-      });
+      if (!previewMode) {
+        tasks.push(
+          getMessaging()
+            .send({
+              token,
+              data: {
+                title: "Podsetnik za sutra 📅",
+                body: bodyText,
+                click_action: "https://masaneils.vercel.app/istorija",
+              },
+            })
+            .then(() => { sent += 1; })
+        );
+      }
+    }
 
-      sent++;
+    if (!previewMode) {
+      await Promise.allSettled(tasks);
     }
 
     return res.status(200).json({
       ok: true,
-      window: { from: tomorrowStart.toISOString(), to: tomorrowEnd.toISOString() },
-      sent,
+      window: { from: fromUTC.toISOString(), to: toUTC.toISOString() },
+      sent: previewMode ? 0 : sent,
+      previewMode,
+      results, // 👈 vidiš tačno kome/šta
     });
   } catch (err) {
     console.error("Cron daily error:", err);

@@ -98,7 +98,13 @@ export default async function handler(req, res) {
       const token = tokDoc.exists ? tokDoc.data().token : null;
       if (!token) continue;
 
-      const startDate = t.start?.toDate ? t.start.toDate() : new Date(t.start);
+      const startDate =
+  t.start instanceof Timestamp
+    ? t.start.toDate()
+    : (t.start?.seconds !== undefined && t.start?.nanoseconds !== undefined)
+    ? new Timestamp(t.start.seconds, t.start.nanoseconds).toDate()
+    : new Date(t.start);
+
       const bodyText = `Vaš termin je ${formatInBelgrade(startDate)}.`;
 
       // upiši u preview listu

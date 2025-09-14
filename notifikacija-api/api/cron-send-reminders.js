@@ -69,14 +69,10 @@ function formatInBelgrade(d) {
 }
 
 // ---------- Ultra-robustni parser za polje start ----------
-// Prihvata: Firestore Timestamp | {seconds,nanoseconds} ili {_seconds,_nanoseconds} (brojevi ili stringovi)
-//           | ISO string | Date | broj (ms)
 function parseStartToDate(start) {
   try {
-    // 1) Firestore Timestamp (admin SDK)
     if (start instanceof Timestamp) return start.toDate();
 
-    // 2) Objekat sa (mogućim) seconds/nanoseconds varijantama
     if (start && typeof start === "object") {
       const secRaw =
         "seconds" in start ? start.seconds :
@@ -89,23 +85,18 @@ function parseStartToDate(start) {
       const nsNum  = Number(nsRaw);
 
       if (Number.isFinite(secNum)) {
-        // iz epoch sekundi + ns (pretvori ns u ms)
         const ms = secNum * 1000 + (Number.isFinite(nsNum) ? Math.trunc(nsNum / 1e6) : 0);
         return new Date(ms);
       }
-
-      // Ako je secRaw string sa ISO datumom — probaj direktno
-      if (typeof secRaw === "string") {
+      if (typeof secRaw === "string") {          // ako je neko ubacio ISO string u "seconds"
         const tryIso = new Date(secRaw);
         if (!Number.isNaN(tryIso.getTime())) return tryIso;
       }
     }
 
-    // 3) Date/ISO/ms
     const d = start instanceof Date ? start : new Date(start);
     if (!Number.isNaN(d.getTime())) return d;
 
-    // 4) Fallback: sada (da ne puca nikad)
     return new Date();
   } catch {
     return new Date();
@@ -120,18 +111,20 @@ export default async function handler(req, res) {
   try {
     const db = getFirestore();
 
-    // PREVIEW mod (dry-run): /api/cron-send-reminders?preview=1
-    const previewQ = (req.query?.preview ?? "").toString().toLowerCase();
-    const previewMode = previewQ === "1" || previewQ === "true";
+    // PREVIEW / DEBUG
+    const q = (x) => (x ?? "").toString().toLowerCase();
+    const previewMode = q(req.query?.preview) === "1" || q(req.query?.preview) === "true";
+    const debugMode   = q(req.query?.debug)   === "1" || q(req.query?.debug)   === "true";
 
     // PROZOR: sledeća nedelja po Beogradu (upit u UTC)
     const { fromUTC, toUTC } = nextWeekWindowInUTC(new Date());
 
+    // ⛱️ KLJUČNA IZMJENA: u where šaljemo DIREKTNO Date, bez Timestamp.fromDate(...)
     const snap = await db
       .collection("admin_kalendar")
       .where("tip", "==", "termin")
-      .where("start", ">=", Timestamp.fromDate(fromUTC))
-      .where("start", "<=", Timestamp.fromDate(toUTC))
+      .where("start", ">=", fromUTC)
+      .where("start", "<=", toUTC)
       .get();
 
     let sent = 0;
@@ -142,22 +135,34 @@ export default async function handler(req, res) {
       const t = docSnap.data();
       if (!t?.clientUsername) continue;
 
-      // FCM token
       const tokDoc = await db.collection("fcmTokens").doc(t.clientUsername).get();
       const token = tokDoc.exists ? tokDoc.data().token : null;
       if (!token) continue;
 
-      // Datum/vreme termina
       const startDate = parseStartToDate(t.start);
       const bodyText = `Vaš termin je ${formatInBelgrade(startDate)}.`;
 
-      results.push({
+      const item = {
         user: t.clientUsername,
         eventId: docSnap.id,
         service: t.serviceName || t.usluga || null,
         startUTC: startDate.toISOString(),
         preview: bodyText,
-      });
+      };
+
+      if (debugMode) {
+        item._debugType = typeof t.start;
+        item._debugKeys = t.start && typeof t.start === "object" ? Object.keys(t.start) : null;
+        if (item._debugKeys) {
+          item._debugSample = {
+            seconds: t.start?.seconds ?? t.start?._seconds ?? null,
+            nanoseconds: t.start?.nanoseconds ?? t.start?._nanoseconds ?? null,
+            asString: typeof t.start === "string" ? t.start : null,
+          };
+        }
+      }
+
+      results.push(item);
 
       if (!previewMode) {
         tasks.push(
@@ -184,6 +189,7 @@ export default async function handler(req, res) {
       window: { from: fromUTC.toISOString(), to: toUTC.toISOString() },
       sent: previewMode ? 0 : sent,
       previewMode,
+      debugMode,
       results,
     });
   } catch (err) {

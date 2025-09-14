@@ -71,6 +71,17 @@ function formatInBelgrade(d) {
   return `${fmtDate.format(dd)} u ${fmtTime.format(dd)}`;
 }
 
+// Robustni parser za t.start (Timestamp | {seconds,nanoseconds} | string | Date)
+function parseStartToDate(start) {
+  if (start instanceof Timestamp) return start.toDate();
+  if (start?.seconds !== undefined && start?.nanoseconds !== undefined) {
+    const sec = Number(start.seconds);
+    const ns = Number(start.nanoseconds);
+    return new Timestamp(sec, ns).toDate();
+  }
+  return new Date(start);
+}
+
 export default async function handler(req, res) {
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -106,13 +117,7 @@ export default async function handler(req, res) {
       const token = tokDoc.exists ? tokDoc.data().token : null;
       if (!token) continue;
 
-     const startDate =
-  t.start instanceof Timestamp
-    ? t.start.toDate()
-    : (t.start?.seconds !== undefined && t.start?.nanoseconds !== undefined)
-    ? new Timestamp(t.start.seconds, t.start.nanoseconds).toDate()
-    : new Date(t.start);
-
+      const startDate = parseStartToDate(t.start);
       const bodyText = `Imate termin sutra (${formatInBelgrade(startDate)}).`;
 
       results.push({
@@ -148,7 +153,7 @@ export default async function handler(req, res) {
       window: { from: fromUTC.toISOString(), to: toUTC.toISOString() },
       sent: previewMode ? 0 : sent,
       previewMode,
-      results, // 👈 vidiš tačno kome/šta
+      results,
     });
   } catch (err) {
     console.error("Cron daily error:", err);

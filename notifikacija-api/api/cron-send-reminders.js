@@ -43,10 +43,16 @@ function nextWeekWindowInUTC(nowUtc = new Date()) {
   nextSunLocal.setHours(23, 59, 59, 999);
 
   const fromUTC = makeUtcFromLocalParts(
-    nextMonLocal.getFullYear(), nextMonLocal.getMonth(), nextMonLocal.getDate(), 0, 0, 0, 0
+    nextMonLocal.getFullYear(),
+    nextMonLocal.getMonth(),
+    nextMonLocal.getDate(),
+    0, 0, 0, 0
   );
   const toUTC = makeUtcFromLocalParts(
-    nextSunLocal.getFullYear(), nextSunLocal.getMonth(), nextSunLocal.getDate(), 23, 59, 59, 999
+    nextSunLocal.getFullYear(),
+    nextSunLocal.getMonth(),
+    nextSunLocal.getDate(),
+    23, 59, 59, 999
   );
   return { fromUTC, toUTC };
 }
@@ -61,6 +67,17 @@ const fmtTime = new Intl.DateTimeFormat("sr-RS", {
 function formatInBelgrade(d) {
   const dd = d instanceof Date ? d : new Date(d);
   return `${fmtDate.format(dd)} u ${fmtTime.format(dd)}`;
+}
+
+// Robustni parser za polje start (Timestamp | {seconds,nanoseconds} | string | Date)
+function parseStartToDate(start) {
+  if (start instanceof Timestamp) return start.toDate();
+  if (start?.seconds !== undefined && start?.nanoseconds !== undefined) {
+    const sec = Number(start.seconds);
+    const ns = Number(start.nanoseconds);
+    return new Timestamp(sec, ns).toDate();
+  }
+  return new Date(start);
 }
 
 export default async function handler(req, res) {
@@ -94,20 +111,16 @@ export default async function handler(req, res) {
       const t = docSnap.data();
       if (!t?.clientUsername) continue;
 
+      // FCM token
       const tokDoc = await db.collection("fcmTokens").doc(t.clientUsername).get();
       const token = tokDoc.exists ? tokDoc.data().token : null;
       if (!token) continue;
 
-      const startDate =
-  t.start instanceof Timestamp
-    ? t.start.toDate()
-    : (t.start?.seconds !== undefined && t.start?.nanoseconds !== undefined)
-    ? new Timestamp(t.start.seconds, t.start.nanoseconds).toDate()
-    : new Date(t.start);
-
+      // Datum/vreme termina
+      const startDate = parseStartToDate(t.start);
       const bodyText = `Vaš termin je ${formatInBelgrade(startDate)}.`;
 
-      // upiši u preview listu
+      // Za pregled
       results.push({
         user: t.clientUsername,
         eventId: docSnap.id,
@@ -116,6 +129,7 @@ export default async function handler(req, res) {
         preview: bodyText,
       });
 
+      // Slanje (ako nije preview)
       if (!previewMode) {
         tasks.push(
           getMessaging()
@@ -127,9 +141,7 @@ export default async function handler(req, res) {
                 click_action: "https://masaneils.vercel.app/istorija",
               },
             })
-            .then(() => {
-              sent += 1;
-            })
+            .then(() => { sent += 1; })
         );
       }
     }
@@ -143,7 +155,7 @@ export default async function handler(req, res) {
       window: { from: fromUTC.toISOString(), to: toUTC.toISOString() },
       sent: previewMode ? 0 : sent,
       previewMode,
-      results, // 👈 vidiš tačno kome/šta
+      results,
     });
   } catch (err) {
     console.error("Cron error:", err);

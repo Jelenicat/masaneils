@@ -17,9 +17,7 @@ const serviceAccount = {
   client_x509_cert_url: process.env.FIREBASE_CLIENT_X509,
   universe_domain: process.env.FIREBASE_UNIVERSE_DOMAIN,
 };
-if (!getApps().length) {
-  initializeApp({ credential: cert(serviceAccount) });
-}
+if (!getApps().length) initializeApp({ credential: cert(serviceAccount) });
 
 // ---------- TZ helpers (Europe/Belgrade) ----------
 const TZ = "Europe/Belgrade";
@@ -38,6 +36,7 @@ function nextWeekWindowInUTC(nowUtc = new Date()) {
   const nextMonLocal = new Date(nowLocal);
   nextMonLocal.setDate(nowLocal.getDate() + daysUntilNextMonday);
   nextMonLocal.setHours(0, 0, 0, 0);
+
   const nextSunLocal = new Date(nextMonLocal);
   nextSunLocal.setDate(nextMonLocal.getDate() + 6);
   nextSunLocal.setHours(23, 59, 59, 999);
@@ -69,15 +68,48 @@ function formatInBelgrade(d) {
   return `${fmtDate.format(dd)} u ${fmtTime.format(dd)}`;
 }
 
-// Robustni parser za polje start (Timestamp | {seconds,nanoseconds} | string | Date)
+// ---------- Ultra-robustni parser za polje start ----------
+// Prihvata: Firestore Timestamp | {seconds,nanoseconds} ili {_seconds,_nanoseconds} (brojevi ili stringovi)
+//           | ISO string | Date | broj (ms)
 function parseStartToDate(start) {
-  if (start instanceof Timestamp) return start.toDate();
-  if (start?.seconds !== undefined && start?.nanoseconds !== undefined) {
-    const sec = Number(start.seconds);
-    const ns = Number(start.nanoseconds);
-    return new Timestamp(sec, ns).toDate();
+  try {
+    // 1) Firestore Timestamp (admin SDK)
+    if (start instanceof Timestamp) return start.toDate();
+
+    // 2) Objekat sa (mogućim) seconds/nanoseconds varijantama
+    if (start && typeof start === "object") {
+      const secRaw =
+        "seconds" in start ? start.seconds :
+        ("_seconds" in start ? start._seconds : undefined);
+      const nsRaw =
+        "nanoseconds" in start ? start.nanoseconds :
+        ("_nanoseconds" in start ? start._nanoseconds : 0);
+
+      const secNum = Number(secRaw);
+      const nsNum  = Number(nsRaw);
+
+      if (Number.isFinite(secNum)) {
+        // iz epoch sekundi + ns (pretvori ns u ms)
+        const ms = secNum * 1000 + (Number.isFinite(nsNum) ? Math.trunc(nsNum / 1e6) : 0);
+        return new Date(ms);
+      }
+
+      // Ako je secRaw string sa ISO datumom — probaj direktno
+      if (typeof secRaw === "string") {
+        const tryIso = new Date(secRaw);
+        if (!Number.isNaN(tryIso.getTime())) return tryIso;
+      }
+    }
+
+    // 3) Date/ISO/ms
+    const d = start instanceof Date ? start : new Date(start);
+    if (!Number.isNaN(d.getTime())) return d;
+
+    // 4) Fallback: sada (da ne puca nikad)
+    return new Date();
+  } catch {
+    return new Date();
   }
-  return new Date(start);
 }
 
 export default async function handler(req, res) {
@@ -88,12 +120,11 @@ export default async function handler(req, res) {
   try {
     const db = getFirestore();
 
-    // 👇 PREVIEW mod (dry-run): /api/cron-send-reminders?preview=1
-    const previewMode =
-      (req.query?.preview ?? "").toString().toLowerCase() === "1" ||
-      (req.query?.preview ?? "").toString().toLowerCase() === "true";
+    // PREVIEW mod (dry-run): /api/cron-send-reminders?preview=1
+    const previewQ = (req.query?.preview ?? "").toString().toLowerCase();
+    const previewMode = previewQ === "1" || previewQ === "true";
 
-    // ---- PROZOR: sledeća nedelja po Beogradu, upit u Firestore-u (UTC)
+    // PROZOR: sledeća nedelja po Beogradu (upit u UTC)
     const { fromUTC, toUTC } = nextWeekWindowInUTC(new Date());
 
     const snap = await db
@@ -105,7 +136,7 @@ export default async function handler(req, res) {
 
     let sent = 0;
     const tasks = [];
-    const results = []; // 👈 za pregled kome bi se poslalo
+    const results = [];
 
     for (const docSnap of snap.docs) {
       const t = docSnap.data();
@@ -120,7 +151,6 @@ export default async function handler(req, res) {
       const startDate = parseStartToDate(t.start);
       const bodyText = `Vaš termin je ${formatInBelgrade(startDate)}.`;
 
-      // Za pregled
       results.push({
         user: t.clientUsername,
         eventId: docSnap.id,
@@ -129,7 +159,6 @@ export default async function handler(req, res) {
         preview: bodyText,
       });
 
-      // Slanje (ako nije preview)
       if (!previewMode) {
         tasks.push(
           getMessaging()
@@ -146,7 +175,7 @@ export default async function handler(req, res) {
       }
     }
 
-    if (!previewMode) {
+    if (!previewMode && tasks.length) {
       await Promise.allSettled(tasks);
     }
 
@@ -159,6 +188,6 @@ export default async function handler(req, res) {
     });
   } catch (err) {
     console.error("Cron error:", err);
-    return res.status(500).json({ ok: false, error: err.message });
+    return res.status(500).json({ ok: false, error: err?.message || String(err) });
   }
 }

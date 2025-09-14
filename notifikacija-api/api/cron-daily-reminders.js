@@ -19,85 +19,63 @@ const serviceAccount = {
 };
 if (!getApps().length) initializeApp({ credential: cert(serviceAccount) });
 
-// ---------- TZ helpers (Europe/Belgrade) ----------
+// ---------- Timezone / window helpers ----------
 const TZ = "Europe/Belgrade";
 
-function asZoned(date, timeZone = TZ) {
-  return new Date(date.toLocaleString("en-GB", { timeZone }));
-}
-function makeUtcFromLocalParts(y, m, d, hh = 0, mm = 0, ss = 0, ms = 0) {
-  return new Date(Date.UTC(y, m, d, hh, mm, ss, ms));
-}
-function tomorrowWindowInUTC(nowUtc = new Date()) {
-  const nowLocal = asZoned(nowUtc, TZ);
+// SUTRA: 00:00:00.000 UTC do 23:59:59.999 UTC (računato čisto u UTC)
+function tomorrowWindowInUTC(now = new Date()) {
+  const y = now.getUTCFullYear();
+  const m = now.getUTCMonth();
+  const d = now.getUTCDate();
 
-  const startLocal = new Date(nowLocal);
-  startLocal.setDate(nowLocal.getDate() + 1);
-  startLocal.setHours(0, 0, 0, 0);
-
-  const endLocal = new Date(startLocal);
-  endLocal.setHours(23, 59, 59, 999);
-
-  const fromUTC = makeUtcFromLocalParts(
-    startLocal.getFullYear(),
-    startLocal.getMonth(),
-    startLocal.getDate(),
-    0, 0, 0, 0
-  );
-  const toUTC = makeUtcFromLocalParts(
-    endLocal.getFullYear(),
-    endLocal.getMonth(),
-    endLocal.getDate(),
-    23, 59, 59, 999
-  );
-
-  return { fromUTC, toUTC };
+  const start = new Date(Date.UTC(y, m, d + 1, 0, 0, 0, 0));
+  const end   = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate(), 23, 59, 59, 999));
+  return { fromUTC: start, toUTC: end };
 }
 
+// formatiranje poruke striktno u Europe/Belgrade
 const fmtDate = new Intl.DateTimeFormat("sr-RS", {
-  timeZone: TZ,
-  weekday: "long",
-  day: "2-digit",
-  month: "2-digit",
-  year: "numeric",
+  timeZone: TZ, weekday: "long", day: "2-digit", month: "2-digit", year: "numeric",
 });
 const fmtTime = new Intl.DateTimeFormat("sr-RS", {
-  timeZone: TZ,
-  hour: "2-digit",
-  minute: "2-digit",
+  timeZone: TZ, hour: "2-digit", minute: "2-digit",
 });
 function formatInBelgrade(d) {
   const dd = d instanceof Date ? d : new Date(d);
   return `${fmtDate.format(dd)} u ${fmtTime.format(dd)}`;
 }
 
-// ---------- Robustni parser za t.start ----------
-// Prihvata: Firestore Timestamp | {seconds,nanoseconds} (brojevi ili stringovi) | ISO string | Date | broj (ms)
+// ---------- Ultra-robustan parser za t.start ----------
 function parseStartToDate(start) {
   try {
     // Firestore Timestamp
-    if (start instanceof Timestamp) {
-      return start.toDate();
-    }
+    if (start instanceof Timestamp) return start.toDate();
 
-    // Objekt sa seconds/nanoseconds
-    if (start && typeof start === "object" && ("seconds" in start) && ("nanoseconds" in start)) {
-      const sec = Number(start.seconds);
-      const ns  = Number(start.nanoseconds ?? 0);
-      if (Number.isFinite(sec) && Number.isFinite(ns)) {
-        return new Timestamp(Math.trunc(sec), Math.trunc(ns)).toDate();
+    // Map sa seconds/_seconds, nanoseconds/_nanoseconds (brojevi ili stringovi)
+    if (start && typeof start === "object") {
+      const secRaw = "seconds" in start ? start.seconds : ("_seconds" in start ? start._seconds : undefined);
+      const nsRaw  = "nanoseconds" in start ? start.nanoseconds : ("_nanoseconds" in start ? start._nanoseconds : 0);
+
+      const secNum = Number(secRaw);
+      const nsNum  = Number(nsRaw);
+
+      if (Number.isFinite(secNum)) {
+        const ms = secNum * 1000 + (Number.isFinite(nsNum) ? Math.trunc(nsNum / 1e6) : 0);
+        return new Date(ms);
       }
-      // ako nije validno, fallback ispod
+      if (typeof secRaw === "string") {
+        const tryIso = new Date(secRaw);
+        if (!Number.isNaN(tryIso.getTime())) return tryIso;
+      }
     }
 
-    // Date/ISO/ms
+    // ISO string / Date / ms
     const d = start instanceof Date ? start : new Date(start);
     if (!Number.isNaN(d.getTime())) return d;
 
-    // kao poslednja linija odbrane – sada
-    return new Date();
+    return null;
   } catch {
-    return new Date();
+    return null;
   }
 }
 
@@ -108,19 +86,19 @@ export default async function handler(req, res) {
 
   try {
     const db = getFirestore();
+    const fcm = getMessaging();
 
     // PREVIEW mod (dry-run): /api/cron-daily-reminders?preview=1
-    const previewQ = (req.query?.preview ?? "").toString().toLowerCase();
-    const previewMode = previewQ === "1" || previewQ === "true";
+    const q = (x) => (x ?? "").toString().toLowerCase();
+    const previewMode = q(req.query?.preview) === "1" || q(req.query?.preview) === "true";
 
-    // Prozor: sutra po Beogradu (upit u UTC)
+    // Prozor: sutra (UTC)
     const { fromUTC, toUTC } = tomorrowWindowInUTC(new Date());
 
+    // HOTFIX: čitamo bez range where-a; filtriramo u kodu
     const snap = await db
       .collection("admin_kalendar")
       .where("tip", "==", "termin")
-      .where("start", ">=", Timestamp.fromDate(fromUTC))
-      .where("start", "<=", Timestamp.fromDate(toUTC))
       .get();
 
     let sent = 0;
@@ -131,11 +109,18 @@ export default async function handler(req, res) {
       const t = docSnap.data();
       if (!t?.clientUsername) continue;
 
+      // vreme termina
+      const startDate = parseStartToDate(t.start);
+      if (!startDate || Number.isNaN(startDate.getTime())) continue;
+
+      // filtriraj na: sutrašnji dan (UTC prozor)
+      if (startDate < fromUTC || startDate > toUTC) continue;
+
+      // FCM token korisnika
       const tokDoc = await db.collection("fcmTokens").doc(t.clientUsername).get();
       const token = tokDoc.exists ? tokDoc.data().token : null;
       if (!token) continue;
 
-      const startDate = parseStartToDate(t.start);
       const bodyText = `Imate termin sutra (${formatInBelgrade(startDate)}).`;
 
       results.push({
@@ -148,16 +133,14 @@ export default async function handler(req, res) {
 
       if (!previewMode) {
         tasks.push(
-          getMessaging()
-            .send({
-              token,
-              data: {
-                title: "Podsetnik za sutra 📅",
-                body: bodyText,
-                click_action: "https://masaneils.vercel.app/istorija",
-              },
-            })
-            .then(() => { sent += 1; })
+          fcm.send({
+            token,
+            data: {
+              title: "Podsetnik za sutra 📅",
+              body: bodyText,
+              click_action: "https://masaneils.vercel.app/istorija",
+            },
+          }).then(() => { sent += 1; })
         );
       }
     }

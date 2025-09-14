@@ -71,15 +71,34 @@ function formatInBelgrade(d) {
   return `${fmtDate.format(dd)} u ${fmtTime.format(dd)}`;
 }
 
-// Robustni parser za t.start (Timestamp | {seconds,nanoseconds} | string | Date)
+// ---------- Robustni parser za t.start ----------
+// Prihvata: Firestore Timestamp | {seconds,nanoseconds} (brojevi ili stringovi) | ISO string | Date | broj (ms)
 function parseStartToDate(start) {
-  if (start instanceof Timestamp) return start.toDate();
-  if (start?.seconds !== undefined && start?.nanoseconds !== undefined) {
-    const sec = Number(start.seconds);
-    const ns = Number(start.nanoseconds);
-    return new Timestamp(sec, ns).toDate();
+  try {
+    // Firestore Timestamp
+    if (start instanceof Timestamp) {
+      return start.toDate();
+    }
+
+    // Objekt sa seconds/nanoseconds
+    if (start && typeof start === "object" && ("seconds" in start) && ("nanoseconds" in start)) {
+      const sec = Number(start.seconds);
+      const ns  = Number(start.nanoseconds ?? 0);
+      if (Number.isFinite(sec) && Number.isFinite(ns)) {
+        return new Timestamp(Math.trunc(sec), Math.trunc(ns)).toDate();
+      }
+      // ako nije validno, fallback ispod
+    }
+
+    // Date/ISO/ms
+    const d = start instanceof Date ? start : new Date(start);
+    if (!Number.isNaN(d.getTime())) return d;
+
+    // kao poslednja linija odbrane – sada
+    return new Date();
+  } catch {
+    return new Date();
   }
-  return new Date(start);
 }
 
 export default async function handler(req, res) {
@@ -90,12 +109,11 @@ export default async function handler(req, res) {
   try {
     const db = getFirestore();
 
-    // 👇 PREVIEW mod (dry-run): /api/cron-daily-reminders?preview=1
-    const previewMode =
-      (req.query?.preview ?? "").toString().toLowerCase() === "1" ||
-      (req.query?.preview ?? "").toString().toLowerCase() === "true";
+    // PREVIEW mod (dry-run): /api/cron-daily-reminders?preview=1
+    const previewQ = (req.query?.preview ?? "").toString().toLowerCase();
+    const previewMode = previewQ === "1" || previewQ === "true";
 
-    // ---- PROZOR: sutra po Beogradu (upit u UTC)
+    // Prozor: sutra po Beogradu (upit u UTC)
     const { fromUTC, toUTC } = tomorrowWindowInUTC(new Date());
 
     const snap = await db
@@ -107,7 +125,7 @@ export default async function handler(req, res) {
 
     let sent = 0;
     const tasks = [];
-    const results = []; // 👈 za pregled kome bi se poslalo
+    const results = []; // pregled kome bi se poslalo
 
     for (const docSnap of snap.docs) {
       const t = docSnap.data();
@@ -144,7 +162,7 @@ export default async function handler(req, res) {
       }
     }
 
-    if (!previewMode) {
+    if (!previewMode && tasks.length) {
       await Promise.allSettled(tasks);
     }
 
@@ -157,6 +175,6 @@ export default async function handler(req, res) {
     });
   } catch (err) {
     console.error("Cron daily error:", err);
-    return res.status(500).json({ ok: false, error: err.message });
+    return res.status(500).json({ ok: false, error: err?.message || String(err) });
   }
 }

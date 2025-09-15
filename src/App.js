@@ -1,5 +1,8 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { useParams } from "react-router-dom";
+// src/App.js
+import { BrowserRouter as Router, Routes, Route, useParams, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
+import { onMessageListener } from "./firebase"; // koristi tvoj helper
+
 import Home from "./pages/Home";
 import Verify from "./pages/Verify";
 import AdminPanel from "./pages/AdminPanel";
@@ -16,14 +19,74 @@ import Korisnik from "./pages/Korisnik";
 import Istorija from "./pages/Istorija";
 import MojTermin from "./pages/MojTermin";
 import KorisniciMenadzer from "./pages/KorisniciMenadzer";
-// ✅ OVDE je helper komponenta za dinamicko korisnicko ime
+
+/** Helper za /ponudjeni/:korisnickoIme */
 const PonudjeniTerminiWrapper = () => {
   const { korisnickoIme } = useParams();
   return <PonudjeniTermini korisnickoIme={korisnickoIme} />;
 };
-function App() {
+
+/** Minimalan toast (umesto alert-a) */
+function showToast(msg) {
+  if (!msg) return;
+  const d = document.createElement("div");
+  d.textContent = msg;
+  Object.assign(d.style, {
+    position: "fixed",
+    bottom: "20px",
+    right: "20px",
+    background: "rgba(0,0,0,.85)",
+    color: "#fff",
+    padding: "10px 14px",
+    borderRadius: "10px",
+    zIndex: 9999,
+    maxWidth: "80vw",
+    fontSize: "14px",
+    boxShadow: "0 6px 24px rgba(0,0,0,.25)",
+  });
+  document.body.appendChild(d);
+  setTimeout(() => d.remove(), 4000);
+}
+
+/** 🔔 Foreground FCM listener */
+function NotifListener() {
+  const nav = useNavigate();
+
+  useEffect(() => {
+    const p = onMessageListener()
+      .then((payload) => {
+        console.log("📩 Foreground FCM:", payload);
+
+        const title = payload?.notification?.title || payload?.data?.title || "Obaveštenje";
+        const body  = payload?.notification?.body  || payload?.data?.body  || "";
+        showToast([title, body].filter(Boolean).join(" — "));
+
+        // Deep link iz payload-a
+        const url = payload?.data?.click_action || payload?.data?.url;
+        if (!url) return;
+
+        if (url.startsWith("/")) {
+          nav(url);              // interna ruta
+        } else {
+          window.location.href = url; // eksterni link
+        }
+      })
+      .catch((err) => console.error("Greška u onMessageListener:", err));
+
+    // onMessageListener() vraća Promise, pa ovde nemamo pravi "unsubscribe".
+    // Nije problem: listener se registruje iz firebase.js jednom po tab-u.
+    return () => void p;
+  }, [nav]);
+
+  return null;
+}
+
+export default function App() {
   return (
     <Router>
+      {/* Listener mora biti unutar Router-a da bi useNavigate radio */}
+      <NotifListener />
+
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/verify" element={<Verify />} />
@@ -36,17 +99,13 @@ function App() {
         <Route path="/kalendar" element={<Kalendar />} />
         <Route path="/admin/podsetnik" element={<Podsetnik />} />
         <Route path="/podsetnici" element={<ListaPodsetnika />} />
-      
 
         <Route path="/korisnik" element={<Korisnik />} />
         <Route path="/ponudjeni/:korisnickoIme" element={<PonudjeniTerminiWrapper />} />
-<Route path="/istorija" element={<Istorija />} />
-      <Route path="/moj-termin" element={<MojTermin />} />
-      <Route path="/admin/korisnici" element={<KorisniciMenadzer />} />
+        <Route path="/istorija" element={<Istorija />} />
+        <Route path="/moj-termin" element={<MojTermin />} />
+        <Route path="/admin/korisnici" element={<KorisniciMenadzer />} />
       </Routes>
-      
     </Router>
   );
 }
-
-export default App;

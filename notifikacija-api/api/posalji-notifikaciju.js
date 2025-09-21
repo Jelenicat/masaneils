@@ -15,10 +15,19 @@ function applyCors(req, res) {
   return true;
 }
 
-/* -------- helper: ponedeljak iz datuma (YYYY-MM-DD) -------- */
-function mondayOf(d) {
-  const x = new Date(d);
-  const diff = (x.getDay() + 6) % 7; // 0=ned->6, 1=pon->0
+/* -------- helpers: lokalni datum + ponedeljak (YYYY-MM-DD) -------- */
+// Bezbedno (lokalno) parsiranje "YYYY-MM-DD" — izbegava UTC klizanje
+function localDateFromYYYYMMDD(s) {
+  if (s instanceof Date) return new Date(s.getTime());
+  if (typeof s !== "string") return new Date(s);
+  const [y, m, d] = s.split("-").map(Number);
+  return new Date(y, (m || 1) - 1, d || 1, 0, 0, 0, 0); // lokalna ponoć
+}
+
+function mondayOf(input) {
+  const x = localDateFromYYYYMMDD(input);
+  const day = x.getDay();             // 0=ned, 1=pon...
+  const diff = (day + 6) % 7;         // pon=0
   x.setHours(0, 0, 0, 0);
   x.setDate(x.getDate() - diff);
   const yyyy = x.getFullYear();
@@ -52,7 +61,7 @@ function makeDeepLinkByType({ type, korisnickoIme, dateKeys }) {
     case "proposal_to_admin": {
       // A) korisnik poslao predloge → masa (admin) otvara nedelju
       const wk = Array.isArray(dateKeys) && dateKeys.length ? mondayOf(dateKeys[0]) : null;
-       return wk ? `/admin/kalendar?week=${wk}` : `/admin/kalendar`;
+      return wk ? `/admin/kalendar?week=${wk}` : `/admin/kalendar`;
     }
     case "proposal_to_user": {
       // B) masa poslala predloge korisniku → otvara /ponudjeni/:korisnickoIme
@@ -119,7 +128,8 @@ export default async function handler(req, res) {
     }
 
     // 2) ekstra meta (weekKey samo za proposal_to_admin)
-    const weekKey = type === "proposal_to_admin" && dateKeys.length ? mondayOf(dateKeys[0]) : "";
+    const weekKey =
+      type === "proposal_to_admin" && dateKeys.length ? mondayOf(dateKeys[0]) : "";
 
     // 3) pošalji data-only FCM
     await getMessaging().send({

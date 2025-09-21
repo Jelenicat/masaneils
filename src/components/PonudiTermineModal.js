@@ -312,9 +312,9 @@ const PonudiTermineModal = ({
           title: "Obaveštenje",
           body: "Žao mi je, nema slobodnih termina za ovu nedelju",
           // ⬇⬇⬇ CHANGED: relativna ruta + fallback polja
-          click_action: `/ponudjeni/${korisnickoIme}`,
-          url: `/ponudjeni/${korisnickoIme}`,
-          link: `/ponudjeni/${korisnickoIme}`,
+      click_action: `/ponudjeni/${encodeURIComponent(korisnickoIme)}`,
+ url: `/ponudjeni/${encodeURIComponent(korisnickoIme)}`,
+ link: `/ponudjeni/${encodeURIComponent(korisnickoIme)}`,
         }),
       });
 
@@ -377,9 +377,9 @@ const PonudiTermineModal = ({
           title: "Novi predlozi termina 💅",
           body: `Predloženi termini: ${notificationBody}`,
           // ⬇⬇⬇ CHANGED: relativna SPA ruta + fallback polja
-          click_action: `/ponudjeni/${selectedUser}`,
-          url: `/ponudjeni/${selectedUser}`,
-          link: `/ponudjeni/${selectedUser}`,
+         click_action: `/ponudjeni/${encodeURIComponent(selectedUser)}`,
+ url: `/ponudjeni/${encodeURIComponent(selectedUser)}`,
+ link: `/ponudjeni/${encodeURIComponent(selectedUser)}`,
         }),
       });
 

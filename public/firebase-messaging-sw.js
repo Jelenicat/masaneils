@@ -56,7 +56,6 @@ messaging.onBackgroundMessage((payload) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
-  // Izvuci rutu/URL iz raznih mesta (zavisno kako FCM spakuje data)
   let clickAction =
     event.notification?.data?.click_action ||
     event.notification?.data?.url ||
@@ -64,34 +63,42 @@ self.addEventListener("notificationclick", (event) => {
     event.notification?.data?.FCM_MSG?.data?.click_action ||
     "/";
 
-  // Normalizuj — relativno za isti origin, inače apsolutno
   try {
     const u = new URL(clickAction, self.location.origin);
     clickAction = (u.origin === self.location.origin)
       ? (u.pathname + u.search + u.hash)
       : u.toString();
-  } catch {
-    // ostavi kako je
-  }
+  } catch {}
 
   event.waitUntil((async () => {
-    // Probaj da fokusiraš postojeći tab iste aplikacije
     const allClients = await clients.matchAll({ type: "window", includeUncontrolled: true });
-    const sameOrigin = allClients.find(c => c.url.startsWith(self.location.origin));
+    const sameOriginClients = allClients.filter(c => c.url.startsWith(self.location.origin));
 
-    if (sameOrigin) {
-      await sameOrigin.focus();
-      // Pošalji poruku SPA-u da on uradi useNavigate (bez reloada)
+    if (sameOriginClients.length) {
+      // 1) Fokusiraj poslednji aktivni tab
+      const target = sameOriginClients[sameOriginClients.length - 1];
+      await target.focus();
+
+      // 2) Pošalji poruku SVIM tabovima (neki Android buildovi ignorišu pojedinačne)
+      for (const c of sameOriginClients) {
+        try { c.postMessage({ __OPEN_ROUTE__: clickAction }); } catch {}
+      }
+
+      // 3) Hard fallback: ipak navigiraj jedan tab (da garantujemo otvaranje)
       try {
-        sameOrigin.postMessage({ __OPEN_ROUTE__: clickAction });
+        const abs = clickAction.startsWith("http")
+          ? clickAction
+          : (self.location.origin + clickAction);
+        await target.navigate(abs);
       } catch {}
       return;
     }
 
-    // Nema otvorenih tabova → otvori novi prozor (apsolutni URL)
+    // 4) Nema otvorenih tabova → otvori novi prozor
     const absolute = clickAction.startsWith("http")
       ? clickAction
       : (self.location.origin + clickAction);
     await clients.openWindow(absolute);
   })());
 });
+

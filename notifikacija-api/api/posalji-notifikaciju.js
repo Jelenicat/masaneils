@@ -68,7 +68,7 @@ export default async function handler(req, res) {
 
     if (!finalClickAction) {
       // Ako nije poslato iz fronta, uvek vodi na kanoničku rutu koja postoji u SPA
-      finalClickAction = `/ponudjeni/${korisnickoIme}`;
+      finalClickAction = `/ponudjeni/${encodeURIComponent(korisnickoIme)}`;
     }
 
     // Ako si poslao apsolutni URL, ostavi ga; inače pošalji relativnu rutu.

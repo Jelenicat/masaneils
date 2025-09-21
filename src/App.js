@@ -23,7 +23,8 @@ import KorisniciMenadzer from "./pages/KorisniciMenadzer";
 /** Helper za /ponudjeni/:korisnickoIme */
 const PonudjeniTerminiWrapper = () => {
   const { korisnickoIme } = useParams();
-  return <PonudjeniTermini korisnickoIme={korisnickoIme} />;
+  const decoded = korisnickoIme ? decodeURIComponent(korisnickoIme) : "";
+  return <PonudjeniTermini korisnickoIme={decoded} />;
 };
 
 /** Minimalan toast (umesto alert-a) */
@@ -53,7 +54,7 @@ function NotifListener() {
   const nav = useNavigate();
 
   useEffect(() => {
-    // Foreground poruke
+    // Foreground FCM poruke (dok je tab aktivan)
     const unsub = onMessageListener((payload) => {
       console.log("📩 Foreground FCM:", payload);
 
@@ -79,24 +80,27 @@ function NotifListener() {
     // Poruke iz service workera (klik iz background-a)
     const onMsg = (e) => {
       const route = e?.data?.__OPEN_ROUTE__;
-      if (route) {
-        try {
-          const u = new URL(route, window.location.origin);
-          if (u.origin === window.location.origin) {
-            nav(u.pathname + u.search + u.hash);
-          } else {
-            window.location.href = u.toString();
-          }
-        } catch {
-          nav(route);
+      if (!route) return;
+      try {
+        const u = new URL(route, window.location.origin);
+        if (u.origin === window.location.origin) {
+          nav(u.pathname + u.search + u.hash);
+        } else {
+          window.location.href = u.toString();
         }
+      } catch {
+        nav(route);
       }
     };
+
+    // Slušaj i SW i window (neki mobilni setup-i šalju preko window.postMessage)
     navigator.serviceWorker?.addEventListener?.("message", onMsg);
+    window.addEventListener("message", onMsg);
 
     return () => {
       if (typeof unsub === "function") unsub();
       navigator.serviceWorker?.removeEventListener?.("message", onMsg);
+      window.removeEventListener("message", onMsg);
     };
   }, [nav]);
 

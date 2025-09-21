@@ -49,7 +49,36 @@ function showToast(msg) {
   setTimeout(() => d.remove(), 4000);
 }
 
-/** 🔔 Foreground FCM listener + bridge za SW */
+/** 🧭 Bootstrap za hash deeplink (#/ruta -> /ruta) */
+function HashBootstrapper() {
+  const nav = useNavigate();
+
+  useEffect(() => {
+    // pokreni na mount
+    const h = window.location.hash || "";
+    if (h.startsWith("#/")) {
+      const target = h.slice(1); // "#/ponudjeni/..." -> "/ponudjeni/..."
+      nav(target, { replace: true });
+      // (opciono) očisti hash iz URL-a potpuno:
+      // window.history.replaceState(null, "", target);
+    }
+
+    // (opciono) reaguj i na promenu hasha ako se desi posle mount-a
+    const onHashChange = () => {
+      const hh = window.location.hash || "";
+      if (hh.startsWith("#/")) {
+        const t = hh.slice(1);
+        nav(t, { replace: true });
+      }
+    };
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, [nav]);
+
+  return null;
+}
+
+/** 🔔 Foreground FCM listener + bridge (nije neophodan za hash, ali ostaje ok) */
 function NotifListener() {
   const nav = useNavigate();
 
@@ -77,7 +106,7 @@ function NotifListener() {
       }
     });
 
-    // Poruke iz service workera (klik iz background-a)
+    // Poruke iz service workera (ako ih koristiš negde drugde)
     const onMsg = (e) => {
       const route = e?.data?.__OPEN_ROUTE__;
       if (!route) return;
@@ -92,8 +121,6 @@ function NotifListener() {
         nav(route);
       }
     };
-
-    // Slušaj i SW i window (neki mobilni setup-i šalju preko window.postMessage)
     navigator.serviceWorker?.addEventListener?.("message", onMsg);
     window.addEventListener("message", onMsg);
 
@@ -110,6 +137,7 @@ function NotifListener() {
 export default function App() {
   return (
     <Router>
+      <HashBootstrapper />
       <NotifListener />
 
       <Routes>

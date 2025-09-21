@@ -38,32 +38,37 @@ const INITIAL_EVENT_DATA = {
   cena: "",
 };
 
+/** 🔒 Lokalno parsiranje "YYYY-MM-DD" (bez UTC klizanja) */
+function localDateFromYYYYMMDD(s) {
+  if (!s) return null;
+  const [y, m, d] = s.split("-").map(Number);
+  return new Date(y, (m || 1) - 1, d || 1, 0, 0, 0, 0); // lokalna ponoć
+}
+
 const MojKalendarAdmin = () => {
   const [searchParams] = useSearchParams();
 
-  // 🆕 Preferiraj ?week=YYYY-MM-DD (ponedeljak te nedelje), a ako ga nema koristi ?weekOffset=
-  const weekParam = searchParams.get("week"); // npr. 2025-09-15
+  // Preferiraj ?week=YYYY-MM-DD (ponedeljak te nedelje), a ako ga nema – ?weekOffset=
+  const weekParam = searchParams.get("week"); // npr. "2025-09-15"
   const offsetParam = parseInt(searchParams.get("weekOffset") || "0", 10);
 
   const initialWeekStart = (() => {
     if (weekParam) {
-      const parsed = new Date(weekParam);
-      if (!isNaN(parsed)) {
-        // poravnaj na ponedeljak
-        return startOfWeek(parsed, { weekStartsOn: 1 });
-      }
+      const monday = localDateFromYYYYMMDD(weekParam); // već je ponedeljak iz backend-a
+      if (monday && !isNaN(monday)) return monday;     // ⬅️ ne snapuj ponovo
     }
+    // fallback: relativno od trenutne nedelje
     return addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), offsetParam * 7);
   })();
 
   const [selectedWeekStart, setSelectedWeekStart] = useState(initialWeekStart);
 
-  // kad se promeni URL (npr. klik iz notifikacije), refreskuj state
+  // Reaguj na promenu URL-a (klik iz notifikacije)
   useEffect(() => {
     if (weekParam) {
-      const parsed = new Date(weekParam);
-      if (!isNaN(parsed)) {
-        setSelectedWeekStart(startOfWeek(parsed, { weekStartsOn: 1 }));
+      const monday = localDateFromYYYYMMDD(weekParam);
+      if (monday && !isNaN(monday)) {
+        setSelectedWeekStart(monday); // ⬅️ bez dodatnog startOfWeek
         return;
       }
     }
@@ -184,9 +189,10 @@ const MojKalendarAdmin = () => {
             const u = usluge[i.korisnickoIme] || {};
             acc[i.eventId].push({
               korisnickoIme: i.korisnickoIme,
-              usluga: u.usluga || "N/A",
-              materijal: u.materijal || "",
-              velicina: u.velicina || "",
+              // prvo iz dokumenta izbora, fallback na mapu usluga
+              usluga: i.usluga || u.usluga || "",
+              materijal: i.materijal || u.materijal || "",
+              velicina: i.velicina || u.velicina || "",
               timestamp: i.timestamp ?? null,
               createdAt: i.createdAt ?? null,
               datum: i.datum ?? null,
@@ -314,7 +320,7 @@ const MojKalendarAdmin = () => {
         query(
           collection(db, "admin_kalendar"),
           where("start", ">=", weekStart),
-          where("start", "<", weekEnd),
+        where("start", "<", weekEnd),
           where("tip", "==", "termin"),
           where("clientUsername", "==", korisnickoIme)
         )

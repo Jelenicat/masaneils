@@ -45,9 +45,13 @@ const PonudiTermineModal = ({
   const [korisniceSaTerminima, setKorisniceSaTerminima] = useState([]);
   const [poruka, setPoruka] = useState("");
 
+  // 📅 Trenutna nedelja (granice + ključ)
+  const currentWeekKey = selectedWeekStart ? weekKeyFor(selectedWeekStart) : null;
+  const weekStart = selectedWeekStart ? new Date(selectedWeekStart) : null;
+  const weekEnd = selectedWeekStart ? addDays(selectedWeekStart, 7) : null;
+
   // lokalna lista za prikaz (union prijavljenih)
   const [visibleKorisnice, setVisibleKorisnice] = useState(korisnice || []);
-  // kad stignu nove korisnice iz parenta – spoji sa postojećim i dedupliraj
   useEffect(() => {
     setVisibleKorisnice((prev) =>
       Array.from(new Set([...(prev || []), ...(korisnice || [])]))
@@ -64,13 +68,13 @@ const PonudiTermineModal = ({
   useEffect(() => {
     const fetchTerminirane = async () => {
       if (!selectedWeekStart) return;
-      const weekEnd = addDays(selectedWeekStart, 7);
+      const weekEndLocal = addDays(selectedWeekStart, 7);
 
       const snapshot = await getDocs(
         query(
           collection(db, "admin_kalendar"),
           where("start", ">=", selectedWeekStart),
-          where("start", "<", weekEnd),
+          where("start", "<", weekEndLocal),
           where("tip", "==", "termin")
         )
       );
@@ -99,7 +103,6 @@ const PonudiTermineModal = ({
         const weekStartISO = selectedWeekStart.toISOString().slice(0, 10);
         const weekEndISO = addDays(selectedWeekStart, 7).toISOString().slice(0, 10);
 
-        // u izboriTermina polje "datum" je string "YYYY-MM-DD"
         const snap = await getDocs(
           query(
             collection(db, "izboriTermina"),
@@ -150,25 +153,23 @@ const PonudiTermineModal = ({
     (async () => {
       try {
         const weekKey = weekKeyFor(selectedWeekStart);
-        const weekStart = new Date(selectedWeekStart);
-        const weekEnd = addDays(weekStart, 7);
+        const weekStartLocal = new Date(selectedWeekStart);
+        const weekEndLocal = addDays(weekStartLocal, 7);
 
         // 1) po weekKey (ako postoji)
-        const q1 = query(
-          collection(db, "izbor_usluge"),
-          where("weekKey", "==", weekKey)
+        const s1 = await getDocs(
+          query(collection(db, "izbor_usluge"), where("weekKey", "==", weekKey))
         );
-        const s1 = await getDocs(q1);
 
         // 2) fallback: po timestamp opsegu
-        const q2 = query(
-          collection(db, "izbor_usluge"),
-          where("timestamp", ">=", weekStart),
-          where("timestamp", "<", weekEnd)
+        const s2 = await getDocs(
+          query(
+            collection(db, "izbor_usluge"),
+            where("timestamp", ">=", weekStartLocal),
+            where("timestamp", "<", weekEndLocal)
+          )
         );
-        const s2 = await getDocs(q2);
 
-        // merge oba seta
         const allDocs = [...s1.docs, ...s2.docs];
         const users = new Set();
         const tsMap = new Map();
@@ -283,16 +284,36 @@ const PonudiTermineModal = ({
     }));
   };
 
+  // ➤ VAŽNO: pre snimanja novih predloga očisti stare u istoj nedelji; koristi unikatan docId; upiši weekKey/offerAt
   const sendSuggestion = async (korisnickoIme, termini) => {
     try {
+      // 1) obriši stare predloge za korisnika u istoj nedelji
+      if (weekStart && weekEnd) {
+        const stariSnap = await getDocs(
+          query(
+            collection(db, "ponudjeniTermini"),
+            where("korisnickoIme", "==", korisnickoIme),
+            where("start", ">=", weekStart),
+            where("start", "<", weekEnd)
+          )
+        );
+        for (const d of stariSnap.docs) {
+          await deleteDoc(d.ref);
+        }
+      }
+
+      // 2) snimi nove predloge (unikatan docId po korisniku)
       for (const t of termini) {
-        await setDoc(doc(db, "ponudjeniTermini", t.id), {
+        const docId = `${t.id}__${korisnickoIme}`;
+        await setDoc(doc(db, "ponudjeniTermini", docId), {
           korisnickoIme,
           start: t.start,
           end: t.end,
           usluga: t.usluga,
           timestamp: new Date(),
           originalEventId: t.id,
+          weekKey: currentWeekKey,
+          offerAt: new Date(),
         });
       }
     } catch (error) {
@@ -311,10 +332,9 @@ const PonudiTermineModal = ({
           korisnickoIme,
           title: "Obaveštenje",
           body: "Žao mi je, nema slobodnih termina za ovu nedelju",
-          // ⬇⬇⬇ CHANGED: relativna ruta + fallback polja
-      click_action: `/ponudjeni/${encodeURIComponent(korisnickoIme)}`,
- url: `/ponudjeni/${encodeURIComponent(korisnickoIme)}`,
- link: `/ponudjeni/${encodeURIComponent(korisnickoIme)}`,
+          click_action: `/ponudjeni/${encodeURIComponent(korisnickoIme)}`,
+          url: `/ponudjeni/${encodeURIComponent(korisnickoIme)}`,
+          link: `/ponudjeni/${encodeURIComponent(korisnickoIme)}`,
         }),
       });
 
@@ -376,10 +396,9 @@ const PonudiTermineModal = ({
           korisnickoIme: selectedUser,
           title: "Novi predlozi termina 💅",
           body: `Predloženi termini: ${notificationBody}`,
-          // ⬇⬇⬇ CHANGED: relativna SPA ruta + fallback polja
-         click_action: `/ponudjeni/${encodeURIComponent(selectedUser)}`,
- url: `/ponudjeni/${encodeURIComponent(selectedUser)}`,
- link: `/ponudjeni/${encodeURIComponent(selectedUser)}`,
+          click_action: `/ponudjeni/${encodeURIComponent(selectedUser)}`,
+          url: `/ponudjeni/${encodeURIComponent(selectedUser)}`,
+          link: `/ponudjeni/${encodeURIComponent(selectedUser)}`,
         }),
       });
 
@@ -400,6 +419,21 @@ const PonudiTermineModal = ({
     }
     try {
       await onConfirm(terminId, selectedUser);
+
+      // počisti sve otvorene predloge ove nedelje za korisnicu (da ne ostanu “viseći”)
+      if (weekStart && weekEnd) {
+        const zaBrisanje = await getDocs(
+          query(
+            collection(db, "ponudjeniTermini"),
+            where("korisnickoIme", "==", selectedUser),
+            where("start", ">=", weekStart),
+            where("start", "<", weekEnd)
+          )
+        );
+        for (const d of zaBrisanje.docs) {
+          await deleteDoc(d.ref);
+        }
+      }
 
       const termin = events.find((e) => e.id === terminId);
       if (termin) {

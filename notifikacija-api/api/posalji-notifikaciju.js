@@ -52,7 +52,7 @@ function makeDeepLinkByType({ type, korisnickoIme, dateKeys }) {
     case "proposal_to_admin": {
       // A) korisnik poslao predloge → masa (admin) otvara nedelju
       const wk = Array.isArray(dateKeys) && dateKeys.length ? mondayOf(dateKeys[0]) : null;
-      return wk ? `/admin/calendar?week=${wk}` : `/admin/calendar`;
+      return wk ? `/admin/calendar?week=${wk}` : `/admin/kalendar`;
     }
     case "proposal_to_user": {
       // B) masa poslala predloge korisniku → otvara /ponudjeni/:korisnickoIme

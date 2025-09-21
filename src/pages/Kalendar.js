@@ -237,13 +237,18 @@ const Kalendar = () => {
       for (const termin of izabrani) {
         const startDate = termin.start?.toDate ? termin.start.toDate() : new Date(termin.start);
         pickedDates.push(startDate);
-        await addDoc(collection(db, "izboriTermina"), {
-          korisnickoIme,
-          eventId: termin.id,
-          datum: startDate.toISOString().split("T")[0], // YYYY-MM-DD
-          timestamp: serverTimestamp(),
-          status: "izabrala",
-        });
+     await addDoc(collection(db, "izboriTermina"), {
+  korisnickoIme,
+  eventId: termin.id,
+  datum: startDate.toISOString().split("T")[0], // YYYY-MM-DD
+  timestamp: serverTimestamp(),
+  status: "izabrala",
+  // 👇 novo:
+  usluga,
+  materijal,
+  velicina,
+});
+
       }
 
       // nedelja (ponedeljak) iz PRVOG izabranog termina

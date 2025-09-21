@@ -54,22 +54,20 @@ function HashBootstrapper() {
   const nav = useNavigate();
 
   useEffect(() => {
-    // pokreni na mount
-    const h = window.location.hash || "";
-    if (h.startsWith("#/")) {
-      const target = h.slice(1); // "#/ponudjeni/..." -> "/ponudjeni/..."
-      nav(target, { replace: true });
-      // (opciono) očisti hash iz URL-a potpuno:
-      // window.history.replaceState(null, "", target);
-    }
+    const normalize = (hash) => {
+      if (!hash) return null;
+      if (!hash.startsWith("#/")) return null;
+      return hash.slice(1); // "#/x" -> "/x"
+    };
 
-    // (opciono) reaguj i na promenu hasha ako se desi posle mount-a
+    // pokreni na mount
+    const t = normalize(window.location.hash);
+    if (t) nav(t, { replace: true });
+
+    // reaguj i na promenu hasha
     const onHashChange = () => {
-      const hh = window.location.hash || "";
-      if (hh.startsWith("#/")) {
-        const t = hh.slice(1);
-        nav(t, { replace: true });
-      }
+      const n = normalize(window.location.hash);
+      if (n) nav(n, { replace: true });
     };
     window.addEventListener("hashchange", onHashChange);
     return () => window.removeEventListener("hashchange", onHashChange);
@@ -78,55 +76,44 @@ function HashBootstrapper() {
   return null;
 }
 
-/** 🔔 Foreground FCM listener + bridge (nije neophodan za hash, ali ostaje ok) */
+/** 🔔 Foreground FCM listener + bridge iz SW */
 function NotifListener() {
   const nav = useNavigate();
 
   useEffect(() => {
-    // Foreground FCM poruke (dok je tab aktivan)
+    // Foreground FCM poruke
     const unsub = onMessageListener((payload) => {
-      console.log("📩 Foreground FCM:", payload);
-
       const title = payload?.notification?.title || payload?.data?.title || "Obaveštenje";
       const body  = payload?.notification?.body  || payload?.data?.body  || "";
-      // i dalje prikaži mali toast (po želji)
       showToast([title, body].filter(Boolean).join(" — "));
 
-      const urlStr = payload?.data?.link || payload?.data?.click_action || payload?.data?.url;
-      if (!urlStr) return;
+      const raw = payload?.data?.click_action || payload?.data?.url || payload?.data?.link;
+      if (!raw) return;
 
-      // 🔑 Ako je odredište /ponudjeni/:korisnickoIme i app je već otvorena,
-      // ODMAH navigiraj tamo (bez čekanja klika).
       try {
-        const u = new URL(urlStr, window.location.origin);
+        const u = new URL(raw, window.location.origin);
         const target = u.pathname + u.search + u.hash;
-
+        // navigiraj odmah na /admin/kalendar?week=... (i druge interne rute po želji)
         if (u.origin === window.location.origin) {
-          if (u.pathname.startsWith("/ponudjeni/")) {
-            nav(target, { replace: false }); // ← direktan odlazak na Predloge
-            return;
-          }
-          // ostale rute: ponašaj se kao do sada (ako hoćeš da otvara i njih)
-          // nav(target, { replace: false });
+          nav(target, { replace: false });
         } else {
-          // drugi domen — fallback
           window.location.href = u.toString();
         }
       } catch {
-        // ako je stigla “čudna” vrednost, pokušaj kao SPA rutu
-        if (urlStr.startsWith("/ponudjeni/")) {
-          nav(urlStr, { replace: false });
-          return;
-        }
-        // nav(urlStr);
+        // fallback za relativne rute bez leading slash
+        const t = raw.startsWith("/") ? raw : `/${raw}`;
+        nav(t, { replace: false });
       }
     });
 
-    // Poruke iz service workera (klik iz background-a) — ostaje isto
+    // Poruke iz service workera (klik iz background-a)
     const onMsg = (e) => {
       const route = e?.data?.__OPEN_ROUTE__;
       if (!route) return;
+
+      // normalizuj: "#/x" -> "/x"
       const r = route.startsWith("#/") ? route.slice(1) : route;
+
       try {
         const u = new URL(r, window.location.origin);
         if (u.origin === window.location.origin) {
@@ -135,10 +122,12 @@ function NotifListener() {
           window.location.href = u.toString();
         }
       } catch {
-        nav(r);
+        const t = r.startsWith("/") ? r : `/${r}`;
+        nav(t);
       }
     };
 
+    // slušaj oba kanala (nekad stiže preko navigator.serviceWorker, nekad preko window)
     navigator.serviceWorker?.addEventListener?.("message", onMsg);
     window.addEventListener("message", onMsg);
 
@@ -164,13 +153,13 @@ export default function App() {
         <Route path="/admin" element={<AdminPanel />} />
         <Route path="/admin/lista" element={<AllProfiles />} />
         <Route path="/admin/troskovi" element={<Troskovi />} />
+        {/* ⬇⬇⬇ Ovo prima ?week=YYYY-MM-DD i učitava baš tu nedelju (već radi u tvom fajlu) */}
         <Route path="/admin/kalendar" element={<MojKalendarAdmin />} />
         <Route path="/unesi-podatke" element={<UnesiPodatke />} />
         <Route path="/odabir-usluge" element={<OdabirUsluge />} />
         <Route path="/kalendar" element={<Kalendar />} />
         <Route path="/admin/podsetnik" element={<Podsetnik />} />
         <Route path="/podsetnici" element={<ListaPodsetnika />} />
-
         <Route path="/korisnik" element={<Korisnik />} />
         <Route path="/ponudjeni/:korisnickoIme" element={<PonudjeniTerminiWrapper />} />
         <Route path="/istorija" element={<Istorija />} />

@@ -2,8 +2,8 @@
 importScripts("https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js");
 importScripts("https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js");
 
-// podigni verziju pri svakoj izmeni da forsira update
-const SW_VERSION = "v8";
+// 🔁 podigni verziju pri svakoj izmeni da forsira update
+const SW_VERSION = "v9";
 
 // ✅ Init Firebase
 firebase.initializeApp({
@@ -19,68 +19,118 @@ const messaging = firebase.messaging();
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (e) => e.waitUntil(self.clients.claim()));
 
-// helpers
+// ---------- helpers ----------
 function toAbsolute(raw) {
-  try { return new URL(raw, self.location.origin).toString(); }
-  catch { return self.location.origin + (raw || "/"); }
+  try {
+    return new URL(raw, self.location.origin).toString();
+  } catch {
+    return self.location.origin + (raw || "/");
+  }
 }
+
 function extractPath(abs) {
   try {
     const u = new URL(abs);
-    return u.pathname + u.search + u.hash; // npr. /ponudjeni/test1
+    return u.pathname + u.search + u.hash; // npr. /admin/kalendar?week=2025-09-15
   } catch {
-    return abs.startsWith("/") ? abs : "/" + abs;
+    return abs?.startsWith("/") ? abs : "/" + (abs || "");
   }
 }
+
 function toHashUrl(path) {
+  // kada nema otvorenih tabova, otvori u PWA scope sa #/ruta (robusnije)
   const scope = (self.registration && self.registration.scope) || (self.location.origin + "/");
   const scopeTrim = scope.endsWith("/") ? scope.slice(0, -1) : scope;
   const p = path.startsWith("/") ? path : "/" + path;
   return `${scopeTrim}#${p}`;
 }
 
-// 🔔 Background data-only FCM → prikaži notifikaciju
+function resolveUrlFromPayload(payload) {
+  // preferiraj data.click_action / data.url / data.link
+  const d = payload?.data || {};
+  const raw =
+    d.click_action ||
+    d.url ||
+    d.link ||
+    "/";
+
+  return {
+    absolute: toAbsolute(raw),
+    path: extractPath(toAbsolute(raw)),
+    source: "data",
+  };
+}
+
+function resolveUrlFromNotification(notification) {
+  // neki browseri guraju sve pod FCM_MSG → notification.data.FCM_MSG.data.click_action
+  const fcmMsg = (notification?.data && notification.data.FCM_MSG) || null;
+  const raw =
+    notification?.data?.url ||
+    (fcmMsg && fcmMsg.data && (fcmMsg.data.click_action || fcmMsg.data.url || fcmMsg.data.link)) ||
+    "/";
+
+  return {
+    absolute: toAbsolute(raw),
+    path: extractPath(toAbsolute(raw)),
+    source: "notification",
+  };
+}
+
+// ---------- BACKGROUND (data-only) → prikaži notifikaciju ----------
 messaging.onBackgroundMessage((payload) => {
-  if (payload.notification) return; // browser sam prikazuje ako postoji notification obj.
+  // Ako payload ima notification objekat, browser često sam prikaže — mi ćemo i dalje pokušati da setujemo data za klik fallback
+  const title = payload?.data?.title || payload?.notification?.title || "Obaveštenje";
+  const body  = payload?.data?.body  || payload?.notification?.body  || "";
 
-  const title = payload?.data?.title || "Obaveštenje";
-  const body  = payload?.data?.body  || "";
-  const raw   = payload?.data?.click_action || payload?.data?.url || payload?.data?.link || "/";
-
-  const absolute = toAbsolute(raw);
-  const path     = extractPath(absolute);   // SPA ruta
-  const hashUrl  = toHashUrl(path);         // uvek u PWA scope
+  const { absolute, path } = resolveUrlFromPayload(payload);
+  const hashUrl = toHashUrl(path);
 
   self.registration.showNotification(title, {
     body,
     icon: "/icon-192x192.png",
-    tag: hashUrl,                 // deduplikacija po destinaciji
+    badge: "/icon-192x192.png",
+    tag: hashUrl, // deduplikacija po destinaciji
     renotify: true,
-    data: { absolute, path, hashUrl, swv: SW_VERSION },
+    data: { absolute, path, hashUrl, swv: SW_VERSION, FCM_MSG: payload }, // čuvamo payload kao fallback
   });
 });
 
-// 🖱️ Klik na notifikaciju
+// ---------- Klik na notifikaciju ----------
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
-  const path    = event.notification?.data?.path || "/";
-  const hashUrl = event.notification?.data?.hashUrl || toHashUrl(path);
+  // 1) pokušaj da izvučeš rutu iz data postavljenog prilikom showNotification
+  let path = event.notification?.data?.path || null;
+  let hashUrl = event.notification?.data?.hashUrl || null;
+
+  // 2) fallback: izvuci iz notification.data.FCM_MSG ako postoji (kada browser sam prikaže notifikaciju)
+  if (!path) {
+    const { path: p2 } = resolveUrlFromNotification(event.notification || {});
+    path = p2 || "/";
+  }
+  if (!hashUrl) {
+    hashUrl = toHashUrl(path);
+  }
 
   event.waitUntil((async () => {
-    // 1) ako postoji otvoren tab istog origin-a → fokus + poruka app-u da navigira
+    // Pronađi postojeći tab tvoje aplikacije
     try {
       const list = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
-      const sameOrigin = list.filter(c => c.url.startsWith(self.location.origin));
+      const sameOrigin = list.filter((c) => c.url.startsWith(self.location.origin));
       if (sameOrigin.length) {
-        const target = sameOrigin[sameOrigin.length - 1]; // poslednji aktivni
+        const target = sameOrigin[sameOrigin.length - 1]; // poslednji aktivni tab aplikacije
         await target.focus();
-        try { target.postMessage({ __OPEN_ROUTE__: path }); } catch {}
+        // Pošalji poruku app-u da internim routerom ode na path (SPA-friendly)
+        try {
+          target.postMessage({ __OPEN_ROUTE__: path, swv: SW_VERSION });
+        } catch {}
         return;
       }
-    } catch { /* ignore */ }
+    } catch {
+      // ignore
+    }
 
-    // 2) nema otvorenih tabova → otvori novi prozor (hash deeplink da padne u PWA)
+    // Nema otvorenih tabova → otvori novi prozor direktno na hash deep-link (robustno za PWA)
     await self.clients.openWindow(hashUrl);
   })());
 });

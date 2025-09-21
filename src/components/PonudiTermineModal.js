@@ -9,7 +9,6 @@ import {
   query,
   where,
   setDoc,
-  // 🆕
   deleteDoc,
 } from "firebase/firestore";
 import { db } from "../firebase";
@@ -19,6 +18,15 @@ import "../pages/MojKalendarAdmin.css";
 // helper – npr. "petak 12.09.2025 14:00"
 const formatSaDanom = (d) =>
   format(new Date(d), "EEEE dd.MM.yyyy HH:mm", { locale: srLatn });
+
+// helper: ključ nedelje (npr. "2025-W38")
+const weekKeyFor = (d) => {
+  const x = new Date(d);
+  const jan1 = new Date(x.getFullYear(), 0, 1);
+  const days = Math.floor((x - jan1) / 86400000);
+  const week = Math.ceil((days + jan1.getDay() + 1) / 7);
+  return `${x.getFullYear()}-W${String(week).padStart(2, "0")}`;
+};
 
 const PonudiTermineModal = ({
   korisnice,
@@ -37,14 +45,23 @@ const PonudiTermineModal = ({
   const [korisniceSaTerminima, setKorisniceSaTerminima] = useState([]);
   const [poruka, setPoruka] = useState("");
 
-  // lokalna lista za prikaz (da uklanjamo samo pojedine korisnice)
+  // lokalna lista za prikaz (union prijavljenih)
   const [visibleKorisnice, setVisibleKorisnice] = useState(korisnice || []);
-  useEffect(() => setVisibleKorisnice(korisnice || []), [korisnice]);
+  // kad stignu nove korisnice iz parenta – spoji sa postojećim i dedupliraj
+useEffect(() => {
+  setVisibleKorisnice((prev) =>
+    Array.from(new Set([...(prev || []), ...(korisnice || [])]))
+  );
+}, [korisnice]);
 
-  // 🆕 sortirana lista po tome ko je PRVA poslala (najraniji "timestamp"/"createdAt")
+
+  // fallback timestamps iz izbor_usluge (createdAt/timestamp)
+  const [izborUslugeTS, setIzborUslugeTS] = useState(new Map());
+
+  // sortirana lista po tome ko je PRVA poslala (najraniji timestamp)
   const [orderedKorisnice, setOrderedKorisnice] = useState([]);
 
-  // Učitaj ko već ima potvrđen termin u ovoj nedelji
+  // Ko već ima potvrđen termin u ovoj nedelji
   useEffect(() => {
     const fetchTerminirane = async () => {
       if (!selectedWeekStart) return;
@@ -60,8 +77,8 @@ const PonudiTermineModal = ({
       );
 
       const saTerminima = new Set();
-      snapshot.forEach((doc) => {
-        const data = doc.data();
+      snapshot.forEach((docu) => {
+        const data = docu.data();
         if (data.clientUsername) {
           saTerminima.add(data.clientUsername);
         }
@@ -71,6 +88,44 @@ const PonudiTermineModal = ({
     };
 
     fetchTerminirane();
+  }, [selectedWeekStart]);
+
+  // ➕ Povuci sve korisnice koje imaju IKAKAV izbor u toj nedelji (čak i ako više nema slobodnih)
+  useEffect(() => {
+    if (!selectedWeekStart) return;
+    let stale = false;
+
+    (async () => {
+      try {
+        const weekStartISO = selectedWeekStart.toISOString().slice(0, 10);
+        const weekEndISO = addDays(selectedWeekStart, 7).toISOString().slice(0, 10);
+
+        // u izboriTermina polje "datum" je string "YYYY-MM-DD"
+        const snap = await getDocs(
+          query(
+            collection(db, "izboriTermina"),
+            where("datum", ">=", weekStartISO),
+            where("datum", "<", weekEndISO)
+          )
+        );
+
+        const fromChoices = new Set();
+        snap.forEach((d) => {
+          const x = d.data();
+          if (x?.korisnickoIme) fromChoices.add(x.korisnickoIme);
+        });
+
+        if (!stale) {
+          setVisibleKorisnice((prev) =>
+            Array.from(new Set([...(prev || []), ...Array.from(fromChoices)]))
+          );
+        }
+      } catch (e) {
+        console.error("Greška izboriTermina:", e);
+      }
+    })();
+
+    return () => { stale = true; };
   }, [selectedWeekStart]);
 
   // Usluga za selektovanu korisnicu
@@ -88,50 +143,114 @@ const PonudiTermineModal = ({
     fetchUsluga();
   }, [selectedUser]);
 
-  // 🆕 Izračunaj redosled korisnica po NAJRANIJEM slanju u tekućoj nedelji
+  // Učitaj prijavljene iz izbor_usluge za tu nedelju
+  // Radi i ako nema weekKey/createdAt – koristi i timestamp kao fallback
   useEffect(() => {
-    // Ako nemamo podatke, ostavi postojeći poredak
-    if (!visibleKorisnice?.length) {
-      setOrderedKorisnice([]);
-      return;
+    if (!selectedWeekStart) return;
+    let stale = false;
+
+    (async () => {
+      try {
+        const weekKey = weekKeyFor(selectedWeekStart);
+        const weekStart = new Date(selectedWeekStart);
+        const weekEnd = addDays(weekStart, 7);
+
+        // 1) po weekKey (ako postoji)
+        const q1 = query(
+          collection(db, "izbor_usluge"),
+          where("weekKey", "==", weekKey)
+        );
+        const s1 = await getDocs(q1);
+
+        // 2) fallback: po timestamp opsegu (pošto tvoji dokumenti često imaju "timestamp")
+        const q2 = query(
+          collection(db, "izbor_usluge"),
+          where("timestamp", ">=", weekStart),
+          where("timestamp", "<", weekEnd)
+        );
+        const s2 = await getDocs(q2);
+
+        // merge oba seta
+        const allDocs = [...s1.docs, ...s2.docs];
+        const users = new Set();
+        const tsMap = new Map();
+
+        allDocs.forEach((d) => {
+          const uid = d.id; // doc.id = korisničko ime
+          users.add(uid);
+          const data = d.data();
+
+          // vreme za sortiranje: preferiraj createdAt ako postoji, inače timestamp
+          let t = null;
+          if (data?.createdAt?.toDate) t = data.createdAt.toDate().getTime();
+          else if (data?.createdAt) t = new Date(data.createdAt).getTime();
+          else if (data?.timestamp?.toDate) t = data.timestamp.toDate().getTime();
+          else if (data?.timestamp) t = new Date(data.timestamp).getTime();
+
+          if (t != null) {
+            const prev = tsMap.get(uid);
+            if (prev == null || t < prev) tsMap.set(uid, t);
+          }
+        });
+
+        if (!stale) {
+          setVisibleKorisnice((prev) =>
+            Array.from(new Set([...(prev || []), ...Array.from(users)]))
+          );
+          setIzborUslugeTS(tsMap);
+        }
+      } catch (e) {
+        console.error("Greška izbor_usluge:", e);
+      }
+    })();
+
+    return () => {
+      stale = true;
+    };
+  }, [selectedWeekStart]);
+
+  // Izračunaj redosled (stabilno): TS iz izboriTermina > createdAt/timestamp iz izbor_usluge > ABC
+  // Stabilno sortiranje: 1) najraniji ts iz izboriTermina, 2) fallback ts iz izbor_usluge, 3) ABC.
+// Ako su ts jednaki – sekundarni tie-breaker je ime (stabilno).
+useEffect(() => {
+  if (!visibleKorisnice?.length) {
+    setOrderedKorisnice([]);
+    return;
+  }
+
+  const firstTs = new Map();
+  Object.values(izboriPoTerminu || {}).forEach((arr = []) => {
+    arr.forEach((i) => {
+      const name = i?.korisnickoIme || i?.username || i?.user;
+      if (!name) return;
+
+      let t = null;
+      if (i?.timestamp?.toDate) t = i.timestamp.toDate().getTime();
+      else if (i?.timestamp) t = new Date(i.timestamp).getTime();
+      else if (i?.createdAt?.toDate) t = i.createdAt.toDate().getTime();
+      else if (i?.createdAt) t = new Date(i.createdAt).getTime();
+
+      const prev = firstTs.get(name);
+      if (t != null && (prev == null || t < prev)) firstTs.set(name, t);
+    });
+  });
+
+  const sorted = [...visibleKorisnice].sort((a, b) => {
+    const ta = firstTs.get(a) ?? izborUslugeTS.get(a) ?? null;
+    const tb = firstTs.get(b) ?? izborUslugeTS.get(b) ?? null;
+
+    if (ta != null && tb != null) {
+      if (ta !== tb) return ta - tb;   // ranije → gore
+      return a.localeCompare(b);       // tie-breaker
     }
+    if (ta != null) return -1;
+    if (tb != null) return 1;
+    return a.localeCompare(b);
+  });
 
-    // mapiraj korisnicu na najraniji timestamp
-    const firstTs = new Map();
+  setOrderedKorisnice(sorted);
+}, [visibleKorisnice, izboriPoTerminu, izborUslugeTS]);
 
-    // izboriPoTerminu: prolazimo kroz sve evente i njihove izbore
-    Object.values(izboriPoTerminu || {}).forEach((arr) => {
-      (arr || []).forEach((i, idx) => {
-        const name = i?.korisnickoIme || i?.username || i?.user;
-        if (!name) return;
-
-        // podrži više formata vremena
-        let t =
-          i?.timestamp?.toDate?.() instanceof Date
-            ? i.timestamp.toDate().getTime()
-            : i?.timestamp !== undefined
-            ? new Date(i.timestamp).getTime()
-            : i?.createdAt?.toDate?.() instanceof Date
-            ? i.createdAt.toDate().getTime()
-            : i?.createdAt !== undefined
-            ? new Date(i.createdAt).getTime()
-            : Number.POSITIVE_INFINITY - idx;
-
-        const prev = firstTs.get(name);
-        if (prev == null || t < prev) firstTs.set(name, t);
-      });
-    });
-
-    // Sortiraj samo korisnice koje su trenutno vidljive
-    const sorted = [...visibleKorisnice].sort((a, b) => {
-      const ta = firstTs.has(a) ? firstTs.get(a) : Number.POSITIVE_INFINITY;
-      const tb = firstTs.has(b) ? firstTs.get(b) : Number.POSITIVE_INFINITY;
-      if (ta !== tb) return ta - tb;
-      return a.localeCompare(b);
-    });
-
-    setOrderedKorisnice(sorted);
-  }, [visibleKorisnice, izboriPoTerminu]);
 
   const getSlobodniTermini = () => {
     if (!selectedUser) return [];
@@ -173,7 +292,6 @@ const PonudiTermineModal = ({
   const sendSuggestion = async (korisnickoIme, termini) => {
     try {
       for (const t of termini) {
-        // note NE šaljemo korisnicima u "ponudjeniTermini"
         await setDoc(doc(db, "ponudjeniTermini", t.id), {
           korisnickoIme,
           start: t.start,
@@ -192,7 +310,6 @@ const PonudiTermineModal = ({
   // ✖ pošalji "nema termina" i očisti korisnika
   const sendNoSlots = async (korisnickoIme) => {
     try {
-      // 1) notifikacija
       await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -204,7 +321,6 @@ const PonudiTermineModal = ({
         }),
       });
 
-      // 2) Firestore čišćenje: izboriTermina + ponudjeniTermini + izbor_usluge
       const izboriSnap = await getDocs(
         query(collection(db, "izboriTermina"), where("korisnickoIme", "==", korisnickoIme))
       );
@@ -219,10 +335,8 @@ const PonudiTermineModal = ({
         await deleteDoc(d.ref);
       }
 
-      // dokument u izbor_usluge kod tebe je po ID = korisničko ime
       await deleteDoc(doc(db, "izbor_usluge", korisnickoIme));
 
-      // 3) UI: ukloni iz lokalnog prikaza
       setVisibleKorisnice((prev) => prev.filter((k) => k !== korisnickoIme));
       if (selectedUser === korisnickoIme) setSelectedUser(null);
 
@@ -272,7 +386,7 @@ const PonudiTermineModal = ({
       setPoruka("✅ Predlozi su poslati!");
       setTimeout(() => setPoruka(""), 3000);
       toast.success("Predlozi uspešno poslati!");
-      onClose(); // ostaje kao pre
+      onClose();
     } catch (error) {
       console.error("Greška pri slanju predloga:", error);
       toast.error("Greška pri slanju predloga terminiа.");
@@ -287,7 +401,6 @@ const PonudiTermineModal = ({
     try {
       await onConfirm(terminId, selectedUser);
 
-      // notifikacija o potvrdi (sa danom)
       const termin = events.find((e) => e.id === terminId);
       if (termin) {
         await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
@@ -302,16 +415,17 @@ const PonudiTermineModal = ({
         });
       }
 
-      // ukloni SAMO tu korisnicu iz prikaza
       setVisibleKorisnice((prev) => prev.filter((k) => k !== selectedUser));
 
       toast.success("Termin potvrđen i poslata notifikacija!");
-      onClose(); // ostaje kao pre
+      onClose();
     } catch (error) {
       console.error("Greška pri potvrdi termina:", error);
       toast.error("Greška pri potvrdi termina.");
     }
   };
+
+  const listaZaPrikaz = orderedKorisnice;
 
   return (
     <div className="modal-overlay" role="dialog" aria-modal="true">
@@ -328,25 +442,21 @@ const PonudiTermineModal = ({
         {!selectedUser ? (
           <div className="user-list-container">
             <div className="scroll-lista-korisnica" aria-live="polite">
-              {(orderedKorisnice.length ? orderedKorisnice : visibleKorisnice).length > 0 ? (
-                (orderedKorisnice.length ? orderedKorisnice : visibleKorisnice).map((korisnica, index) => {
+              {listaZaPrikaz.length > 0 ? (
+                listaZaPrikaz.map((korisnica) => {
                   const imaTermin = korisniceSaTerminima.includes(korisnica);
                   return (
                     <div
-                      key={korisnica + index}
+                      key={`user-${korisnica}`}
                       className={`korisnica-item ${imaTermin ? "disabled" : ""}`}
                       onClick={() => !imaTermin && setSelectedUser(korisnica)}
                       role="button"
                       tabIndex={0}
-                      onKeyDown={(e) =>
-                        e.key === "Enter" && !imaTermin && setSelectedUser(korisnica)
-                      }
+                      onKeyDown={(e) => e.key === "Enter" && !imaTermin && setSelectedUser(korisnica)}
                       aria-label={`Izaberi korisnicu ${korisnica}`}
                     >
                       {korisnica}
-                      {imaTermin && (
-                        <span className="info-tag">• već ima termin ove nedelje</span>
-                      )}
+                      {imaTermin && <span className="info-tag">• već ima termin ove nedelje</span>}
 
                       {/* X – šalje poruku i uklanja korisnicu + briše izbore/predloge u bazi */}
                       <button
@@ -366,6 +476,33 @@ const PonudiTermineModal = ({
                 <p className="no-users-message">Nema korisnica koje su izabrale termine.</p>
               )}
             </div>
+
+            {/* Sekcija: Bez termina ove nedelje (vidljive dok ne klikneš X) */}
+            {listaZaPrikaz.filter((k) => !korisniceSaTerminima.includes(k)).length > 0 && (
+              <>
+                <h4 style={{ marginTop: 16 }}>Bez termina ove nedelje</h4>
+                <div className="scroll-lista-korisnica" aria-live="polite">
+                  {listaZaPrikaz
+                    .filter((k) => !korisniceSaTerminima.includes(k))
+                    .map((korisnica) => (
+                      <div key={`no-slot-${korisnica}`} className="korisnica-item">
+                        {korisnica}
+                        <span className="info-tag">• bez termina</span>
+                        <button
+                          className="close-x"
+                          title="Nema slobodnih termina – pošalji obaveštenje i ukloni"
+                          onClick={(ev) => {
+                            ev.stopPropagation();
+                            sendNoSlots(korisnica);
+                          }}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                </div>
+              </>
+            )}
           </div>
         ) : (
           <>
@@ -395,11 +532,9 @@ const PonudiTermineModal = ({
                       <span className="time-range">
                         {formatSaDanom(adjustedTimes[termin.id]?.start || new Date(termin.start))}{" "}
                         –{" "}
-                        {format(
-                          adjustedTimes[termin.id]?.end || new Date(termin.end),
-                          "HH:mm",
-                          { locale: srLatn }
-                        )}
+                        {format(adjustedTimes[termin.id]?.end || new Date(termin.end), "HH:mm", {
+                          locale: srLatn,
+                        })}
                       </span>
                     </label>
 
@@ -410,11 +545,7 @@ const PonudiTermineModal = ({
                       <button onClick={() => adjustTime(termin.id, "end", 15)}>+</button>
                     </div>
 
-                    <button
-                      onClick={() => handleConfirm(termin.id)}
-                      className="confirm-button"
-                      disabled={isLoading}
-                    >
+                    <button onClick={() => handleConfirm(termin.id)} className="confirm-button" disabled={isLoading}>
                       ✅ Potvrdi
                     </button>
                   </div>
@@ -425,11 +556,7 @@ const PonudiTermineModal = ({
             </div>
 
             {getSlobodniTermini().length > 0 && (
-              <button
-                onClick={handleSuggest}
-                className="suggest-button"
-                disabled={isLoading || selektovaniTermini.length === 0}
-              >
+              <button onClick={handleSuggest} className="suggest-button" disabled={isLoading || selektovaniTermini.length === 0}>
                 📤 Pošalji predloge
               </button>
             )}

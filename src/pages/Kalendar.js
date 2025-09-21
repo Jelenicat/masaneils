@@ -11,8 +11,26 @@ import { toast } from "react-toastify";
 import "./Kalendar.css";
 import { useNavigate } from "react-router-dom";
 
+// ⬇⬇⬇ Dodato: formatiranje nedelje i vremena
+import { format, addDays } from "date-fns";
+import { sr } from "date-fns/locale";
+
 // 1) Dodata "Nedelja"
 const daniUNedelji = ["Ponedeljak", "Utorak", "Sreda", "Četvrtak", "Petak", "Subota", "Nedelja"];
+
+// helpers za nedelju
+const mondayOf = (d) => {
+  const x = new Date(d);
+  const diff = (x.getDay() + 6) % 7; // 0=ned → 6; 1=pon → 0
+  x.setHours(0, 0, 0, 0);
+  x.setDate(x.getDate() - diff);
+  return x;
+};
+const weekRangeText = (monday) => {
+  const startTxt = format(monday, "dd.MM", { locale: sr });
+  const endTxt = format(addDays(monday, 6), "dd.MM.yyyy", { locale: sr });
+  return `Nedelja ${startTxt}–${endTxt}`;
+};
 
 const Kalendar = () => {
   const korisnickoIme = localStorage.getItem("korisnickoIme");
@@ -73,7 +91,7 @@ const Kalendar = () => {
       startOfWeek.setDate(startOfWeek.getDate() + (offsetNedelja - 1) * 7);
 
       const endOfWeek = new Date(startOfWeek);
-      // 2) Proširi opseg do nedelje (+6 dana)
+      // Proširi opseg do nedelje (+6 dana)
       endOfWeek.setDate(endOfWeek.getDate() + 6);
       endOfWeek.setHours(23, 59, 59, 999);
 
@@ -118,9 +136,8 @@ const Kalendar = () => {
 
   dostupniTermini.forEach((termin) => {
     const start = termin.start?.toDate ? termin.start.toDate() : new Date(termin.start);
-    // 3) Korektno mapiranje JS getDay() (0=ned) na naš niz koji počinje od Ponedeljka:
-    // (getDay()+6) % 7 => 1->0(pon), 2->1(uto), ... 6->5(sub), 0->6(ned)
-    const idx = (start.getDay() + 6) % 7;
+    // Korektno mapiranje JS getDay() (0=ned) na niz koji počinje od Ponedeljka:
+    const idx = (start.getDay() + 6) % 7; // 1->0, 2->1, ..., 0->6
     const dan = daniUNedelji[idx];
     if (grupisaniPoDanu[dan]) {
       grupisaniPoDanu[dan].push({
@@ -159,7 +176,6 @@ const Kalendar = () => {
 
     const startOfNextWeek = new Date(firstMonday);
     const endOfNextWeek = new Date(firstMonday);
-    // 4) Takođe do nedelje (+6) jer biraju za narednu nedelju do kraja nedelje
     endOfNextWeek.setDate(endOfNextWeek.getDate() + 6);
     endOfNextWeek.setHours(23, 59, 59, 999);
 
@@ -207,30 +223,51 @@ const Kalendar = () => {
       toast.error("Nedostaju podaci o usluzi.");
       return;
     }
+    if (izabrani.length === 0) {
+      toast.warn("Niste izabrali nijedan termin.");
+      return;
+    }
 
     setLoading(true);
     setPoruka("");
 
     try {
+      // upis u "izboriTermina" + prikupljanje datuma za notifikaciju
+      const pickedDates = [];
       for (const termin of izabrani) {
         const startDate = termin.start?.toDate ? termin.start.toDate() : new Date(termin.start);
+        pickedDates.push(startDate);
         await addDoc(collection(db, "izboriTermina"), {
           korisnickoIme,
           eventId: termin.id,
-          datum: startDate.toISOString().split("T")[0],
+          datum: startDate.toISOString().split("T")[0], // YYYY-MM-DD
           timestamp: serverTimestamp(),
           status: "izabrala",
         });
       }
 
+      // nedelja (ponedeljak) iz PRVOG izabranog termina
+      pickedDates.sort((a, b) => a - b);
+      const monday = mondayOf(pickedDates[0]);
+      const mondayISO = monday.toISOString().slice(0, 10);
+      const weekText = weekRangeText(monday);
+
+      // lep pregled vremena
+      const niceTimes = pickedDates
+        .map((d) => format(d, "EEE dd.MM HH:mm", { locale: sr })) // npr. "pon 16.09 14:00"
+        .join(", ");
+
+      // notifikacija Maši sa nedeljom + deep-link na tu nedelju
       await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           korisnickoIme: "masa",
-          title: "📅 Novi izbor termina",
-          body: `${korisnickoIme} je poslala predloge termina.`,
-          click_action: `/admin/kalendar?weekOffset=${offsetNedelja}`,
+          title: "📅 Novi izbori termina",
+          body: `${weekText} — ${korisnickoIme}: ${niceTimes}`,
+          click_action: `/admin/kalendar?week=${mondayISO}`,
+          url: `/admin/kalendar?week=${mondayISO}`,
+          link: `/admin/kalendar?week=${mondayISO}`,
         }),
       });
 
@@ -239,6 +276,7 @@ const Kalendar = () => {
       await fetchVecIzabraniTermini();
       fetchTermini();
     } catch (err) {
+      console.error("❌ Greška pri slanju termina:", err);
       setPoruka("❌ Greška pri slanju termina.");
     } finally {
       setLoading(false);

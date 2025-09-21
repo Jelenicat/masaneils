@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { format, addDays } from "date-fns";
+import { format, addDays, startOfWeek } from "date-fns";
 import { srLatn } from "date-fns/locale";
 import {
   doc,
@@ -325,6 +325,10 @@ const PonudiTermineModal = ({
   // ✖ pošalji "nema termina" i očisti korisnika
   const sendNoSlots = async (korisnickoIme) => {
     try {
+      // nedelja u kojoj šalješ "nema termina" – da bi se otvorila ista nedelja kod korisnika
+      const monday = startOfWeek(selectedWeekStart || new Date(), { weekStartsOn: 1 });
+      const weekStartISO = monday.toISOString().slice(0, 10);
+
       await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -332,9 +336,9 @@ const PonudiTermineModal = ({
           korisnickoIme,
           title: "Obaveštenje",
           body: "Žao mi je, nema slobodnih termina za ovu nedelju",
-          click_action: `/ponudjeni/${encodeURIComponent(korisnickoIme)}`,
-          url: `/ponudjeni/${encodeURIComponent(korisnickoIme)}`,
-          link: `/ponudjeni/${encodeURIComponent(korisnickoIme)}`,
+          click_action: `/ponudjeni/${encodeURIComponent(korisnickoIme)}?week=${weekStartISO}`,
+          url: `/ponudjeni/${encodeURIComponent(korisnickoIme)}?week=${weekStartISO}`,
+          link: `/ponudjeni/${encodeURIComponent(korisnickoIme)}?week=${weekStartISO}`,
         }),
       });
 
@@ -389,6 +393,10 @@ const PonudiTermineModal = ({
         .map((t) => `${formatSaDanom(t.start)} (${usluga})`)
         .join(", ");
 
+      // ⬇⬇ dodaj parametar week=YYYY-MM-DD da klijent otvori tu nedelju
+      const monday = startOfWeek(selectedWeekStart || new Date(), { weekStartsOn: 1 });
+      const weekStartISO = monday.toISOString().slice(0, 10);
+
       await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -396,9 +404,9 @@ const PonudiTermineModal = ({
           korisnickoIme: selectedUser,
           title: "Novi predlozi termina 💅",
           body: `Predloženi termini: ${notificationBody}`,
-          click_action: `/ponudjeni/${encodeURIComponent(selectedUser)}`,
-          url: `/ponudjeni/${encodeURIComponent(selectedUser)}`,
-          link: `/ponudjeni/${encodeURIComponent(selectedUser)}`,
+          click_action: `/ponudjeni/${encodeURIComponent(selectedUser)}?week=${weekStartISO}`,
+          url: `/ponudjeni/${encodeURIComponent(selectedUser)}?week=${weekStartISO}`,
+          link: `/ponudjeni/${encodeURIComponent(selectedUser)}?week=${weekStartISO}`,
         }),
       });
 

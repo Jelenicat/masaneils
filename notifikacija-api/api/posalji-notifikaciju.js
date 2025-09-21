@@ -1,7 +1,7 @@
 import { initializeApp, getApps, cert } from "firebase-admin/app";
 import { getMessaging } from "firebase-admin/messaging";
 
-// 🔒 CORS dozvole
+/* ---------------- CORS ---------------- */
 function applyCors(req, res) {
   res.setHeader("Access-Control-Allow-Credentials", true);
   res.setHeader("Access-Control-Allow-Origin", "https://masaneils.vercel.app");
@@ -15,7 +15,19 @@ function applyCors(req, res) {
   return true;
 }
 
-// 🚀 Init Firebase Admin SDK (ako već nije)
+/* -------- helper: ponedeljak iz datuma (YYYY-MM-DD) -------- */
+function mondayOf(d) {
+  const x = new Date(d);
+  const diff = (x.getDay() + 6) % 7; // 0=ned->6, 1=pon->0
+  x.setHours(0, 0, 0, 0);
+  x.setDate(x.getDate() - diff);
+  const yyyy = x.getFullYear();
+  const mm = String(x.getMonth() + 1).padStart(2, "0");
+  const dd = String(x.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+/* ------------- Firebase Admin init ------------- */
 if (!getApps().length) {
   initializeApp({
     credential: cert({
@@ -34,6 +46,7 @@ if (!getApps().length) {
   });
 }
 
+/* ----------------- handler ----------------- */
 export default async function handler(req, res) {
   if (!applyCors(req, res)) return;
 
@@ -42,18 +55,27 @@ export default async function handler(req, res) {
     return res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 
-  const { korisnickoIme, title, body, click_action } = req.body || {};
+  // ⬇⬇⬇ PROŠIRENO: dodati type i dateKeys
+  const {
+    korisnickoIme,
+    title,
+    body,
+    click_action,
+    type,           // npr. "proposal_to_admin" | "proposal_to_user" | "no_slot" | "confirmed"
+    dateKeys = [],  // npr. ["2025-09-24", "2025-09-25"] (datumi predloga)
+  } = req.body || {};
+
   if (!korisnickoIme) {
     return res.status(400).json({ error: "Nedostaje korisnickoIme u zahtevu." });
   }
 
-  let token; // biće popunjen ispod da bismo ga imali u catch-u
+  let token; // da imamo vrednost dostupnu u catch-u
 
   try {
     const { getFirestore } = await import("firebase-admin/firestore");
     const db = getFirestore();
 
-    // 🔑 Token za korisnika (doc id = korisnicko ime)
+    // 🔑 fcmTokens/{korisnickoIme} → { token }
     const docSnap = await db.collection("fcmTokens").doc(korisnickoIme).get();
     if (!docSnap.exists) {
       return res.status(404).json({ error: `Token not found for korisnickoIme: ${korisnickoIme}` });
@@ -63,44 +85,65 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: `Empty token for korisnickoIme: ${korisnickoIme}` });
     }
 
-    // 🧭 Jedinstveni default: /ponudjeni/:korisnickoIme
+    /* ---------- odredi odredišnu rutu ---------- */
     let finalClickAction = (click_action && String(click_action).trim()) || null;
 
     if (!finalClickAction) {
-      // Ako nije poslato iz fronta, uvek vodi na kanoničku rutu koja postoji u SPA
-      finalClickAction = `/ponudjeni/${encodeURIComponent(korisnickoIme)}`;
+      if (type === "proposal_to_admin") {
+        // korisnik poslao predloge → otvori admin kalendar za odgovarajuću nedelju
+        const wk = dateKeys.length ? mondayOf(dateKeys[0]) : null;
+        finalClickAction = wk ? `/admin/calendar?week=${wk}` : `/admin/calendar`;
+      } else if (type === "proposal_to_user" || type === "no_slot") {
+        // predlozi koje masa šalje korisniku / poruka da nema termina
+        finalClickAction = `/ponudjeni/${encodeURIComponent(korisnickoIme)}`;
+      } else if (type === "confirmed") {
+        // potvrđen termin → istorija (po tvojoj logici)
+        finalClickAction = `/istorija`;
+      } else {
+        // generalni fallback
+        finalClickAction = `/ponudjeni/${encodeURIComponent(korisnickoIme)}`;
+      }
     }
 
-    // Ako si poslao apsolutni URL, ostavi ga; inače pošalji relativnu rutu.
+    // Ako je apsolutni URL, ostavi ga; u suprotnom šaljemo relativnu rutu.
     const isAbsolute = /^https?:\/\//i.test(finalClickAction);
     const outboundClick = isAbsolute ? finalClickAction : finalClickAction;
 
-    // 📩 Data-only poruka (SW i foreground listener će prikazati/navigirati)
+    // Dodatno: pošalji i weekKey da SW/app može lako da pročita
+    const weekKey =
+      type === "proposal_to_admin" && dateKeys.length ? mondayOf(dateKeys[0]) : "";
+
+    /* ---------- slanje poruke ---------- */
     await getMessaging().send({
       token,
+      // data-only poruka; SW i/ili foreground listener prikazuje i navigira
       data: {
         title: title || "Obaveštenje",
         body: body || "",
-        // tri polja zbog različitih klijenata i tumačenja
+
+        // više polja zbog različitih tumačenja na klijentu/SW
         click_action: outboundClick,
         url: outboundClick,
         link: outboundClick,
+
+        // metapodaci
+        type: type || "",
+        korisnickoIme: korisnickoIme || "",
+        weekKey, // npr. "2025-09-22" za admin calendar
       },
     });
 
-    console.log("✅ Notifikacija poslata korisniku:", korisnickoIme, outboundClick);
+    console.log("✅ Notifikacija poslata:", { korisnickoIme, type, outboundClick, weekKey });
     return res.status(200).json({ success: true });
   } catch (error) {
     console.error("❌ Greška pri slanju notifikacije:", error);
 
-    // 🧹 Očisti nevažeći token (ako ga imamo i ako je uzrok)
+    // 🧹 ukloni nevažeći token
     if (error?.code === "messaging/registration-token-not-registered" && token) {
       try {
         const { getFirestore } = await import("firebase-admin/firestore");
         const db = getFirestore();
 
-        // Moguće da imaš dokumente mapirane po korisničkom imenu, pa je dovoljno samo taj doc
-        // ali za svaki slučaj prođi kroz kolekciju i izbriši sve iste tokene
         const fcmTokensRef = db.collection("fcmTokens");
         const snapshot = await fcmTokensRef.get();
 

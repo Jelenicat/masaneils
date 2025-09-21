@@ -2,6 +2,9 @@
 importScripts("https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js");
 importScripts("https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js");
 
+// 🔁 menjaš kad deployuješ da forsira update SW-a
+const SW_VERSION = "v4";
+
 // ✅ Init
 firebase.initializeApp({
   apiKey: "AIzaSyBpluULKCmNlrbfQLzbqms4Yfvw2p_3OQ8",
@@ -13,92 +16,66 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// (opciono) odmah preuzmi kontrolu kad se SW update-uje
+// odmah preuzmi kontrolu kad se SW update-uje
 self.addEventListener("activate", (event) => {
   event.waitUntil(self.clients.claim());
 });
 self.addEventListener("install", () => self.skipWaiting());
 
-// 🔔 1) FCM background poruke BEZ notification objekta
+// 🔔 Background FCM poruke BEZ notification objekta → prikaži notifikaciju
 messaging.onBackgroundMessage((payload) => {
-  // Ako je stigao notification objekat, Chrome će ga sam prikazati — ne radimo ništa
+  // ako je došao notification objekat, browser će ga sam prikazati
   if (payload.notification) return;
 
   const title = payload?.data?.title || "Obaveštenje";
   const body  = payload?.data?.body  || "";
 
-  // Preferiraj click_action, pa url/link, pa "/"
-  let clickAction = payload?.data?.click_action || payload?.data?.url || payload?.data?.link || "/";
+  // uzmi odredište iz više mogućih polja
+  const rawLink =
+    payload?.data?.click_action ||
+    payload?.data?.url ||
+    payload?.data?.link ||
+    "/";
 
-  // Ako je istog origin-a → konvertuj u relativnu rutu (SPA-friendly)
+  // ✅ napravi APSOLUTNI URL (ključ za pouzdano otvaranje na telefonu)
+  let absolute;
   try {
-    const u = new URL(clickAction, self.location.origin);
-    clickAction = (u.origin === self.location.origin)
-      ? (u.pathname + u.search + u.hash)
-      : u.toString();
+    const u = new URL(rawLink, self.location.origin);
+    absolute = u.toString();
   } catch {
-    // ostavi kako je
+    absolute = self.location.origin + rawLink;
   }
 
   self.registration.showNotification(title, {
     body,
     icon: "/icon-192x192.png",
-    tag: "abeauty-notify",   // pomaže protiv dupliranja istog tipa
+    tag: absolute,                     // deduplikacija po destinaciji
     renotify: true,
-    data: { click_action: clickAction },
+    data: { absolute, swv: SW_VERSION }
   });
 });
 
-// 🔔 2) (opciono) Web Push fallback — ako server pošalje standardni notification objekat
-// ovde nije potrebno ništa specijalno; browser će prikazati notifikaciju
-
-// 🖱️ 3) Klik na notifikaciju — fokusiraj tab i pošalji poruku da SPA navigira
+// 🖱️ Klik na notifikaciju → uvek otvori/redi­rektuj prozor na apsolutni URL
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
-  let clickAction =
+  let absolute =
+    event.notification?.data?.absolute ||
     event.notification?.data?.click_action ||
     event.notification?.data?.url ||
     event.notification?.data?.link ||
-    event.notification?.data?.FCM_MSG?.data?.click_action ||
     "/";
 
+  // normalizuj opet na apsolutni
   try {
-    const u = new URL(clickAction, self.location.origin);
-    clickAction = (u.origin === self.location.origin)
-      ? (u.pathname + u.search + u.hash)
-      : u.toString();
-  } catch {}
+    const u = new URL(absolute, self.location.origin);
+    absolute = u.toString();
+  } catch {
+    absolute = self.location.origin + absolute;
+  }
 
   event.waitUntil((async () => {
-    const allClients = await clients.matchAll({ type: "window", includeUncontrolled: true });
-    const sameOriginClients = allClients.filter(c => c.url.startsWith(self.location.origin));
-
-    if (sameOriginClients.length) {
-      // 1) Fokusiraj poslednji aktivni tab
-      const target = sameOriginClients[sameOriginClients.length - 1];
-      await target.focus();
-
-      // 2) Pošalji poruku SVIM tabovima (neki Android buildovi ignorišu pojedinačne)
-      for (const c of sameOriginClients) {
-        try { c.postMessage({ __OPEN_ROUTE__: clickAction }); } catch {}
-      }
-
-      // 3) Hard fallback: ipak navigiraj jedan tab (da garantujemo otvaranje)
-      try {
-        const abs = clickAction.startsWith("http")
-          ? clickAction
-          : (self.location.origin + clickAction);
-        await target.navigate(abs);
-      } catch {}
-      return;
-    }
-
-    // 4) Nema otvorenih tabova → otvori novi prozor
-    const absolute = clickAction.startsWith("http")
-      ? clickAction
-      : (self.location.origin + clickAction);
-    await clients.openWindow(absolute);
+    // Najstabilnije na Android/PWA: uvek otvoriti/redi­rektovati
+    await self.clients.openWindow(absolute);
   })());
 });
-

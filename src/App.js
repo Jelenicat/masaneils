@@ -77,64 +77,40 @@ function HashBootstrapper() {
 }
 
 /** 🔔 Foreground FCM listener + bridge iz SW */
+/** 🔔 Foreground FCM listener (bez SW bridge-a) */
 function NotifListener() {
   const nav = useNavigate();
 
   useEffect(() => {
-    // Foreground FCM poruke
+    // Foreground FCM poruke (dok je tab aktivan)
     const unsub = onMessageListener((payload) => {
       const title = payload?.notification?.title || payload?.data?.title || "Obaveštenje";
       const body  = payload?.notification?.body  || payload?.data?.body  || "";
       showToast([title, body].filter(Boolean).join(" — "));
 
+      // Ako poruka u foregroundu nosi deep-link, navigiraj unutar SPA
       const raw = payload?.data?.click_action || payload?.data?.url || payload?.data?.link;
       if (!raw) return;
 
       try {
         const u = new URL(raw, window.location.origin);
         const target = u.pathname + u.search + u.hash;
-        // navigiraj odmah na /admin/kalendar?week=... (i druge interne rute po želji)
         if (u.origin === window.location.origin) {
           nav(target, { replace: false });
         } else {
           window.location.href = u.toString();
         }
       } catch {
-        // fallback za relativne rute bez leading slash
         const t = raw.startsWith("/") ? raw : `/${raw}`;
         nav(t, { replace: false });
       }
     });
 
-    // Poruke iz service workera (klik iz background-a)
-    const onMsg = (e) => {
-      const route = e?.data?.__OPEN_ROUTE__;
-      if (!route) return;
-
-      // normalizuj: "#/x" -> "/x"
-      const r = route.startsWith("#/") ? route.slice(1) : route;
-
-      try {
-        const u = new URL(r, window.location.origin);
-        if (u.origin === window.location.origin) {
-          nav(u.pathname + u.search + u.hash);
-        } else {
-          window.location.href = u.toString();
-        }
-      } catch {
-        const t = r.startsWith("/") ? r : `/${r}`;
-        nav(t);
-      }
-    };
-
-    // slušaj oba kanala (nekad stiže preko navigator.serviceWorker, nekad preko window)
-    navigator.serviceWorker?.addEventListener?.("message", onMsg);
-    window.addEventListener("message", onMsg);
+    // ❌ NEMA više slušanja poruka iz service workera / window.postMessage
+    // klik na notifikaciju sada uvek otvara NOVI tab iz SW → ovde ne diramo ništa
 
     return () => {
       if (typeof unsub === "function") unsub();
-      navigator.serviceWorker?.removeEventListener?.("message", onMsg);
-      window.removeEventListener("message", onMsg);
     };
   }, [nav]);
 

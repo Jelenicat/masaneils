@@ -38,45 +38,12 @@ const INITIAL_EVENT_DATA = {
   cena: "",
 };
 
-/** 🔒 Lokalno parsiranje "YYYY-MM-DD" (bez UTC klizanja) */
-function localDateFromYYYYMMDD(s) {
-  if (!s) return null;
-  const [y, m, d] = s.split("-").map(Number);
-  return new Date(y, (m || 1) - 1, d || 1, 0, 0, 0, 0); // lokalna ponoć
-}
-
 const MojKalendarAdmin = () => {
   const [searchParams] = useSearchParams();
-
-  // Preferiraj ?week=YYYY-MM-DD (ponedeljak te nedelje), a ako ga nema – ?weekOffset=
-  const weekParam = searchParams.get("week"); // npr. "2025-09-15"
-  const offsetParam = parseInt(searchParams.get("weekOffset") || "0", 10);
-
-  const initialWeekStart = (() => {
-    if (weekParam) {
-      const monday = localDateFromYYYYMMDD(weekParam); // već je ponedeljak iz backend-a
-      if (monday && !isNaN(monday)) return monday;     // ⬅️ ne snapuj ponovo
-    }
-    // fallback: relativno od trenutne nedelje
-    return addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), offsetParam * 7);
-  })();
-
-  const [selectedWeekStart, setSelectedWeekStart] = useState(initialWeekStart);
-
-  // Reaguj na promenu URL-a (klik iz notifikacije)
-  useEffect(() => {
-    if (weekParam) {
-      const monday = localDateFromYYYYMMDD(weekParam);
-      if (monday && !isNaN(monday)) {
-        setSelectedWeekStart(monday); // ⬅️ bez dodatnog startOfWeek
-        return;
-      }
-    }
-    // fallback: weekOffset
-    setSelectedWeekStart(
-      addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), offsetParam * 7)
-    );
-  }, [weekParam, offsetParam]);
+  const initialOffset = parseInt(searchParams.get("weekOffset") || "0", 10);
+  const [selectedWeekStart, setSelectedWeekStart] = useState(
+    addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), initialOffset * 7)
+  );
 
   const [events, setEvents] = useState([]);
   const [izboriPoTerminu, setIzboriPoTerminu] = useState({});
@@ -173,6 +140,7 @@ const MojKalendarAdmin = () => {
         try {
           const izbori = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
+          // (može se prebaciti i ovo na onSnapshot, ali najčešće nije potrebno)
           const uslugeSnapshot = await getDocs(collection(db, "izbor_usluge"));
           const usluge = uslugeSnapshot.docs.reduce((acc, d) => {
             const x = d.data();
@@ -189,10 +157,9 @@ const MojKalendarAdmin = () => {
             const u = usluge[i.korisnickoIme] || {};
             acc[i.eventId].push({
               korisnickoIme: i.korisnickoIme,
-              // prvo iz dokumenta izbora, fallback na mapu usluga
-              usluga: i.usluga || u.usluga || "",
-              materijal: i.materijal || u.materijal || "",
-              velicina: i.velicina || u.velicina || "",
+              usluga: u.usluga || "N/A",
+              materijal: u.materijal || "",
+              velicina: u.velicina || "",
               timestamp: i.timestamp ?? null,
               createdAt: i.createdAt ?? null,
               datum: i.datum ?? null,
@@ -222,6 +189,7 @@ const MojKalendarAdmin = () => {
       const weekStart = selectedWeekStart;
       const weekEnd = addDays(weekStart, 7);
 
+      // zaštita – već ima termin te nedelje?
       const already = await getDocs(
         query(
           collection(db, "admin_kalendar"),
@@ -237,6 +205,7 @@ const MojKalendarAdmin = () => {
         return;
       }
 
+      // 1) slot -> termin + obriši njen izbor za taj eventId
       await runTransaction(db, async (transaction) => {
         const eventRef = doc(db, "admin_kalendar", eventId);
         transaction.update(eventRef, {
@@ -255,28 +224,7 @@ const MojKalendarAdmin = () => {
         sMyChoice.forEach((d) => transaction.delete(d.ref));
       });
 
-      // Optimistički update UI
-      setEvents((prev) =>
-        prev.map((e) =>
-          e.id === eventId
-            ? {
-                ...e,
-                tip: "termin",
-                clientUsername: korisnickoIme,
-                title: `💅 ${korisnickoIme}`,
-                backgroundColor: EVENT_TYPES.termin.color,
-              }
-            : e
-        )
-      );
-      setIzboriPoTerminu((prev) => {
-        const next = { ...prev };
-        for (const k of Object.keys(next)) {
-          next[k] = (next[k] || []).filter((x) => x.korisnickoIme !== korisnickoIme);
-        }
-        return next;
-      });
-
+      // 2) obriši sve ostale izbore iste korisnice u nedelji (npr. drugi slotovi)
       const weekStartISO = format(weekStart, "yyyy-MM-dd");
       const weekEndISO = format(weekEnd, "yyyy-MM-dd");
       const qMyOtherChoices = query(
@@ -290,6 +238,7 @@ const MojKalendarAdmin = () => {
         await deleteDoc(d.ref);
       }
 
+      // 3) Po želji očisti i sve ponudjene termine za tu korisnicu
       const ponudjeniSnap = await getDocs(
         query(
           collection(db, "ponudjeniTermini"),
@@ -320,7 +269,7 @@ const MojKalendarAdmin = () => {
         query(
           collection(db, "admin_kalendar"),
           where("start", ">=", weekStart),
-        where("start", "<", weekEnd),
+          where("start", "<", weekEnd),
           where("tip", "==", "termin"),
           where("clientUsername", "==", korisnickoIme)
         )
@@ -376,6 +325,7 @@ const MojKalendarAdmin = () => {
         toast.success("Termin uspešno dodat");
       }
 
+      // ako se ručno doda termin sa korisnikom – pošalji notifikaciju
       if (
         !isEditing &&
         eventData.tip === "termin" &&

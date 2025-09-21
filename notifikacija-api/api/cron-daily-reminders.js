@@ -53,6 +53,40 @@ function formatInBelgrade(d) {
   return `${fmtDate.format(dd)} u ${fmtTime.format(dd)}`;
 }
 
+// ---------- Normalizacija korisničkog imena (kanonski ID za fcmTokens) ----------
+function canonUsername(s) {
+  return String(s ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/__+/g, "_"); // spoji višestruke "_" u jedan
+}
+
+function genUsernameVariants(raw) {
+  const base = String(raw ?? "");
+  const variants = [
+    base,
+    base.trim(),
+    base.toLowerCase(),
+    base.replace(/__+/g, "_"),
+    base.trim().toLowerCase(),
+    canonUsername(base),
+  ];
+  // ukloni duplikate a zadrži redosled
+  return [...new Set(variants)];
+}
+
+// Pokušaj da pronađeš token po više varijanti ID-ja (tolerantno na legacy razlike)
+async function findToken(db, rawUser) {
+  for (const id of genUsernameVariants(rawUser)) {
+    const snap = await db.collection("fcmTokens").doc(id).get();
+    if (snap.exists) {
+      const tok = snap.data()?.token;
+      if (tok) return { token: tok, tokenDocId: id };
+    }
+  }
+  return { token: null, tokenDocId: null };
+}
+
 // ---------- Robustan parser za t.start ----------
 function parseHumanFirestoreString(s) {
   // Primer: "September 22, 2025 at 10:30:00 AM UTC+2"
@@ -77,7 +111,7 @@ function parseHumanFirestoreString(s) {
   const offsetHours = Number(utcOffStr); // npr. +2 ili -1
 
   // Napravimo Date kao da je u toj zoni, pa preračunamo u UTC
-  const dateOnly = new Date(datePart); // parsira u lokalnom TZ – zato odmah konstruišemo UTC ručno ispod
+  const dateOnly = new Date(datePart);
   if (Number.isNaN(dateOnly.getTime())) return null;
   const y = dateOnly.getFullYear();
   const mth = dateOnly.getMonth();
@@ -188,9 +222,8 @@ export default async function handler(req, res) {
         continue;
       }
 
-      // FCM token
-      const tokDoc = await db.collection("fcmTokens").doc(t.clientUsername).get();
-      const token = tokDoc.exists ? tokDoc.data().token : null;
+      // FCM token (tolerantna pretraga varijanti ID-ja)
+      const { token, tokenDocId } = await findToken(db, t.clientUsername);
       if (!token) {
         if (debugMode) skipped.push({ id, user: t.clientUsername, reason: "no_token" });
         continue;
@@ -208,6 +241,7 @@ export default async function handler(req, res) {
         service: serviceName,
         startUTC: startDate.toISOString(),
         preview: bodyText,
+        _tokenDocId: debugMode ? tokenDocId : undefined, // za debug transparentnost
       });
 
       if (!previewMode) {

@@ -46,6 +46,33 @@ if (!getApps().length) {
   });
 }
 
+/* ---- mapiranje linka po tipu (A i B su striktno razdvojeni) ---- */
+function makeDeepLinkByType({ type, korisnickoIme, dateKeys }) {
+  switch (type) {
+    case "proposal_to_admin": {
+      // A) korisnik poslao predloge → masa (admin) otvara nedelju
+      const wk = Array.isArray(dateKeys) && dateKeys.length ? mondayOf(dateKeys[0]) : null;
+      return wk ? `/admin/calendar?week=${wk}` : `/admin/calendar`;
+    }
+    case "proposal_to_user": {
+      // B) masa poslala predloge korisniku → otvara /ponudjeni/:korisnickoIme
+      return `/ponudjeni/${encodeURIComponent(korisnickoIme)}`;
+    }
+    case "no_slot": {
+      // nema slobodnog termina → korisniku pokaži istu stranicu gde dobija info/predloge
+      return `/ponudjeni/${encodeURIComponent(korisnickoIme)}`;
+    }
+    case "confirmed": {
+      // potvrđen termin → gde želiš (primer: istorija)
+      return `/istorija`;
+    }
+    default: {
+      // bezbedan fallback
+      return `/ponudjeni/${encodeURIComponent(korisnickoIme)}`;
+    }
+  }
+}
+
 /* ----------------- handler ----------------- */
 export default async function handler(req, res) {
   if (!applyCors(req, res)) return;
@@ -55,21 +82,21 @@ export default async function handler(req, res) {
     return res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 
-  // ⬇⬇⬇ PROŠIRENO: dodati type i dateKeys
+  // ⬇⬇⬇ PROŠIRENO: dodat type i dateKeys (ne mešamo A i B slučajeve)
   const {
     korisnickoIme,
     title,
     body,
-    click_action,
-    type,           // npr. "proposal_to_admin" | "proposal_to_user" | "no_slot" | "confirmed"
-    dateKeys = [],  // npr. ["2025-09-24", "2025-09-25"] (datumi predloga)
+    click_action,  // ako ručno proslediš, ima prioritet
+    type,          // "proposal_to_admin" | "proposal_to_user" | "no_slot" | "confirmed"
+    dateKeys = [], // npr. ["2025-09-24", "2025-09-25"]
   } = req.body || {};
 
   if (!korisnickoIme) {
     return res.status(400).json({ error: "Nedostaje korisnickoIme u zahtevu." });
   }
 
-  let token; // da imamo vrednost dostupnu u catch-u
+  let token;
 
   try {
     const { getFirestore } = await import("firebase-admin/firestore");
@@ -85,60 +112,38 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: `Empty token for korisnickoIme: ${korisnickoIme}` });
     }
 
-    /* ---------- odredi odredišnu rutu ---------- */
+    // 1) odredi ciljnu rutu
     let finalClickAction = (click_action && String(click_action).trim()) || null;
-
     if (!finalClickAction) {
-      if (type === "proposal_to_admin") {
-        // korisnik poslao predloge → otvori admin kalendar za odgovarajuću nedelju
-        const wk = dateKeys.length ? mondayOf(dateKeys[0]) : null;
-        finalClickAction = wk ? `/admin/calendar?week=${wk}` : `/admin/calendar`;
-      } else if (type === "proposal_to_user" || type === "no_slot") {
-        // predlozi koje masa šalje korisniku / poruka da nema termina
-        finalClickAction = `/ponudjeni/${encodeURIComponent(korisnickoIme)}`;
-      } else if (type === "confirmed") {
-        // potvrđen termin → istorija (po tvojoj logici)
-        finalClickAction = `/istorija`;
-      } else {
-        // generalni fallback
-        finalClickAction = `/ponudjeni/${encodeURIComponent(korisnickoIme)}`;
-      }
+      finalClickAction = makeDeepLinkByType({ type, korisnickoIme, dateKeys });
     }
 
-    // Ako je apsolutni URL, ostavi ga; u suprotnom šaljemo relativnu rutu.
-    const isAbsolute = /^https?:\/\//i.test(finalClickAction);
-    const outboundClick = isAbsolute ? finalClickAction : finalClickAction;
+    // 2) ekstra meta (weekKey samo za proposal_to_admin)
+    const weekKey = type === "proposal_to_admin" && dateKeys.length ? mondayOf(dateKeys[0]) : "";
 
-    // Dodatno: pošalji i weekKey da SW/app može lako da pročita
-    const weekKey =
-      type === "proposal_to_admin" && dateKeys.length ? mondayOf(dateKeys[0]) : "";
-
-    /* ---------- slanje poruke ---------- */
+    // 3) pošalji data-only FCM
     await getMessaging().send({
       token,
-      // data-only poruka; SW i/ili foreground listener prikazuje i navigira
       data: {
         title: title || "Obaveštenje",
         body: body || "",
-
-        // više polja zbog različitih tumačenja na klijentu/SW
-        click_action: outboundClick,
-        url: outboundClick,
-        link: outboundClick,
-
-        // metapodaci
+        // više polja zbog različitih klijentskih handlera
+        click_action: finalClickAction,
+        url: finalClickAction,
+        link: finalClickAction,
+        // meta
         type: type || "",
         korisnickoIme: korisnickoIme || "",
-        weekKey, // npr. "2025-09-22" za admin calendar
+        weekKey, // npr. "2025-09-22" samo za proposal_to_admin
       },
     });
 
-    console.log("✅ Notifikacija poslata:", { korisnickoIme, type, outboundClick, weekKey });
+    console.log("✅ Notifikacija poslata:", { korisnickoIme, type, finalClickAction, weekKey });
     return res.status(200).json({ success: true });
   } catch (error) {
     console.error("❌ Greška pri slanju notifikacije:", error);
 
-    // 🧹 ukloni nevažeći token
+    // 🧹 ukloni nevažeći token ako je to uzrok
     if (error?.code === "messaging/registration-token-not-registered" && token) {
       try {
         const { getFirestore } = await import("firebase-admin/firestore");

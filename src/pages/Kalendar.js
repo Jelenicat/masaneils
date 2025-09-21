@@ -1,5 +1,5 @@
 // Izmenjeni Kalendar.js
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { db } from "../firebase";
 import {
   collection,
@@ -11,7 +11,7 @@ import { toast } from "react-toastify";
 import "./Kalendar.css";
 import { useNavigate } from "react-router-dom";
 
-// ⬇⬇⬇ Dodato: formatiranje nedelje i vremena
+// ⬇⬇⬇ formatiranje nedelje i vremena
 import { format, addDays } from "date-fns";
 import { sr } from "date-fns/locale";
 
@@ -39,12 +39,26 @@ const Kalendar = () => {
   const materijal = localStorage.getItem("materijal") || "nije_bitno";
   const velicina = localStorage.getItem("velicina") || "nije_bitno";
   const navigate = useNavigate();
+
   const [dostupniTermini, setDostupniTermini] = useState([]);
   const [izabrani, setIzabrani] = useState([]);
   const [offsetNedelja, setOffsetNedelja] = useState(1);
   const [vecIzabraniTerminiIDs, setVecIzabraniTerminiIDs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [poruka, setPoruka] = useState("");
+
+  // ✅ Jedan izvor istine za ponedeljak prikazane nedelje
+  const baseMonday = useMemo(() => {
+    const now = new Date();
+    const day = now.getDay(); // 0=ned ... 1=pon ... 6=sub
+    const daysToNextMonday = ((8 - day) % 7) || 7;
+    const firstMonday = new Date(now);
+    firstMonday.setDate(now.getDate() + daysToNextMonday);
+    firstMonday.setHours(0, 0, 0, 0);
+    const m = new Date(firstMonday);
+    m.setDate(m.getDate() + (offsetNedelja - 1) * 7);
+    return m; // lokalna ponoć ponedeljka izabrane nedelje
+  }, [offsetNedelja]);
 
   useEffect(() => {
     const fetchSve = async () => {
@@ -79,21 +93,13 @@ const Kalendar = () => {
         ["slobodan", "edukacija", "odmor"].includes(t.tip)
       );
 
-      // Računamo prvu narednu PONEDELJAK u odnosu na "sada"
-      const sada = new Date();
-      const day = sada.getDay(); // 0=ned, 1=pon, ... 6=sub
-      const daysToNextMonday = ((8 - day) % 7) || 7;
-      const firstMonday = new Date(sada);
-      firstMonday.setDate(sada.getDate() + daysToNextMonday);
-      firstMonday.setHours(0, 0, 0, 0);
-
-      const startOfWeek = new Date(firstMonday);
-      startOfWeek.setDate(startOfWeek.getDate() + (offsetNedelja - 1) * 7);
-
-      const endOfWeek = new Date(startOfWeek);
-      // Proširi opseg do nedelje (+6 dana)
+      // ✅ Opseg na osnovu baseMonday
+      const startOfWeek = new Date(baseMonday);
+      const endOfWeek = new Date(baseMonday);
       endOfWeek.setDate(endOfWeek.getDate() + 6);
       endOfWeek.setHours(23, 59, 59, 999);
+
+      const sada = new Date();
 
       const filtrirani = sviRelevantni.filter((t) => {
         const start = new Date(t.start?.toDate ? t.start.toDate() : t.start);
@@ -128,7 +134,7 @@ const Kalendar = () => {
     }
   };
 
-  // Grupisanje po danima
+  // Grupisanje po danima (stabilno u odnosu na baseMonday)
   const grupisaniPoDanu = {};
   daniUNedelji.forEach((dan) => {
     grupisaniPoDanu[dan] = [];
@@ -136,16 +142,20 @@ const Kalendar = () => {
 
   dostupniTermini.forEach((termin) => {
     const start = termin.start?.toDate ? termin.start.toDate() : new Date(termin.start);
-    // Korektno mapiranje JS getDay() (0=ned) na niz koji počinje od Ponedeljka:
-    const idx = (start.getDay() + 6) % 7; // 1->0, 2->1, ..., 0->6
+
+    // 🧭 Dan kao razlika dana u odnosu na baseMonday (0..6) → bez getDay/ DST zavisnosti
+    const midnightStart = new Date(start);
+    midnightStart.setHours(0, 0, 0, 0);
+    const idx = Math.max(
+      0,
+      Math.min(6, Math.floor((midnightStart.getTime() - baseMonday.getTime()) / 86400000))
+    );
     const dan = daniUNedelji[idx];
+
     if (grupisaniPoDanu[dan]) {
       grupisaniPoDanu[dan].push({
         ...termin,
-        vreme: start.toLocaleTimeString("sr-RS", {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
+        vreme: format(start, "HH:mm"),
       });
     }
   });
@@ -169,14 +179,11 @@ const Kalendar = () => {
     const sat = sada.getHours();
     const minut = sada.getMinutes();
 
-    const daysToNextMonday = ((8 - danUNedelji) % 7) || 7;
-    const firstMonday = new Date(sada);
-    firstMonday.setDate(sada.getDate() + daysToNextMonday);
-    firstMonday.setHours(0, 0, 0, 0);
-
-    const startOfNextWeek = new Date(firstMonday);
-    const endOfNextWeek = new Date(firstMonday);
-    endOfNextWeek.setDate(endOfNextWeek.getDate() + 6);
+    // granice za narednu nedelju prema baseMonday naredne nedelje
+    const nextWeekMonday = addDays(mondayOf(sada), 7);
+    nextWeekMonday.setHours(0, 0, 0, 0);
+    const startOfNextWeek = new Date(nextWeekMonday);
+    const endOfNextWeek = addDays(nextWeekMonday, 6);
     endOfNextWeek.setHours(23, 59, 59, 999);
 
     if (smena === "jutro") {
@@ -237,18 +244,17 @@ const Kalendar = () => {
       for (const termin of izabrani) {
         const startDate = termin.start?.toDate ? termin.start.toDate() : new Date(termin.start);
         pickedDates.push(startDate);
-     await addDoc(collection(db, "izboriTermina"), {
-  korisnickoIme,
-  eventId: termin.id,
-  datum: startDate.toISOString().split("T")[0], // YYYY-MM-DD
-  timestamp: serverTimestamp(),
-  status: "izabrala",
-  // 👇 novo:
-  usluga,
-  materijal,
-  velicina,
-});
-
+        await addDoc(collection(db, "izboriTermina"), {
+          korisnickoIme,
+          eventId: termin.id,
+          datum: startDate.toISOString().split("T")[0], // YYYY-MM-DD
+          timestamp: serverTimestamp(),
+          status: "izabrala",
+          // 👇 novo:
+          usluga,
+          materijal,
+          velicina,
+        });
       }
 
       // nedelja (ponedeljak) iz PRVOG izabranog termina
@@ -269,10 +275,10 @@ const Kalendar = () => {
         .toLowerCase()
         .replace(/^./, (c) => c.toUpperCase());
 
-      // (opcionalno) ostavljamo pretty listu vremena — trenutno ne ide u body
-      const niceTimes = pickedDates
-        .map((d) => format(d, "EEE dd.MM HH:mm", { locale: sr }))
-        .join(", ");
+      // (opciono) lepa lista vremena
+      // const niceTimes = pickedDates
+      //   .map((d) => format(d, "EEE dd.MM HH:mm", { locale: sr }))
+      //   .join(", ");
 
       // notifikacija Maši sa nedeljom + deep-link na tu nedelju
       await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
@@ -324,26 +330,13 @@ const Kalendar = () => {
         </div>
 
         <div className="nedelja-grid">
-          {daniUNedelji.map((dan) => (
+          {daniUNedelji.map((dan, i) => (
             <div key={dan} className="dan-kocka">
               <div className="naslov-dana">
                 {dan}
                 <br />
                 <span className="datum-dana">
-                  {(() => {
-                    const index = daniUNedelji.indexOf(dan);
-                    const danas = new Date();
-                    const day = danas.getDay();
-                    const daysToNextMonday = ((8 - day) % 7) || 7;
-                    const firstMonday = new Date(danas);
-                    firstMonday.setDate(danas.getDate() + daysToNextMonday);
-                    const datum = new Date(firstMonday);
-                    datum.setDate(datum.getDate() + (offsetNedelja - 1) * 7 + index);
-                    return datum.toLocaleDateString("sr-RS", {
-                      day: "2-digit",
-                      month: "2-digit",
-                    });
-                  })()}
+                  {format(addDays(baseMonday, i), "dd.MM", { locale: sr })}
                 </span>
               </div>
 

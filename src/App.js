@@ -53,33 +53,41 @@ function NotifListener() {
   const nav = useNavigate();
 
   useEffect(() => {
-    const p = onMessageListener()
-      .then((payload) => {
-        console.log("📩 Foreground FCM:", payload);
+    // onMessageStream(cb) treba da vrati unsubscribe
+    const unsub = onMessageListener((payload) => {
+      console.log("📩 Foreground FCM:", payload);
 
-        const title = payload?.notification?.title || payload?.data?.title || "Obaveštenje";
-        const body  = payload?.notification?.body  || payload?.data?.body  || "";
-        showToast([title, body].filter(Boolean).join(" — "));
+      const title = payload?.notification?.title || payload?.data?.title || "Obaveštenje";
+      const body  = payload?.notification?.body  || payload?.data?.body  || "";
+      showToast([title, body].filter(Boolean).join(" — "));
+const url = payload?.data?.click_action || payload?.data?.url;
+if (!url) return;
 
-        // Deep link iz payload-a
-        const url = payload?.data?.click_action || payload?.data?.url;
-        if (!url) return;
+// Ako je apsolutni URL ka istom originu → koristi SPA navigaciju (brže, bez reload-a)
+// Ako je relativan → isto SPA
+// Ako je ka drugom domenu → klasičan redirect
+try {
+  const u = new URL(url, window.location.origin);
+  if (u.origin === window.location.origin) {
+    nav(u.pathname + u.search + u.hash);
+  } else {
+    window.location.href = u.toString();
+  }
+} catch {
+  // ako URL nije validan string ili nešto pođe po zlu: pokušaj SPA
+  nav(url);
+}
 
-        if (url.startsWith("/")) {
-          nav(url);              // interna ruta
-        } else {
-          window.location.href = url; // eksterni link
-        }
-      })
-      .catch((err) => console.error("Greška u onMessageListener:", err));
+    });
 
-    // onMessageListener() vraća Promise, pa ovde nemamo pravi "unsubscribe".
-    // Nije problem: listener se registruje iz firebase.js jednom po tab-u.
-    return () => void p;
+    return () => {
+      if (typeof unsub === "function") unsub();
+    };
   }, [nav]);
 
   return null;
 }
+
 
 export default function App() {
   return (

@@ -250,11 +250,23 @@ const Kalendar = () => {
       pickedDates.sort((a, b) => a - b);
       const monday = mondayOf(pickedDates[0]);
       const mondayISO = monday.toISOString().slice(0, 10);
-      const weekText = weekRangeText(monday);
 
-      // lep pregled vremena
+      // 👇 novi format "nedelja 16–22.09.2025"
+      const startDay = new Date(monday).getDate();
+      const endDate = addDays(monday, 6);
+      const endPart = format(endDate, "dd.MM.yyyy", { locale: sr });
+      const weekTextPretty = `nedelja ${startDay}–${endPart}`;
+
+      // 👇 lepo prikazano ime (npr. "mila" -> "Mila")
+      const displayName = (korisnickoIme || "")
+        .toString()
+        .trim()
+        .toLowerCase()
+        .replace(/^./, (c) => c.toUpperCase());
+
+      // (opcionalno) ostavljamo pretty listu vremena — trenutno ne ide u body
       const niceTimes = pickedDates
-        .map((d) => format(d, "EEE dd.MM HH:mm", { locale: sr })) // npr. "pon 16.09 14:00"
+        .map((d) => format(d, "EEE dd.MM HH:mm", { locale: sr }))
         .join(", ");
 
       // notifikacija Maši sa nedeljom + deep-link na tu nedelju
@@ -263,8 +275,8 @@ const Kalendar = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           korisnickoIme: "masa",
-          title: "📅 Novi izbori termina",
-          body: `${weekText} — ${korisnickoIme}: ${niceTimes}`,
+          title: "📅 Novi izbor termina",
+          body: `${displayName} je poslala predloge — ${weekTextPretty}.`,
           click_action: `/admin/kalendar?week=${mondayISO}`,
           url: `/admin/kalendar?week=${mondayISO}`,
           link: `/admin/kalendar?week=${mondayISO}`,

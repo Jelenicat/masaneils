@@ -15,14 +15,14 @@ function applyCors(req, res) {
   return true;
 }
 
-// 🚀 Inicijalizuj Firebase admin SDK (ako već nije)
+// 🚀 Init Firebase Admin SDK (ako već nije)
 if (!getApps().length) {
   initializeApp({
     credential: cert({
       type: process.env.FIREBASE_TYPE,
       project_id: process.env.FIREBASE_PROJECT_ID,
       private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
-      private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n"),
+      private_key: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
       client_email: process.env.FIREBASE_CLIENT_EMAIL,
       client_id: process.env.FIREBASE_CLIENT_ID,
       auth_uri: process.env.FIREBASE_AUTH_URI,
@@ -42,76 +42,77 @@ export default async function handler(req, res) {
     return res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 
-  const { korisnickoIme, title, body, click_action } = req.body;
-
+  const { korisnickoIme, title, body, click_action } = req.body || {};
   if (!korisnickoIme) {
     return res.status(400).json({ error: "Nedostaje korisnickoIme u zahtevu." });
   }
+
+  let token; // biće popunjen ispod da bismo ga imali u catch-u
 
   try {
     const { getFirestore } = await import("firebase-admin/firestore");
     const db = getFirestore();
 
-    // 🔑 Token za korisnika
-    const docRef = db.collection("fcmTokens").doc(korisnickoIme);
-    const docSnap = await docRef.get();
-
+    // 🔑 Token za korisnika (doc id = korisnicko ime)
+    const docSnap = await db.collection("fcmTokens").doc(korisnickoIme).get();
     if (!docSnap.exists) {
       return res.status(404).json({ error: `Token not found for korisnickoIme: ${korisnickoIme}` });
     }
-
-    const token = docSnap.data().token;
-
-    // 🧭 Odredi gde da vodi notifikacija
-    let finalClickAction = click_action?.trim() || null;
-
-    if (!finalClickAction) {
-      try {
-        const predloziSnapshot = await db
-          .collection("ponudjeniTermini")
-          .where("korisnickoIme", "==", korisnickoIme)
-          .get();
-
-        finalClickAction = !predloziSnapshot.empty ? "/predlozeni-termini" : "/korisnik";
-      } catch (err) {
-        finalClickAction = "/korisnik";
-      }
+    token = docSnap.data()?.token;
+    if (!token) {
+      return res.status(404).json({ error: `Empty token for korisnickoIme: ${korisnickoIme}` });
     }
 
-    const fullClickAction = finalClickAction.startsWith("http")
-      ? finalClickAction
-      : `https://masaneils.vercel.app${finalClickAction}`;
+    // 🧭 Jedinstveni default: /ponudjeni/:korisnickoIme
+    let finalClickAction = (click_action && String(click_action).trim()) || null;
 
-    // 📩 Pošalji poruku
+    if (!finalClickAction) {
+      // Ako nije poslato iz fronta, uvek vodi na kanoničku rutu koja postoji u SPA
+      finalClickAction = `/ponudjeni/${korisnickoIme}`;
+    }
+
+    // Ako si poslao apsolutni URL, ostavi ga; inače pošalji relativnu rutu.
+    const isAbsolute = /^https?:\/\//i.test(finalClickAction);
+    const outboundClick = isAbsolute ? finalClickAction : finalClickAction;
+
+    // 📩 Data-only poruka (SW i foreground listener će prikazati/navigirati)
     await getMessaging().send({
       token,
       data: {
         title: title || "Obaveštenje",
         body: body || "",
-        click_action: fullClickAction,
+        // tri polja zbog različitih klijenata i tumačenja
+        click_action: outboundClick,
+        url: outboundClick,
+        link: outboundClick,
       },
     });
 
-    console.log("✅ Notifikacija poslata korisniku:", korisnickoIme);
+    console.log("✅ Notifikacija poslata korisniku:", korisnickoIme, outboundClick);
     return res.status(200).json({ success: true });
-
   } catch (error) {
     console.error("❌ Greška pri slanju notifikacije:", error);
 
-    // 🧹 Očisti nevažeći token
-    if (error.code === "messaging/registration-token-not-registered") {
+    // 🧹 Očisti nevažeći token (ako ga imamo i ako je uzrok)
+    if (error?.code === "messaging/registration-token-not-registered" && token) {
       try {
         const { getFirestore } = await import("firebase-admin/firestore");
         const db = getFirestore();
-        const fcmTokensRef = db.collection("fcmTokens");
 
+        // Moguće da imaš dokumente mapirane po korisničkom imenu, pa je dovoljno samo taj doc
+        // ali za svaki slučaj prođi kroz kolekciju i izbriši sve iste tokene
+        const fcmTokensRef = db.collection("fcmTokens");
         const snapshot = await fcmTokensRef.get();
-        snapshot.forEach(async (docSnap) => {
-          if (docSnap.data().token === token) {
-            await docSnap.ref.delete();
-            console.log("🗑️ Obrišan token:", token);
+
+        const batch = db.batch();
+        snapshot.forEach((docSnap) => {
+          if (docSnap.data()?.token === token) {
+            batch.delete(docSnap.ref);
           }
         });
+        await batch.commit();
+
+        console.log("🗑️ Obrisani nevažeći tokeni:", token);
       } catch (firestoreErr) {
         console.error("❌ Greška pri brisanju tokena:", firestoreErr);
       }

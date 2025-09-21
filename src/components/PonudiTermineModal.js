@@ -48,12 +48,11 @@ const PonudiTermineModal = ({
   // lokalna lista za prikaz (union prijavljenih)
   const [visibleKorisnice, setVisibleKorisnice] = useState(korisnice || []);
   // kad stignu nove korisnice iz parenta – spoji sa postojećim i dedupliraj
-useEffect(() => {
-  setVisibleKorisnice((prev) =>
-    Array.from(new Set([...(prev || []), ...(korisnice || [])]))
-  );
-}, [korisnice]);
-
+  useEffect(() => {
+    setVisibleKorisnice((prev) =>
+      Array.from(new Set([...(prev || []), ...(korisnice || [])]))
+    );
+  }, [korisnice]);
 
   // fallback timestamps iz izbor_usluge (createdAt/timestamp)
   const [izborUslugeTS, setIzborUslugeTS] = useState(new Map());
@@ -143,8 +142,7 @@ useEffect(() => {
     fetchUsluga();
   }, [selectedUser]);
 
-  // Učitaj prijavljene iz izbor_usluge za tu nedelju
-  // Radi i ako nema weekKey/createdAt – koristi i timestamp kao fallback
+  // Učitaj prijavljene iz izbor_usluge za tu nedelju (weekKey + timestamp fallback)
   useEffect(() => {
     if (!selectedWeekStart) return;
     let stale = false;
@@ -162,7 +160,7 @@ useEffect(() => {
         );
         const s1 = await getDocs(q1);
 
-        // 2) fallback: po timestamp opsegu (pošto tvoji dokumenti često imaju "timestamp")
+        // 2) fallback: po timestamp opsegu
         const q2 = query(
           collection(db, "izbor_usluge"),
           where("timestamp", ">=", weekStart),
@@ -180,7 +178,6 @@ useEffect(() => {
           users.add(uid);
           const data = d.data();
 
-          // vreme za sortiranje: preferiraj createdAt ako postoji, inače timestamp
           let t = null;
           if (data?.createdAt?.toDate) t = data.createdAt.toDate().getTime();
           else if (data?.createdAt) t = new Date(data.createdAt).getTime();
@@ -209,48 +206,45 @@ useEffect(() => {
     };
   }, [selectedWeekStart]);
 
-  // Izračunaj redosled (stabilno): TS iz izboriTermina > createdAt/timestamp iz izbor_usluge > ABC
-  // Stabilno sortiranje: 1) najraniji ts iz izboriTermina, 2) fallback ts iz izbor_usluge, 3) ABC.
-// Ako su ts jednaki – sekundarni tie-breaker je ime (stabilno).
-useEffect(() => {
-  if (!visibleKorisnice?.length) {
-    setOrderedKorisnice([]);
-    return;
-  }
-
-  const firstTs = new Map();
-  Object.values(izboriPoTerminu || {}).forEach((arr = []) => {
-    arr.forEach((i) => {
-      const name = i?.korisnickoIme || i?.username || i?.user;
-      if (!name) return;
-
-      let t = null;
-      if (i?.timestamp?.toDate) t = i.timestamp.toDate().getTime();
-      else if (i?.timestamp) t = new Date(i.timestamp).getTime();
-      else if (i?.createdAt?.toDate) t = i.createdAt.toDate().getTime();
-      else if (i?.createdAt) t = new Date(i.createdAt).getTime();
-
-      const prev = firstTs.get(name);
-      if (t != null && (prev == null || t < prev)) firstTs.set(name, t);
-    });
-  });
-
-  const sorted = [...visibleKorisnice].sort((a, b) => {
-    const ta = firstTs.get(a) ?? izborUslugeTS.get(a) ?? null;
-    const tb = firstTs.get(b) ?? izborUslugeTS.get(b) ?? null;
-
-    if (ta != null && tb != null) {
-      if (ta !== tb) return ta - tb;   // ranije → gore
-      return a.localeCompare(b);       // tie-breaker
+  // Izračunaj redosled stabilno
+  useEffect(() => {
+    if (!visibleKorisnice?.length) {
+      setOrderedKorisnice([]);
+      return;
     }
-    if (ta != null) return -1;
-    if (tb != null) return 1;
-    return a.localeCompare(b);
-  });
 
-  setOrderedKorisnice(sorted);
-}, [visibleKorisnice, izboriPoTerminu, izborUslugeTS]);
+    const firstTs = new Map();
+    Object.values(izboriPoTerminu || {}).forEach((arr = []) => {
+      arr.forEach((i) => {
+        const name = i?.korisnickoIme || i?.username || i?.user;
+        if (!name) return;
 
+        let t = null;
+        if (i?.timestamp?.toDate) t = i.timestamp.toDate().getTime();
+        else if (i?.timestamp) t = new Date(i.timestamp).getTime();
+        else if (i?.createdAt?.toDate) t = i.createdAt.toDate().getTime();
+        else if (i?.createdAt) t = new Date(i.createdAt).getTime();
+
+        const prev = firstTs.get(name);
+        if (t != null && (prev == null || t < prev)) firstTs.set(name, t);
+      });
+    });
+
+    const sorted = [...visibleKorisnice].sort((a, b) => {
+      const ta = firstTs.get(a) ?? izborUslugeTS.get(a) ?? null;
+      const tb = firstTs.get(b) ?? izborUslugeTS.get(b) ?? null;
+
+      if (ta != null && tb != null) {
+        if (ta !== tb) return ta - tb;   // ranije → gore
+        return a.localeCompare(b);       // tie-breaker
+      }
+      if (ta != null) return -1;
+      if (tb != null) return 1;
+      return a.localeCompare(b);
+    });
+
+    setOrderedKorisnice(sorted);
+  }, [visibleKorisnice, izboriPoTerminu, izborUslugeTS]);
 
   const getSlobodniTermini = () => {
     if (!selectedUser) return [];
@@ -317,7 +311,10 @@ useEffect(() => {
           korisnickoIme,
           title: "Obaveštenje",
           body: "Žao mi je, nema slobodnih termina za ovu nedelju",
-          click_action: "/ponudjeni",
+          // ⬇⬇⬇ CHANGED: relativna ruta + fallback polja
+          click_action: `/ponudjeni/${korisnickoIme}`,
+          url: `/ponudjeni/${korisnickoIme}`,
+          link: `/ponudjeni/${korisnickoIme}`,
         }),
       });
 
@@ -379,7 +376,10 @@ useEffect(() => {
           korisnickoIme: selectedUser,
           title: "Novi predlozi termina 💅",
           body: `Predloženi termini: ${notificationBody}`,
-          click_action: `https://masaneils.vercel.app/ponudjeni/${selectedUser}`,
+          // ⬇⬇⬇ CHANGED: relativna SPA ruta + fallback polja
+          click_action: `/ponudjeni/${selectedUser}`,
+          url: `/ponudjeni/${selectedUser}`,
+          link: `/ponudjeni/${selectedUser}`,
         }),
       });
 
@@ -411,6 +411,8 @@ useEffect(() => {
             title: "Termin je potvrđen ✅",
             body: `Vaš termin je zakazan za ${formatSaDanom(termin.start)}`,
             click_action: "/istorija",
+            url: "/istorija",
+            link: "/istorija",
           }),
         });
       }

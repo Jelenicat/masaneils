@@ -21,71 +21,77 @@ self.addEventListener("install", () => self.skipWaiting());
 
 // 🔔 1) FCM background poruke BEZ notification objekta
 messaging.onBackgroundMessage((payload) => {
-  // Ako je stigao notification objekat, Chrome će sam prikazati — ništa ne radimo
+  // Ako je stigao notification objekat, Chrome će ga sam prikazati — ne radimo ništa
   if (payload.notification) return;
 
   const title = payload?.data?.title || "Obaveštenje";
   const body  = payload?.data?.body  || "";
-  // šalji i apsolutni i relativni link – mi koristimo relativni unutar SPA
-  const link  = payload?.data?.link || payload?.data?.click_action || "/";
+
+  // Preferiraj click_action, pa url/link, pa "/"
+  let clickAction = payload?.data?.click_action || payload?.data?.url || payload?.data?.link || "/";
+
+  // Ako je istog origin-a → konvertuj u relativnu rutu (SPA-friendly)
+  try {
+    const u = new URL(clickAction, self.location.origin);
+    clickAction = (u.origin === self.location.origin)
+      ? (u.pathname + u.search + u.hash)
+      : u.toString();
+  } catch {
+    // ostavi kako je
+  }
 
   self.registration.showNotification(title, {
     body,
     icon: "/icon-192x192.png",
-    data: { link }, // VAŽNO: ovde spremimo rutu
+    tag: "abeauty-notify",   // pomaže protiv dupliranja istog tipa
+    renotify: true,
+    data: { click_action: clickAction },
   });
 });
 
-// 🔔 2) Web Push fallback (ako server pošalje standardni push sa notification objektom)
-self.addEventListener("push", (event) => {
-  // Ako koristiš isključivo FCM data poruke, ovo neće ni biti potrebno,
-  // ali je korisno kao fallback.
-  try {
-    const data = event.data?.json() || {};
-    const title =
-      data?.notification?.title || data?.data?.title || "Obaveštenje";
-    const body  =
-      data?.notification?.body  || data?.data?.body  || "";
-    const link  =
-      data?.data?.link ||
-      data?.notification?.click_action ||
-      "/";
+// 🔔 2) (opciono) Web Push fallback — ako server pošalje standardni notification objekat
+// ovde nije potrebno ništa specijalno; browser će prikazati notifikaciju
 
-    event.waitUntil(
-      self.registration.showNotification(title, {
-        body,
-        icon: "/icon-192x192.png",
-        data: { link },
-      })
-    );
-  } catch {
-    // no-op
-  }
-});
-
-// 🖱️ 3) Klik na notifikaciju — fokusiraj neki tab i NAVIGIRAJ GA na rutu
+// 🖱️ 3) Klik na notifikaciju — fokusiraj tab i pošalji poruku da SPA navigira
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
-  // link je RELATIVAN za SPA (npr. /ponudjeni/test1); ako dobiješ apsolutni, izvuci path
-  let link = event.notification?.data?.link || "/";
+  // Izvuci rutu/URL iz raznih mesta (zavisno kako FCM spakuje data)
+  let clickAction =
+    event.notification?.data?.click_action ||
+    event.notification?.data?.url ||
+    event.notification?.data?.link ||
+    event.notification?.data?.FCM_MSG?.data?.click_action ||
+    "/";
+
+  // Normalizuj — relativno za isti origin, inače apsolutno
   try {
-    if (link.startsWith("http")) link = new URL(link).pathname + new URL(link).search;
-  } catch {}
+    const u = new URL(clickAction, self.location.origin);
+    clickAction = (u.origin === self.location.origin)
+      ? (u.pathname + u.search + u.hash)
+      : u.toString();
+  } catch {
+    // ostavi kako je
+  }
 
   event.waitUntil((async () => {
+    // Probaj da fokusiraš postojeći tab iste aplikacije
     const allClients = await clients.matchAll({ type: "window", includeUncontrolled: true });
+    const sameOrigin = allClients.find(c => c.url.startsWith(self.location.origin));
 
-    if (allClients.length > 0) {
-      // Fokusiraj prvi postojeći tab i navigiraj ga na željenu rutu
-      const client = allClients[0];
-      await client.focus();
-      try { await client.navigate(link); } catch {} // navigate radi i ako je već fokusiran
+    if (sameOrigin) {
+      await sameOrigin.focus();
+      // Pošalji poruku SPA-u da on uradi useNavigate (bez reloada)
+      try {
+        sameOrigin.postMessage({ __OPEN_ROUTE__: clickAction });
+      } catch {}
       return;
     }
 
-    // Nema otvorenih tabova – otvori novi prozor na željeni link (apsolutni)
-    const absolute = self.origin ? self.origin + link : "https://masaneils.vercel.app" + link;
+    // Nema otvorenih tabova → otvori novi prozor (apsolutni URL)
+    const absolute = clickAction.startsWith("http")
+      ? clickAction
+      : (self.location.origin + clickAction);
     await clients.openWindow(absolute);
   })());
 });

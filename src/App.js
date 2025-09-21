@@ -1,7 +1,7 @@
 // src/App.js
 import { BrowserRouter as Router, Routes, Route, useParams, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
-import { onMessageListener } from "./firebase"; // koristi tvoj helper
+import { onMessageListener } from "./firebase";
 
 import Home from "./pages/Home";
 import Verify from "./pages/Verify";
@@ -48,51 +48,64 @@ function showToast(msg) {
   setTimeout(() => d.remove(), 4000);
 }
 
-/** 🔔 Foreground FCM listener */
+/** 🔔 Foreground FCM listener + bridge za SW */
 function NotifListener() {
   const nav = useNavigate();
 
   useEffect(() => {
-    // onMessageStream(cb) treba da vrati unsubscribe
+    // Foreground poruke
     const unsub = onMessageListener((payload) => {
       console.log("📩 Foreground FCM:", payload);
 
       const title = payload?.notification?.title || payload?.data?.title || "Obaveštenje";
-      const body  = payload?.notification?.body  || payload?.data?.body  || "";
+      const body = payload?.notification?.body || payload?.data?.body || "";
       showToast([title, body].filter(Boolean).join(" — "));
-const url = payload?.data?.click_action || payload?.data?.url;
-if (!url) return;
 
-// Ako je apsolutni URL ka istom originu → koristi SPA navigaciju (brže, bez reload-a)
-// Ako je relativan → isto SPA
-// Ako je ka drugom domenu → klasičan redirect
-try {
-  const u = new URL(url, window.location.origin);
-  if (u.origin === window.location.origin) {
-    nav(u.pathname + u.search + u.hash);
-  } else {
-    window.location.href = u.toString();
-  }
-} catch {
-  // ako URL nije validan string ili nešto pođe po zlu: pokušaj SPA
-  nav(url);
-}
+      const url = payload?.data?.link || payload?.data?.click_action || payload?.data?.url;
+      if (!url) return;
 
+      try {
+        const u = new URL(url, window.location.origin);
+        if (u.origin === window.location.origin) {
+          nav(u.pathname + u.search + u.hash, { replace: false });
+        } else {
+          window.location.href = u.toString();
+        }
+      } catch {
+        nav(url);
+      }
     });
+
+    // Poruke iz service workera (klik iz background-a)
+    const onMsg = (e) => {
+      const route = e?.data?.__OPEN_ROUTE__;
+      if (route) {
+        try {
+          const u = new URL(route, window.location.origin);
+          if (u.origin === window.location.origin) {
+            nav(u.pathname + u.search + u.hash);
+          } else {
+            window.location.href = u.toString();
+          }
+        } catch {
+          nav(route);
+        }
+      }
+    };
+    navigator.serviceWorker?.addEventListener?.("message", onMsg);
 
     return () => {
       if (typeof unsub === "function") unsub();
+      navigator.serviceWorker?.removeEventListener?.("message", onMsg);
     };
   }, [nav]);
 
   return null;
 }
 
-
 export default function App() {
   return (
     <Router>
-      {/* Listener mora biti unutar Router-a da bi useNavigate radio */}
       <NotifListener />
 
       <Routes>

@@ -3,8 +3,7 @@ import firebase from "firebase/compat/app";
 import "firebase/compat/messaging";
 import "firebase/compat/firestore";
 
-// ⛔ OBRIŠI OVO: modular importi ne trebaju u compat režimu
-// import { doc, setDoc, deleteDoc } from "firebase/firestore";
+// ⛔ modular importi nisu potrebni u compat režimu
 
 const firebaseConfig = {
   apiKey: "AIzaSyBpluULKCmNlrbfQLzbqms4Yfvw2p_3OQ8",
@@ -15,7 +14,7 @@ const firebaseConfig = {
   appId: "1:727570739394:web:d45c2f5e2138d3077dcb5b",
 };
 
-// ✅ Inicijalizacija
+// ✅ Init
 if (!firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
 }
@@ -25,13 +24,13 @@ const db = firebase.firestore();
 const VAPID_KEY =
   "BEab5BdgPuxs7N5qEQlF--KlryMsnv3lhS8LGcQtyG_tMjNrZBGhpTzVqmDaw75p5Nb-0QB19cY00WPYwbn6GIM";
 
-// 🧹 Brisanje lokalnog tokena
+// 🧹 Lokalno brisanje tokena
 const removeFcmToken = () => {
   console.log("🗑️ Brišem lokalni FCM token");
   localStorage.removeItem("fcmToken");
 };
 
-// 🔥 Brisanje tokena iz Firestore baze (COMPAT način)
+// 🔥 Brisanje tokena iz Firestore (COMPAT)
 const removeTokenFromFirestore = async (korisnickoIme) => {
   try {
     await db.collection("fcmTokens").doc(korisnickoIme).delete();
@@ -41,14 +40,14 @@ const removeTokenFromFirestore = async (korisnickoIme) => {
   }
 };
 
-// 🎧 Trajni foreground listener: registruje callback i vraća unsubscribe
+// 🎧 Foreground listener (vraća unsubscribe)
 const onMessageListener = (cb) => {
   return messaging.onMessage((payload) => {
     if (typeof cb === "function") cb(payload);
   });
 };
 
-// 🔄 Provera i osvežavanje tokena ako nije već sačuvan
+// 🔄 Ako nema token, traži novi
 const refreshFcmToken = async () => {
   const existingToken = localStorage.getItem("fcmToken");
   if (!existingToken) {
@@ -57,50 +56,75 @@ const refreshFcmToken = async () => {
   }
 };
 
-// 📲 Traženje dozvole i čuvanje FCM tokena (COMPAT + postojeći SW ako postoji)
+// 📲 Traženje dozvole + čuvanje FCM tokena
 const requestPermission = async () => {
   try {
     const permission = await Notification.requestPermission();
-    if (permission === "granted") {
-      const registration =
-        (await navigator.serviceWorker.getRegistration()) ||
-        (await navigator.serviceWorker.register("/firebase-messaging-sw.js"));
+    if (permission !== "granted") {
+      console.warn("❌ Korisnik nije dozvolio notifikacije.");
+      return;
+    }
 
-      const token = await messaging.getToken({
-        vapidKey: VAPID_KEY,
-        serviceWorkerRegistration: registration,
-      });
+    const registration =
+      (await navigator.serviceWorker.getRegistration()) ||
+      (await navigator.serviceWorker.register("/firebase-messaging-sw.js"));
 
-      if (token) {
-        console.log("✅ FCM token:", token);
-        localStorage.setItem("fcmToken", token);
+    const token = await messaging.getToken({
+      vapidKey: VAPID_KEY,
+      serviceWorkerRegistration: registration,
+    });
 
-        const korisnickoIme = localStorage.getItem("korisnickoIme");
-        if (korisnickoIme) {
-          // COMPAT upis
-          await db.collection("fcmTokens").doc(korisnickoIme).set({ token });
-        }
-      } else {
-        console.warn("⚠️ Token nije dobijen.");
+    if (!token) {
+      console.warn("⚠️ Token nije dobijen.");
+      return;
+    }
+
+    const prev = localStorage.getItem("fcmToken");
+    if (prev !== token) {
+      // token se promenio → snimi lokalno i u Firestore
+      console.log("✅ Novi FCM token:", token);
+      localStorage.setItem("fcmToken", token);
+
+      const korisnickoIme = localStorage.getItem("korisnickoIme");
+      if (korisnickoIme) {
+        await db.collection("fcmTokens").doc(korisnickoIme).set({ token });
       }
     } else {
-      console.warn("❌ Korisnik nije dozvolio notifikacije.");
+      console.log("ℹ️ Token nepromenjen.");
     }
   } catch (err) {
-    console.error("🔥 Greška prilikom traženja dozvole za notifikacije:", err);
+    console.error("🔥 Greška prilikom traženja dozvole / dobijanja tokena:", err);
   }
 };
 
-// 📤 Slanje notifikacije putem backend API-ja
+/**
+ * 📤 Slanje notifikacije preko backend API-ja
+ * - koristi RELATIVAN path (npr. "/ponudjeni/jelena") da foreground i SW lepo odrade SPA navigaciju
+ * - u payload šaljemo i click_action i url i link (radi kompatibilnosti)
+ */
 const sendNotification = async (korisnickoIme, { title, body, path }) => {
   try {
-    const click_action = `https://masaneils.vercel.app${path}`;
+    // Normalizuj na relativnu rutu (ako nije apsolutni URL)
+    let rel = "/";
+    if (typeof path === "string" && path.trim()) {
+      rel = path.startsWith("http")
+        ? path // ako baš proslediš apsolutni, ostavi ga
+        : (path.startsWith("/") ? path : `/${path}`);
+    }
+
     await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ korisnickoIme, title, body, click_action }),
+      body: JSON.stringify({
+        korisnickoIme,
+        title,
+        body,
+        click_action: rel, // 👈 primarno polje
+        url: rel,          // 👈 fallback polje
+        link: rel,         // 👈 još jedan fallback (radi različitih klijenata)
+      }),
     });
-    console.log("✅ Notifikacija poslata korisniku:", korisnickoIme);
+    console.log("✅ Notifikacija poslata korisniku:", korisnickoIme, rel);
   } catch (error) {
     console.error("❌ Greška pri slanju notifikacije:", error);
   }
@@ -111,7 +135,7 @@ export {
   messaging,
   VAPID_KEY,
   removeFcmToken,
-  onMessageListener,   // <-- koristi u App.js
+  onMessageListener,   // koristi se u App.js
   refreshFcmToken,
   requestPermission,
   removeTokenFromFirestore,

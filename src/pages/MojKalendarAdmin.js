@@ -38,44 +38,12 @@ const INITIAL_EVENT_DATA = {
   cena: "",
 };
 
-/** Lokalno parsiranje "YYYY-MM-DD" bez UTC klizanja */
-function localDateFromYYYYMMDD(s) {
-  if (!s) return null;
-  const [y, m, d] = s.split("-").map(Number);
-  return new Date(y, (m || 1) - 1, d || 1, 0, 0, 0, 0);
-}
-
 const MojKalendarAdmin = () => {
   const [searchParams] = useSearchParams();
-
-  // Preferiraj ?week=YYYY-MM-DD; fallback je weekOffset
-  const weekParam = searchParams.get("week");             // npr. "2025-09-15"
-  const offsetParam = parseInt(searchParams.get("weekOffset") || "0", 10);
-
-  // inicijalni ponedeljak
-  const initialWeekStart = (() => {
-    if (weekParam) {
-      const monday = localDateFromYYYYMMDD(weekParam);
-      if (monday && !isNaN(monday)) return monday; // ne snapuj ponovo
-    }
-    return addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), offsetParam * 7);
-  })();
-
-  const [selectedWeekStart, setSelectedWeekStart] = useState(initialWeekStart);
-
-  // reaguj na promenu URL-a (npr. dolazak iz notifikacije sa ?week=)
-  useEffect(() => {
-    if (weekParam) {
-      const monday = localDateFromYYYYMMDD(weekParam);
-      if (monday && !isNaN(monday)) {
-        setSelectedWeekStart(monday);
-        return;
-      }
-    }
-    setSelectedWeekStart(
-      addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), offsetParam * 7)
-    );
-  }, [weekParam, offsetParam]);
+  const initialOffset = parseInt(searchParams.get("weekOffset") || "0", 10);
+  const [selectedWeekStart, setSelectedWeekStart] = useState(
+    addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), initialOffset * 7)
+  );
 
   const [events, setEvents] = useState([]);
   const [izboriPoTerminu, setIzboriPoTerminu] = useState({});
@@ -99,11 +67,12 @@ const MojKalendarAdmin = () => {
     });
   }, []);
 
-  // Real-time: admin_kalendar + izboriTermina za izabranu nedelju
+  // ✅ Real-time: admin_kalendar + izboriTermina za izabranu nedelju
   useEffect(() => {
     const weekStart = selectedWeekStart;
     const weekEnd = addDays(weekStart, 7);
 
+    // 1) Slušalac za događaje (admin_kalendar)
     const unsubEvents = onSnapshot(
       query(
         collection(db, "admin_kalendar"),
@@ -159,6 +128,7 @@ const MojKalendarAdmin = () => {
       }
     );
 
+    // 2) Slušalac za IZBORE ove nedelje (izboriTermina)
     const unsubChoices = onSnapshot(
       query(
         collection(db, "izboriTermina"),
@@ -170,6 +140,7 @@ const MojKalendarAdmin = () => {
         try {
           const izbori = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
+          // (može se prebaciti i ovo na onSnapshot, ali najčešće nije potrebno)
           const uslugeSnapshot = await getDocs(collection(db, "izbor_usluge"));
           const usluge = uslugeSnapshot.docs.reduce((acc, d) => {
             const x = d.data();
@@ -186,9 +157,9 @@ const MojKalendarAdmin = () => {
             const u = usluge[i.korisnickoIme] || {};
             acc[i.eventId].push({
               korisnickoIme: i.korisnickoIme,
-              usluga: i.usluga || u.usluga || "",
-              materijal: i.materijal || u.materijal || "",
-              velicina: i.velicina || u.velicina || "",
+              usluga: u.usluga || "N/A",
+              materijal: u.materijal || "",
+              velicina: u.velicina || "",
               timestamp: i.timestamp ?? null,
               createdAt: i.createdAt ?? null,
               datum: i.datum ?? null,
@@ -210,6 +181,7 @@ const MojKalendarAdmin = () => {
     };
   }, [selectedWeekStart]);
 
+  // ✅ Potvrda termina – briše baš onaj izbor za taj slot + ostale izbore korisnice te nedelje
   const potvrdiTerminZaKorisnicu = async (eventId, korisnickoIme) => {
     try {
       setIsLoading(true);
@@ -217,6 +189,7 @@ const MojKalendarAdmin = () => {
       const weekStart = selectedWeekStart;
       const weekEnd = addDays(weekStart, 7);
 
+      // zaštita – već ima termin te nedelje?
       const already = await getDocs(
         query(
           collection(db, "admin_kalendar"),
@@ -232,6 +205,7 @@ const MojKalendarAdmin = () => {
         return;
       }
 
+      // 1) slot -> termin + obriši njen izbor za taj eventId
       await runTransaction(db, async (transaction) => {
         const eventRef = doc(db, "admin_kalendar", eventId);
         transaction.update(eventRef, {
@@ -250,6 +224,7 @@ const MojKalendarAdmin = () => {
         sMyChoice.forEach((d) => transaction.delete(d.ref));
       });
 
+      // 2) obriši sve ostale izbore iste korisnice u nedelji (npr. drugi slotovi)
       const weekStartISO = format(weekStart, "yyyy-MM-dd");
       const weekEndISO = format(weekEnd, "yyyy-MM-dd");
       const qMyOtherChoices = query(
@@ -263,6 +238,7 @@ const MojKalendarAdmin = () => {
         await deleteDoc(d.ref);
       }
 
+      // 3) Po želji očisti i sve ponudjene termine za tu korisnicu
       const ponudjeniSnap = await getDocs(
         query(
           collection(db, "ponudjeniTermini"),
@@ -338,16 +314,18 @@ const MojKalendarAdmin = () => {
         cena: newEventData.cena || "",
         backgroundColor: EVENT_TYPES[newEventData.tip]?.color || "#ddd",
       };
+      let noviDocRef;
 
       if (isEditing) {
         await updateDoc(eventRef, eventData);
         toast.success("Termin uspešno ažuriran");
+        noviDocRef = eventRef;
       } else {
-        await addDoc(eventRef, eventData);
+        noviDocRef = await addDoc(eventRef, eventData);
         toast.success("Termin uspešno dodat");
       }
 
-      // Slanje notifikacije kada ručno dodaš termin sa korisnikom (opciono)
+      // ako se ručno doda termin sa korisnikom – pošalji notifikaciju
       if (
         !isEditing &&
         eventData.tip === "termin" &&

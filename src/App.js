@@ -88,39 +88,57 @@ function NotifListener() {
       console.log("📩 Foreground FCM:", payload);
 
       const title = payload?.notification?.title || payload?.data?.title || "Obaveštenje";
-      const body = payload?.notification?.body || payload?.data?.body || "";
+      const body  = payload?.notification?.body  || payload?.data?.body  || "";
+      // i dalje prikaži mali toast (po želji)
       showToast([title, body].filter(Boolean).join(" — "));
 
-      const url = payload?.data?.link || payload?.data?.click_action || payload?.data?.url;
-      if (!url) return;
+      const urlStr = payload?.data?.link || payload?.data?.click_action || payload?.data?.url;
+      if (!urlStr) return;
 
+      // 🔑 Ako je odredište /ponudjeni/:korisnickoIme i app je već otvorena,
+      // ODMAH navigiraj tamo (bez čekanja klika).
       try {
-        const u = new URL(url, window.location.origin);
+        const u = new URL(urlStr, window.location.origin);
+        const target = u.pathname + u.search + u.hash;
+
         if (u.origin === window.location.origin) {
-          nav(u.pathname + u.search + u.hash, { replace: false });
+          if (u.pathname.startsWith("/ponudjeni/")) {
+            nav(target, { replace: false }); // ← direktan odlazak na Predloge
+            return;
+          }
+          // ostale rute: ponašaj se kao do sada (ako hoćeš da otvara i njih)
+          // nav(target, { replace: false });
         } else {
+          // drugi domen — fallback
           window.location.href = u.toString();
         }
       } catch {
-        nav(url);
+        // ako je stigla “čudna” vrednost, pokušaj kao SPA rutu
+        if (urlStr.startsWith("/ponudjeni/")) {
+          nav(urlStr, { replace: false });
+          return;
+        }
+        // nav(urlStr);
       }
     });
 
-    // Poruke iz service workera (ako ih koristiš negde drugde)
+    // Poruke iz service workera (klik iz background-a) — ostaje isto
     const onMsg = (e) => {
       const route = e?.data?.__OPEN_ROUTE__;
       if (!route) return;
+      const r = route.startsWith("#/") ? route.slice(1) : route;
       try {
-        const u = new URL(route, window.location.origin);
+        const u = new URL(r, window.location.origin);
         if (u.origin === window.location.origin) {
           nav(u.pathname + u.search + u.hash);
         } else {
           window.location.href = u.toString();
         }
       } catch {
-        nav(route);
+        nav(r);
       }
     };
+
     navigator.serviceWorker?.addEventListener?.("message", onMsg);
     window.addEventListener("message", onMsg);
 

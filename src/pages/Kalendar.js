@@ -12,7 +12,7 @@ import "./Kalendar.css";
 import { useNavigate } from "react-router-dom";
 
 // ⬇⬇⬇ formatiranje nedelje i vremena
-import { format, addDays } from "date-fns";
+import { format, addDays, startOfWeek } from "date-fns";
 import { sr } from "date-fns/locale";
 
 // 1) Dodata "Nedelja"
@@ -98,8 +98,6 @@ const Kalendar = () => {
       const endOfWeek = new Date(baseMonday);
       endOfWeek.setDate(endOfWeek.getDate() + 6);
       endOfWeek.setHours(23, 59, 59, 999);
-
-      const sada = new Date();
 
       const filtrirani = sviRelevantni.filter((t) => {
         const start = new Date(t.start?.toDate ? t.start.toDate() : t.start);
@@ -275,12 +273,19 @@ const Kalendar = () => {
         .toLowerCase()
         .replace(/^./, (c) => c.toUpperCase());
 
-      // (opciono) lepa lista vremena
-      // const niceTimes = pickedDates
-      //   .map((d) => format(d, "EEE dd.MM HH:mm", { locale: sr }))
-      //   .join(", ");
+      // ➕ IZRAČUNAJ WEEK OFFSET ZA ADMIN KALENDAR
+      const baseMondayToday = startOfWeek(new Date(), { weekStartsOn: 1 });
+      baseMondayToday.setHours(0, 0, 0, 0);
 
-      // notifikacija Maši sa nedeljom + deep-link na tu nedelju
+      const mondayLocal = new Date(monday);
+      mondayLocal.setHours(0, 0, 0, 0);
+
+      const diffDays = Math.round(
+        (mondayLocal.getTime() - baseMondayToday.getTime()) / 86400000
+      );
+      const weekOffset = Math.trunc(diffDays / 7);
+
+      // notifikacija Maši sa nedeljom + deep-link na tu nedelju (preko weekOffset)
       await fetch("https://notifikacija-api.vercel.app/api/posalji-notifikaciju", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -288,9 +293,9 @@ const Kalendar = () => {
           korisnickoIme: "masa",
           title: "📅 Novi izbor termina",
           body: `${displayName} je poslala predloge — ${weekTextPretty}.`,
-          click_action: `/admin/kalendar?week=${mondayISO}`,
-          url: `/admin/kalendar?week=${mondayISO}`,
-          link: `/admin/kalendar?week=${mondayISO}`,
+          click_action: `/admin/kalendar?weekOffset=${weekOffset}`,
+          url: `/admin/kalendar?weekOffset=${weekOffset}`,
+          link: `/admin/kalendar?weekOffset=${weekOffset}`,
         }),
       });
 

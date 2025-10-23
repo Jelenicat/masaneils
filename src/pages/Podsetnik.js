@@ -1,9 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  db,
-  refreshFcmToken,
-  onMessageListener,
-} from "../firebase";
+import { db, refreshFcmToken, onMessageListener } from "../firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import "./Podsetnik.css";
@@ -14,29 +10,47 @@ const Podsetnik = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // 🚨 Postavljamo masa kao lokalno korisničko ime (radi tokena)
+    // ✅ Postavljamo admin korisnika (masa)
     localStorage.setItem("korisnickoIme", "masa");
 
-    // 🔄 Osvetli token ako nije već u localStorage
-    refreshFcmToken();
+    // ✅ Osvežavanje FCM tokena
+    try {
+      refreshFcmToken();
+    } catch (err) {
+      console.error("Greška pri refreshFcmToken:", err);
+    }
 
-    // 🎧 Slušanje poruka dok je aplikacija otvorena
-onMessageListener().then((payload) => {
-  console.log("📩 Primljena notifikacija dok je tab otvoren:", payload);
+    // ✅ Slušanje poruka dok je aplikacija otvorena
+    let unsubscribe;
+    try {
+      unsubscribe = onMessageListener((payload) => {
+        console.log("📩 Primljena notifikacija (foreground):", payload);
 
-  // Prikazujemo nativnu notifikaciju
-  const notification = new Notification(payload.notification.title, {
-    body: payload.notification.body,
-  });
+        const title = payload?.notification?.title || "Obaveštenje";
+        const body = payload?.notification?.body || "";
 
-  // Kada korisnik klikne na notifikaciju, preusmeri ga
-  notification.onclick = () => {
-    window.focus(); // Fokus na prozor ako je u pozadini
-    navigate("/podsetnici");
-  };
-});
+        // 🔔 Prikaz notifikacije samo ako je dozvoljeno
+        if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+          const notif = new Notification(title, { body });
+          notif.onclick = () => {
+            window.focus();
+            navigate("/admin/podsetnik");
+          };
+        } else {
+          // fallback ako nije dozvoljeno
+          alert(`${title}${body ? " — " + body : ""}`);
+          navigate("/admin/podsetnik");
+        }
+      });
+    } catch (error) {
+      console.error("Greška u onMessageListener:", error);
+    }
 
-  }, []);
+    // 🧹 cleanup
+    return () => {
+      if (typeof unsubscribe === "function") unsubscribe();
+    };
+  }, [navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -44,7 +58,7 @@ onMessageListener().then((payload) => {
     const token = localStorage.getItem("fcmToken");
 
     if (!token) {
-      alert("❌ Nije pronađen FCM token. Proveri da li si dozvolila notifikacije.");
+      alert("❌ Nije pronađen FCM token. Proveri da li su notifikacije dozvoljene.");
       return;
     }
 
@@ -71,6 +85,7 @@ onMessageListener().then((payload) => {
     <div className="podsetnik-page">
       <form className="podsetnik-form" onSubmit={handleSubmit}>
         <h1>Dodaj novi podsetnik</h1>
+
         <input
           type="text"
           placeholder="Naslov"
@@ -78,13 +93,16 @@ onMessageListener().then((payload) => {
           onChange={(e) => setNaslov(e.target.value)}
           required
         />
+
         <textarea
           placeholder="Opis"
           value={opis}
           onChange={(e) => setOpis(e.target.value)}
           required
         />
+
         <button type="submit">Sačuvaj</button>
+
         <button
           type="button"
           className="nazad-dugme"

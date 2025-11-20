@@ -200,7 +200,7 @@ const Kalendar = () => {
         return;
       }
 
-      if (start.getHours() >= 15) {
+      if (start.getHours() >= 17) {
         toast.warn("Jutarnja smena može birati samo termine pre 15h.");
         return;
       }

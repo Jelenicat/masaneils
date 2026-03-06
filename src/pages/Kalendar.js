@@ -115,7 +115,7 @@ const Kalendar = () => {
 
           if (smena === "jutro") {
             // jutro vidi samo termine pre 15h
-            return localHour < 15;
+            return localHour < 16;
           }
 
           if (smena === "popodne") {
